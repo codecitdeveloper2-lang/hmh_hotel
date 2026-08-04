@@ -154,29 +154,41 @@ class ManageBrands extends Page
         return [
             Grid::make(3)->schema([
                 Grid::make(1)->schema([
-                    Section::make('General')->schema([
-                        TextInput::make('name')->required()->label('Brand Name')
-                            ->live(onBlur: true)
-                            ->afterStateUpdated(fn (?string $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state ?? ''))),
-                        TextInput::make('slug')->required()->label('Slug'),
-                        TextInput::make('tagline')->label('Tagline'),
-                        TextInput::make('google_location')->label('Google Location URL')->url(),
-                        \App\Filament\Forms\Components\JoditEditor::make('description')->label('Description')->columnSpanFull(),
-                        Select::make('star_segment')
-                            ->options([
-                                'Economy' => 'Economy',
-                                'Midscale' => 'Midscale',
-                                'Premium' => 'Premium',
-                                'Luxury' => 'Luxury',
-                            ])
-                            ->required()
-                            ->label('Star Segment'),
-                        FileUpload::make('logo')->label('Brand Logo (Placeholder)')->image(),
-                    ]),
-                    Section::make('Brand Intro')->schema([
-                        TextInput::make('intro_subtitle')->label('Intro Subtitle (e.g. Urban Comfort)'),
-                        TextInput::make('intro_title')->label('Intro Title (e.g. Welcome to Corp Hotels)'),
-                        \App\Filament\Forms\Components\JoditEditor::make('intro_text')->label('Intro Text')->columnSpanFull(),
+                    \Filament\Schemas\Components\Tabs::make('Brand Tabs')->tabs([
+                        \Filament\Schemas\Components\Tabs\Tab::make('General Details')->schema([
+                            Section::make('General')->schema([
+                                TextInput::make('name')->required()->label('Brand Name')
+                                    ->live(onBlur: true)
+                                    ->afterStateUpdated(fn (?string $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                TextInput::make('slug')->required()->label('Slug'),
+                                TextInput::make('tagline')->label('Tagline'),
+                                TextInput::make('google_location')->label('Google Location URL')->url(),
+                                TextInput::make('location_title')->label('Location Title (e.g. WHERE WE ARE)'),
+                                TextInput::make('contact_button_text')->label('Contact Button Text (e.g. CONTACT US)'),
+                                TextInput::make('contact_button_url')->label('Contact Button URL')->url(),
+                                Select::make('star_segment')
+                                    ->options([
+                                        'Economy' => 'Economy',
+                                        'Midscale' => 'Midscale',
+                                        'Premium' => 'Premium',
+                                        'Luxury' => 'Luxury',
+                                    ])
+                                    ->required()
+                                    ->label('Star Segment'),
+                                FileUpload::make('logo')->label('Brand Logo (Placeholder)')->image(),
+                            ]),
+                            Section::make('Brand Intro')->schema([
+                                TextInput::make('intro_subtitle')->label('Intro Subtitle (e.g. Urban Comfort)'),
+                                TextInput::make('intro_title')->label('Intro Title (e.g. Welcome to Corp Hotels)'),
+                                \App\Filament\Forms\Components\JoditEditor::make('intro_text')->label('Intro Text')->columnSpanFull(),
+                            ]),
+                        ]),
+                        \Filament\Schemas\Components\Tabs\Tab::make('Banner')->schema([
+                            Section::make('Banner')->schema([
+                                TextInput::make('banner_title')->label('Banner Title'),
+                                FileUpload::make('banner_images')->label('Banner Images')->image()->multiple()->columnSpanFull(),
+                            ]),
+                        ]),
                     ]),
                 ])->columnSpan(2),
                 

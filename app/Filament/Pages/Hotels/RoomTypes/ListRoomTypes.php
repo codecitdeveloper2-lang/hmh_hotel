@@ -159,12 +159,16 @@ class ListRoomTypes extends Page
                             Select::make('hotel')
                                 ->label('Hotel')
                                 ->options([
+                                    '1' => 'Bahi Ajman Palace Hotel',
                                     'coral-beach-resort-sharjah' => 'Coral Beach Resort Sharjah',
                                     'coral-dubai-deira-hotel' => 'Coral Dubai Deira Hotel',
                                     'ecos-dubai-hotel' => 'ECOS Dubai Hotel',
                                     'ewa-hotel-apartments' => 'EWA Hotel Apartments',
                                     'opera-hotel' => 'Opera Hotel',
                                 ])
+                                ->default(fn () => request()->route('record') ?? '1')
+                                ->disabled()
+                                ->dehydrated()
                                 ->required(),
                             TextInput::make('name')
                                 ->label('Room Name')
@@ -184,6 +188,26 @@ class ListRoomTypes extends Page
                                 ])
                                 ->default('active')
                                 ->required(),
+                        ]),
+                        
+                    Section::make('Card / Listing Details')
+                        ->schema([
+
+                            Grid::make(2)->schema([
+                                TextInput::make('read_more_label')
+                                    ->label('Read More Label')
+                                    ->default('READ MORE'),
+                                TextInput::make('read_more_link')
+                                    ->label('Read More Link (Optional)'),
+                            ]),
+                            Grid::make(2)->schema([
+                                TextInput::make('book_now_label')
+                                    ->label('Book Now Label')
+                                    ->default('BOOK NOW'),
+                                TextInput::make('book_now_link')
+                                    ->label('Book Now Link (Optional)')
+                                    ->url(),
+                            ]),
                         ]),
                         
                     Section::make('Room Details')

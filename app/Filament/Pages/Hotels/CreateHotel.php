@@ -21,6 +21,11 @@ class CreateHotel extends Page implements HasForms
         $this->form->fill();
     }
 
+    public function getSubNavigation(): array
+    {
+        return [];
+    }
+
     public function form($form)
     {
         return $form->schema(\App\Filament\Pages\ManageHotels::getHotelFormSchema())->statePath('data');
@@ -37,10 +42,5 @@ class CreateHotel extends Page implements HasForms
     public function getMaxContentWidth(): ?string
     {
         return 'full';
-    }
-
-    public function getSubNavigation(): array
-    {
-        return [];
     }
 }

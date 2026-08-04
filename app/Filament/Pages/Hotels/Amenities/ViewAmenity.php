@@ -33,7 +33,7 @@ class ViewAmenity extends Page implements HasForms
         return [];
     }
 
-    public function form(Form $form): Form
+    public function form($form)
     {
         return $form->schema(\App\Filament\Pages\Hotels\Amenities\ListAmenities::getAmenityFormSchema())->disabled()->statePath('data');
     }

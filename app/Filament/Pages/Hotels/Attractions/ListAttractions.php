@@ -159,12 +159,16 @@ class ListAttractions extends Page
                             Select::make('hotel')
                                 ->label('Hotel')
                                 ->options([
+                                    '1' => 'Bahi Ajman Palace Hotel',
                                     'coral-beach-resort-sharjah' => 'Coral Beach Resort Sharjah',
                                     'coral-dubai-deira-hotel' => 'Coral Dubai Deira Hotel',
                                     'ecos-dubai-hotel' => 'ECOS Dubai Hotel',
                                     'ewa-hotel-apartments' => 'EWA Hotel Apartments',
                                     'opera-hotel' => 'Opera Hotel',
                                 ])
+                                ->default(fn () => request()->route('record') ?? '1')
+                                ->disabled()
+                                ->dehydrated()
                                 ->required(),
                             TextInput::make('name')
                                 ->label('Attraction Name')

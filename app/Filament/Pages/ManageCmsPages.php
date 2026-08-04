@@ -156,121 +156,133 @@ class ManageCmsPages extends Page
     {
         return [
             Grid::make(3)->schema([
-                    \Filament\Schemas\Components\Tabs::make('Content Tabs')
-                        ->tabs([
-                            \Filament\Schemas\Components\Tabs\Tab::make('General Content')
-                                ->schema([
-                                    Section::make('Basic Information')
-                                        ->schema([
-                                            Grid::make(2)->schema([
-                                                TextInput::make('title')
-                                                    ->label('Page Title')
-                                                    ->required()
-                                                    ->live(onBlur: true)
-                                                    ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
-                                                TextInput::make('slug')
-                                                    ->label('URL Slug')
-                                                    ->required(),
-                                            ]),
-                                            Grid::make(3)->schema([
-                                                Select::make('page_type')
-                                                    ->label('Page Type')
-                                                    ->options([
-                                                        'Standard' => 'Standard',
-                                                        'Landing Page' => 'Landing Page',
-                                                        'Legal' => 'Legal',
-                                                    ])
-                                                    ->required(),
-                                                Select::make('status')
-                                                    ->label('Status')
-                                                    ->options([
-                                                        'Published' => 'Published',
-                                                        'Draft' => 'Draft',
-                                                    ])
-                                                    ->default('Published')
-                                                    ->required(),
-                                                TextInput::make('display_order')
-                                                    ->label('Display Order')
-                                                    ->numeric(),
-                                            ]),
-                                        ]),
+                    Grid::make(1)->schema([
+                        Section::make('Basic Information')
+                            ->schema([
+                                Grid::make(2)->schema([
+                                    TextInput::make('title')
+                                        ->label('Page Title')
+                                        ->required()
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                    TextInput::make('slug')
+                                        ->label('URL Slug')
+                                        ->required(),
+                                ]),
+                                Grid::make(3)->schema([
+                                    Select::make('page_type')
+                                        ->label('Page Type')
+                                        ->options([
+                                            'Standard' => 'Standard',
+                                            'Landing Page' => 'Landing Page',
+                                            'Legal' => 'Legal',
+                                        ])
+                                        ->required(),
+                                    Select::make('status')
+                                        ->label('Status')
+                                        ->options([
+                                            'Published' => 'Published',
+                                            'Draft' => 'Draft',
+                                        ])
+                                        ->default('Published')
+                                        ->required(),
+                                    TextInput::make('display_order')
+                                        ->label('Display Order')
+                                        ->numeric(),
+                                ]),
+                            ]),
 
-                                    Section::make('Banner Section')
-                                        ->schema([
-                                            TextInput::make('banner_title')
-                                                ->label('Banner Title'),
-                                            FileUpload::make('banner_image')
-                                                ->label('Banner Image Upload')
-                                                ->image()
-                                                ->multiple(),
-                                        ]),
-                                        
-                                    Section::make('Content')
-                                        ->schema([
-                                            \App\Filament\Forms\Components\JoditEditor::make('content')
-                                                ->label('Rich Text Editor'),
-                                            Grid::make(2)->schema([
-                                                TextInput::make('cta_text')
-                                                    ->label('CTA Button Text'),
-                                                TextInput::make('cta_link')
-                                                    ->label('CTA Button Link')
-                                                    ->url(),
-                                            ]),
-                                        ]),
+                        Section::make('Banner Section')
+                            ->schema([
+                                \Filament\Forms\Components\Repeater::make('banner_slides')
+                                    ->label('Banner Slides')
+                                    ->schema([
+                                        FileUpload::make('image')
+                                            ->label('Background Image')
+                                            ->image()
+                                            ->required(),
+                                        TextInput::make('title')
+                                            ->label('Slide Title (Optional)'),
+                                        TextInput::make('button_text')
+                                            ->label('Button Text (Optional)'),
+                                        TextInput::make('button_link')
+                                            ->label('Button Link (Optional)')
+                                            ->url(),
+                                    ])
+                                    ->defaultItems(1)
+                                    ->collapsible()
+                                    ->cloneable()
+                                    ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Slide'),
+                            ]),
+                            
+                        Section::make('Content')
+                            ->schema([
+                                TextInput::make('content_title')
+                                    ->label('Section Title (Optional)'),
+                                \App\Filament\Forms\Components\JoditEditor::make('content')
+                                    ->label('Rich Text Editor (Description)'),
+                                Grid::make(2)->schema([
+                                    TextInput::make('cta_text')
+                                        ->label('Button Text'),
+                                    TextInput::make('cta_link')
+                                        ->label('Button Link')
+                                        ->url(),
                                 ]),
-                                
-                            \Filament\Schemas\Components\Tabs\Tab::make('About Us Settings')
-                                ->schema([
-                                    Section::make('Intro Section')
-                                        ->schema([
-                                            TextInput::make('intro_subtitle')
-                                                ->label('Intro Subtitle (e.g. Hospitality Management Holding)'),
-                                            TextInput::make('intro_title')
-                                                ->label('Intro Title (e.g. Get To Know)'),
-                                            Textarea::make('intro_text')
-                                                ->label('Intro Text')
-                                                ->rows(4),
-                                        ]),
-                                    Section::make('Expansion Section')
-                                        ->schema([
-                                            FileUpload::make('expansion_image')
-                                                ->label('Side Image')
-                                                ->image(),
-                                            \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
-                                                ->label('Expansion Text'),
-                                        ]),
-                                    Section::make('Our Vision')
-                                        ->schema([
-                                            Textarea::make('our_vision_text')
-                                                ->label('Vision Text')
-                                                ->rows(4),
-                                            FileUpload::make('our_vision_image')
-                                                ->label('Vision Image')
-                                                ->image(),
-                                        ]),
-                                    Section::make('Our Mission')
-                                        ->schema([
-                                            Textarea::make('our_mission_text')
-                                                ->label('Mission Text')
-                                                ->rows(4),
-                                            FileUpload::make('our_mission_image')
-                                                ->label('Mission Image')
-                                                ->image(),
-                                        ]),
-                                    Section::make('Values & Culture')
-                                        ->schema([
-                                            Textarea::make('our_values')
-                                                ->label('Our Values')
-                                                ->rows(5),
-                                            Textarea::make('our_culture')
-                                                ->label('Our Culture')
-                                                ->rows(5),
-                                            Textarea::make('our_promise')
-                                                ->label('Our Promise')
-                                                ->rows(5),
-                                        ])->columns(3),
-                                ]),
-                        ])->columnSpan(2),
+                            ]),
+                            
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'about-us')
+                            ->schema([
+                                Section::make('Intro Section')
+                                    ->schema([
+                                        TextInput::make('intro_subtitle')
+                                            ->label('Intro Subtitle (e.g. Hospitality Management Holding)'),
+                                        TextInput::make('intro_title')
+                                            ->label('Intro Title (e.g. Get To Know)'),
+                                        Textarea::make('intro_text')
+                                            ->label('Intro Text')
+                                            ->rows(4),
+                                    ]),
+                                Section::make('Expansion Section')
+                                    ->schema([
+                                        FileUpload::make('expansion_image')
+                                            ->label('Side Image')
+                                            ->image(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
+                                            ->label('Expansion Text'),
+                                    ]),
+                                Section::make('Our Vision')
+                                    ->schema([
+                                        Textarea::make('our_vision_text')
+                                            ->label('Vision Text')
+                                            ->rows(4),
+                                        FileUpload::make('our_vision_image')
+                                            ->label('Vision Image')
+                                            ->image(),
+                                    ]),
+                                Section::make('Our Mission')
+                                    ->schema([
+                                        Textarea::make('our_mission_text')
+                                            ->label('Mission Text')
+                                            ->rows(4),
+                                        FileUpload::make('our_mission_image')
+                                            ->label('Mission Image')
+                                            ->image(),
+                                    ]),
+                                Section::make('Values & Culture')
+                                    ->schema([
+                                        Textarea::make('our_values')
+                                            ->label('Our Values')
+                                            ->rows(5),
+                                        Textarea::make('our_culture')
+                                            ->label('Our Culture')
+                                            ->rows(5),
+                                        Textarea::make('our_promise')
+                                            ->label('Our Promise')
+                                            ->rows(5),
+                                    ])->columns(3),
+                            ]),
+                    ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
                     Section::make('Page Settings')

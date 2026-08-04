@@ -71,26 +71,6 @@
                     </div>
                 </div>
 
-                {{-- Divider --}}
-                <div style="width:1px; height:2rem; background:rgba(99,102,241,0.2); flex-shrink:0;"></div>
-
-                {{-- View toggle --}}
-                <div style="display:flex; gap:0.35rem; background:rgba(99,102,241,0.08); border-radius:0.6rem; padding:0.25rem; flex-shrink:0;">
-                    <button
-                        wire:click="$set('viewType', 'table')"
-                        title="Table View"
-                        style="display:flex; align-items:center; justify-content:center; width:2rem; height:2rem; border-radius:0.4rem; border:none; cursor:pointer; transition:all 0.2s; {{ $viewType === 'table' ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; box-shadow:0 2px 8px rgba(99,102,241,0.4);' : 'background:transparent; color:rgba(99,102,241,0.6);' }}"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
-                    </button>
-                    <button
-                        wire:click="$set('viewType', 'grid')"
-                        title="Grid View"
-                        style="display:flex; align-items:center; justify-content:center; width:2rem; height:2rem; border-radius:0.4rem; border:none; cursor:pointer; transition:all 0.2s; {{ $viewType === 'grid' ? 'background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; box-shadow:0 2px 8px rgba(99,102,241,0.4);' : 'background:transparent; color:rgba(99,102,241,0.6);' }}"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/></svg>
-                    </button>
-                </div>
 
             </div>
         </div>
@@ -112,9 +92,9 @@
         @endphp
 
         @if($viewType === 'table')
-            <div class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-                <div style="width: 100%; min-width: 100%;" class="divide-y divide-gray-200 overflow-x-auto dark:divide-white/10">
-                    <table style="width: 100%; min-width: 100%; display: table;" class="fi-ta-table text-start divide-y divide-gray-200 dark:divide-white/5">
+            <div class="fi-ta-ctn rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-visible">
+                <div style="width: 100%; min-width: 100%;" class="divide-y divide-gray-200 dark:divide-white/10 overflow-visible">
+                    <table style="width: 100%; min-width: 100%; display: table;" class="fi-ta-table text-start divide-y divide-gray-200 dark:divide-white/5 overflow-visible">
                         <thead class="bg-gray-50 dark:bg-white/5">
                             <tr>
                                 <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Thumbnail</th>
@@ -158,7 +138,7 @@
                                         {{ $amenity['last_updated'] }}
                                     </td>
                                     <td style="padding: 1rem 1.5rem; text-align: right;">
-                                        <x-filament::dropdown placement="bottom-end">
+                                        <x-filament::dropdown placement="bottom-end" teleport>
                                             <x-slot name="trigger">
                                                 <x-filament::icon-button
                                                     icon="heroicon-m-ellipsis-vertical"

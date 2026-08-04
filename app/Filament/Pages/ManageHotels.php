@@ -157,72 +157,115 @@ class ManageHotels extends Page
     {
         return [
             Grid::make(3)->schema([
-                Grid::make(1)->schema([
-                    Section::make('Basic Information')
-                        ->schema([
-                            TextInput::make('name')
-                                ->label('Hotel Name')
-                                ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
-                            Select::make('brand')
-                                ->label('Brand')
-                                ->options([
-                                    'coral-hotels-resorts' => 'Coral Hotels & Resorts',
-                                    'ecos-hotels' => 'ECOS Hotels',
-                                    'ewa-hotel-apartments' => 'EWA Hotel Apartments',
-                                    'hmh-hotels' => 'HMH Hotels',
-                                    'opera-hotel' => 'Opera Hotel',
-                                ])
-                                ->required(),
-                            TextInput::make('slug')
-                                ->label('Slug')
-                                ->required(),
-                            \App\Filament\Forms\Components\JoditEditor::make('description')
-                                ->label('Description'),
-                            Select::make('star_rating')
-                                ->label('Star Rating')
-                                ->options([
-                                    '1' => '1 Star',
-                                    '2' => '2 Stars',
-                                    '3' => '3 Stars',
-                                    '4' => '4 Stars',
-                                    '5' => '5 Stars',
-                                ])
-                                ->required(),
-                            Select::make('status')
-                                ->label('Status')
-                                ->options([
-                                    'live' => 'Live',
-                                    'coming-soon' => 'Coming Soon',
-                                    'closed' => 'Closed',
-                                ])
-                                ->default('live')
-                                ->required(),
-                        ]),
-                        
-                    Section::make('Location')
-                        ->schema([
-                            Textarea::make('address')
-                                ->label('Address')
-                                ->rows(2)
-                                ->required(),
-                            Grid::make(2)->schema([
-                                TextInput::make('country')
-                                    ->label('Country')
-                                    ->required(),
-                                TextInput::make('city')
-                                    ->label('City')
-                                    ->required(),
+                \Filament\Schemas\Components\Tabs::make('Main Tabs')
+                    ->tabs([
+                        \Filament\Schemas\Components\Tabs\Tab::make('General Information')
+                            ->schema([
+                                Section::make('Basic Information')
+                                    ->schema([
+                                        TextInput::make('name')
+                                            ->label('Hotel Name')
+                                            ->required()
+                                            ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Pages\Hotels\EditHotel)
+                                            ->dehydrated()
+                                            ->live(onBlur: true)
+                                            ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                        Select::make('brand')
+                                            ->label('Brand')
+                                            ->options([
+                                                'coral-hotels-resorts' => 'Coral Hotels & Resorts',
+                                                'ecos-hotels' => 'ECOS Hotels',
+                                                'ewa-hotel-apartments' => 'EWA Hotel Apartments',
+                                                'hmh-hotels' => 'HMH Hotels',
+                                                'opera-hotel' => 'Opera Hotel',
+                                            ])
+                                            ->required(),
+                                        TextInput::make('slug')
+                                            ->label('Slug')
+                                            ->required(),
+                                        Select::make('star_rating')
+                                            ->label('Star Rating')
+                                            ->options([
+                                                '1' => '1 Star',
+                                                '2' => '2 Stars',
+                                                '3' => '3 Stars',
+                                                '4' => '4 Stars',
+                                                '5' => '5 Stars',
+                                            ])
+                                            ->required(),
+                                        Select::make('status')
+                                            ->label('Status')
+                                            ->options([
+                                                'live' => 'Live',
+                                                'coming-soon' => 'Coming Soon',
+                                                'closed' => 'Closed',
+                                            ])
+                                            ->default('live')
+                                            ->required(),
+                                        Toggle::make('is_featured')
+                                            ->label('Featured on Home Page')
+                                            ->default(false),
+                                    ]),
+                                    
+                                Section::make('Hotel Intro')
+                                    ->schema([
+                                        TextInput::make('intro_subtitle')
+                                            ->label('Intro Subtitle (e.g. IMPECCABLY PLUSH)'),
+                                        TextInput::make('intro_title')
+                                            ->label('Intro Title (e.g. WELCOME TO BAHI AJMAN PALACE HOTEL)'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('description')
+                                            ->label('Description (Intro Text)'),
+                                    ]),
+                                    
+                                Section::make('Location')
+                                    ->schema([
+                                        Textarea::make('address')
+                                            ->label('Address')
+                                            ->rows(2)
+                                            ->required(),
+                                        Grid::make(2)->schema([
+                                            TextInput::make('country')
+                                                ->label('Country')
+                                                ->required(),
+                                            TextInput::make('city')
+                                                ->label('City')
+                                                ->required(),
+                                        ]),
+                                        Grid::make(2)->schema([
+                                            TextInput::make('latitude')
+                                                ->label('Latitude'),
+                                            TextInput::make('longitude')
+                                                ->label('Longitude'),
+                                        ]),
+                                    ]),
                             ]),
-                            Grid::make(2)->schema([
-                                TextInput::make('latitude')
-                                    ->label('Latitude'),
-                                TextInput::make('longitude')
-                                    ->label('Longitude'),
+                            
+                        \Filament\Schemas\Components\Tabs\Tab::make('Banner')
+                            ->schema([
+                                Section::make('Banner Section')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('banner_slides')
+                                            ->label('Banner Slides')
+                                            ->schema([
+                                                FileUpload::make('image')
+                                                    ->label('Background Image')
+                                                    ->image()
+                                                    ->required(),
+                                                TextInput::make('title')
+                                                    ->label('Slide Title (Optional)'),
+                                                TextInput::make('button_text')
+                                                    ->label('Button Text (Optional)'),
+                                                TextInput::make('button_link')
+                                                    ->label('Button Link (Optional)')
+                                                    ->url(),
+                                            ])
+                                            ->defaultItems(1)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Slide'),
+                                    ]),
                             ]),
-                        ]),
-                ])->columnSpan(2),
+                    ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
                     Section::make('Media')

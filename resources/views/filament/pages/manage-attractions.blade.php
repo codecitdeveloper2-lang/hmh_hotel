@@ -45,7 +45,7 @@
                                 {{ $attraction['last_updated'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem; text-align: right;">
-                                <x-filament::dropdown placement="bottom-end">
+                                <x-filament::dropdown placement="bottom-end" teleport>
                                     <x-slot name="trigger">
                                         <x-filament::icon-button
                                             icon="heroicon-m-ellipsis-vertical"

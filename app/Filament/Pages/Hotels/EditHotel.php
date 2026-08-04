@@ -24,6 +24,11 @@ class EditHotel extends Page implements HasForms
         $this->data = $mockData[$this->record] ?? [];
     }
 
+    public function getSubNavigation(): array
+    {
+        return [];
+    }
+
     public function form($form)
     {
         return $form->schema(\App\Filament\Pages\ManageHotels::getHotelFormSchema())->statePath('data');
