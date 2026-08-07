@@ -1,10 +1,10 @@
 <?php
 namespace App\Filament\Pages\Destinations;
 
+use App\Models\Destination;
 use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
-use Filament\Forms\Form;
 
 class ViewDestination extends Page implements HasForms
 {
@@ -20,13 +20,20 @@ class ViewDestination extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageDestinations::getMockDestinations();
-        $this->data = $mockData[$this->record] ?? [];
+        $this->data = \App\Filament\Pages\ManageDestinations::getDestinationFormData($this->record);
+        abort_if(empty($this->data), 404);
+
+        $this->form->fill($this->data);
     }
 
     public function form($form)
     {
-        return $form->schema(\App\Filament\Pages\ManageDestinations::getDestinationFormSchema())->disabled()->statePath('data');
+        return $form
+            ->schema(\App\Filament\Pages\ManageDestinations::getDestinationFormSchema())
+            ->model(Destination::class)
+            ->record($this->record ? Destination::find($this->record) : null)
+            ->disabled()
+            ->statePath('data');
     }
     
     public function getBackUrl(): string { return \App\Filament\Pages\ManageDestinations::getUrl(); }
