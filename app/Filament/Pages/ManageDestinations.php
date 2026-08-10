@@ -224,7 +224,7 @@ class ManageDestinations extends Page
             ->with(['cities', 'seoMetadata', 'media'])
             ->find($record);
 
-        if (! $destination) {
+        if (!$destination) {
             return [];
         }
 
@@ -279,20 +279,17 @@ class ManageDestinations extends Page
                                     'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'
                                 ]),
 
-                            \Filament\Forms\Components\Placeholder::make('spacer')
-                                ->hiddenLabel()
-                                ->content(new \Illuminate\Support\HtmlString('<div style="height: 10px;"></div>')),
 
                             TextInput::make('name.en')
                                 ->label('Destination Name')
-                                ->required(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en')
-                                ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en')
+                                ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en')
+                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en')
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(fn(string $operation, $state, $set) => $set('slug', Str::slug($state))),
                             TextInput::make('name.ar')
                                 ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Destination Name (AR)</div>'))
-                                ->required(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
-                                ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
+                                ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
+                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
                                 ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;']),
                             TextInput::make('slug')
                                 ->label('Slug')
@@ -309,10 +306,10 @@ class ManageDestinations extends Page
                                 ->required(),
                             \App\Filament\Forms\Components\JoditEditor::make('description.en')
                                 ->label('Description')
-                                ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
+                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
                             \App\Filament\Forms\Components\JoditEditor::make('description.ar')
                                 ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Description (AR)</div>'))
-                                ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar'),
+                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar'),
                             Grid::make(2)->schema([
                                 Select::make('status')
                                     ->label('Status')
@@ -338,19 +335,19 @@ class ManageDestinations extends Page
                                     Hidden::make('id'),
                                     TextInput::make('city_name.en')
                                         ->label('City Name')
-                                        ->required(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en')
-                                        ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
+                                        ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en')
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
                                     TextInput::make('city_name.ar')
                                         ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">City Name (AR)</div>'))
-                                        ->required(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
-                                        ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
+                                        ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
                                         ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;']),
                                     \App\Filament\Forms\Components\JoditEditor::make('description.en')
                                         ->label('Description')
-                                        ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
                                     \App\Filament\Forms\Components\JoditEditor::make('description.ar')
                                         ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Description (AR)</div>'))
-                                        ->hidden(fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar'),
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar'),
                                     FileUpload::make('city_image')
                                         ->label('City Image')
                                         ->image(),
