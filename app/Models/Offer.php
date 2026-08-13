@@ -20,6 +20,8 @@ class Offer extends Model implements HasMedia
     protected $fillable = [
         'name', 'description', 'terms_conditions', 'slug', 'identifier_code',
         'valid_from', 'valid_to', 'is_active', 'sort_order',
+        'hotel', 'offer_type', 'status', 'booking_period', 'banner_image',
+        'meta_title', 'meta_description', 'meta_keywords'
     ];
 
     protected $casts = [

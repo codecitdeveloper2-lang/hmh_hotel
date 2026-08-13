@@ -198,9 +198,18 @@ class ManageDestinations extends Page
                     ->first();
                 $firstBannerUrl = $firstBanner?->getUrl();
 
+                // Handle both absolute (http://...) and relative (/storage/...) URLs
+                if ($firstBannerUrl) {
+                    $bannerPath = str_starts_with($firstBannerUrl, 'http')
+                        ? parse_url($firstBannerUrl, PHP_URL_PATH)
+                        : $firstBannerUrl;
+                } else {
+                    $bannerPath = null;
+                }
+
                 return [
                     'id' => $destination->id,
-                    'name' => self::getTranslatedValue($destination, 'name') ?: 'Untitled destination',
+                    'name' => self::getEnglishValue($destination, 'name') ?: 'Untitled destination',
                     'slug' => $destination->slug,
                     'country' => $destination->country ?: 'N/A',
                     'hotels_count' => self::countHotelLabels($destination),
@@ -208,8 +217,8 @@ class ManageDestinations extends Page
                     'display_order' => $destination->sort_order,
                     'last_updated' => optional($destination->updated_at)->format('Y-m-d') ?: 'N/A',
                     'updated_at_timestamp' => optional($destination->updated_at)->timestamp ?? 0,
-                    'banner_url' => $firstBannerUrl ? parse_url($firstBannerUrl, PHP_URL_PATH) : null,
-                    'description' => self::getTranslatedValue($destination, 'description'),
+                    'banner_url' => $bannerPath,
+                    'description' => self::getEnglishValue($destination, 'description'),
                 ];
             });
     }
@@ -240,6 +249,7 @@ class ManageDestinations extends Page
             'meta_title' => $destination->seoMetadata?->meta_title,
             'meta_description' => $destination->seoMetadata?->meta_description,
             'meta_keywords' => $destination->seoMetadata?->meta_keywords,
+            'map_embed_code' => $destination->map_embed_code,
             'cities' => $destination->cities
                 ->sortBy('sort_order')
                 ->map(fn($city): array => [
@@ -275,21 +285,23 @@ class ManageDestinations extends Page
                                 ->default('en')
                                 ->grouped()
                                 ->live()
-                                ->extraAttributes([
+                                ->extraFieldWrapperAttributes([
                                     'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'
                                 ]),
-
 
                             TextInput::make('name.en')
                                 ->label('Destination Name')
                                 ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en')
                                 ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en')
+                                ->dehydratedWhenHidden()
                                 ->live(onBlur: true)
                                 ->afterStateUpdated(fn(string $operation, $state, $set) => $set('slug', Str::slug($state))),
                             TextInput::make('name.ar')
-                                ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Destination Name (AR)</div>'))
+                                ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Destination Name (AR)<sup class="text-danger-600 font-medium" style="color: rgb(220 38 38); margin-right: 0.25rem;">*</sup></div>'))
+                                ->markAsRequired(false)
                                 ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
                                 ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
+                                ->dehydratedWhenHidden()
                                 ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;']),
                             TextInput::make('slug')
                                 ->label('Slug')
@@ -306,10 +318,13 @@ class ManageDestinations extends Page
                                 ->required(),
                             \App\Filament\Forms\Components\JoditEditor::make('description.en')
                                 ->label('Description')
-                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
+                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en')
+                                ->dehydratedWhenHidden(),
                             \App\Filament\Forms\Components\JoditEditor::make('description.ar')
                                 ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Description (AR)</div>'))
-                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar'),
+                                ->direction('rtl')
+                                ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
+                                ->dehydratedWhenHidden(),
                             Grid::make(2)->schema([
                                 Select::make('status')
                                     ->label('Status')
@@ -321,7 +336,11 @@ class ManageDestinations extends Page
                                     ->required(),
                                 TextInput::make('display_order')
                                     ->label('Display Order')
-                                    ->numeric()
+                                    ->rules(['integer', 'min:0'])
+                                    ->extraInputAttributes([
+                                        'oninput' => "this.value = this.value.replace(/[^0-9]/g, '')",
+                                        'inputmode' => 'numeric',
+                                    ])
                                     ->default(0),
                             ]),
                         ]),
@@ -336,24 +355,32 @@ class ManageDestinations extends Page
                                     TextInput::make('city_name.en')
                                         ->label('City Name')
                                         ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en')
-                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en')
+                                        ->dehydratedWhenHidden(),
                                     TextInput::make('city_name.ar')
-                                        ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">City Name (AR)</div>'))
+                                        ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">City Name (AR)<sup class="text-danger-600 font-medium" style="color: rgb(220 38 38); margin-right: 0.25rem;">*</sup></div>'))
+                                        ->markAsRequired(false)
                                         ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
                                         ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
+                                        ->dehydratedWhenHidden()
                                         ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;']),
                                     \App\Filament\Forms\Components\JoditEditor::make('description.en')
                                         ->label('Description')
-                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en'),
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'en')
+                                        ->dehydratedWhenHidden(),
                                     \App\Filament\Forms\Components\JoditEditor::make('description.ar')
                                         ->label(new \Illuminate\Support\HtmlString('<div dir="rtl" style="text-align: right; width: 100%; display: block;">Description (AR)</div>'))
-                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar'),
+                                        ->direction('rtl')
+                                        ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
+                                        ->dehydratedWhenHidden(),
                                     FileUpload::make('city_image')
                                         ->label('City Image')
-                                        ->image(),
-                                    TextInput::make('city_link')
-                                        ->label('City Link')
-                                        ->url(),
+                                        ->image()
+                                        ->disk('public')
+                                        ->directory('city-images'),
+                                    // TextInput::make('city_link')
+                                    //     ->label('City Link')
+                                    //     ->url(),
                                     Select::make('layout_type')
                                         ->label('Layout Type')
                                         ->options([
@@ -363,7 +390,11 @@ class ManageDestinations extends Page
                                         ->default('image_left'),
                                     TextInput::make('sort_order')
                                         ->label('Sort Order')
-                                        ->numeric()
+                                        ->rules(['integer', 'min:0'])
+                                        ->extraInputAttributes([
+                                            'oninput' => "this.value = this.value.replace(/[^0-9]/g, '')",
+                                            'inputmode' => 'numeric',
+                                        ])
                                         ->default(0),
                                     Select::make('status')
                                         ->label('Status')
@@ -426,6 +457,20 @@ class ManageDestinations extends Page
                             TextInput::make('meta_keywords')
                                 ->label('Meta Keywords'),
                         ]),
+                        
+                    Section::make('Hotel Links')
+                        ->schema([
+                            \Filament\Forms\Components\Repeater::make('map_embed_code')
+                                ->label('Add Google Map Embed Code')
+                                ->addActionLabel('Add Map Embed')
+                                ->schema([
+                                    Textarea::make('embed_code')
+                                        ->label('Google Map Embed Code')
+                                        ->rows(3)
+                                        ->placeholder('<iframe src="https://www.google.com/maps/embed?..."></iframe>')
+                                        ->required(),
+                                ]),
+                        ]),
                 ])->columnSpan(1),
             ]),
         ];
@@ -445,21 +490,27 @@ class ManageDestinations extends Page
         });
     }
 
-    protected static function getTranslatedValue($model, string $attribute): string
+    protected static function getEnglishValue($model, string $attribute): string
     {
-        $value = null;
+        $translations = [];
 
-        if (method_exists($model, 'getTranslation')) {
-            $value = $model->getTranslation($attribute, app()->getLocale(), false);
-            $value = filled($value) ? $value : $model->getTranslation($attribute, 'en', false);
+        if (method_exists($model, 'getTranslations')) {
+            $translations = $model->getTranslations($attribute);
         }
 
-        $value = filled($value) ? $value : $model->{$attribute};
-
-        if (is_array($value)) {
-            return (string) ($value['en'] ?? collect($value)->first() ?? '');
+        if (filled($translations['en'] ?? null)) {
+            return (string) $translations['en'];
         }
 
-        return (string) ($value ?? '');
+        $rawValue = $model->getRawOriginal($attribute);
+
+        if (is_string($rawValue)) {
+            $decoded = json_decode($rawValue, true);
+            if (is_array($decoded)) {
+                return (string) ($decoded['en'] ?? '');
+            }
+        }
+
+        return '';
     }
 }

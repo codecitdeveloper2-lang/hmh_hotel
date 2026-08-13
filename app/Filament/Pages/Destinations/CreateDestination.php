@@ -41,6 +41,7 @@ class CreateDestination extends Page implements HasForms
             'country' => $data['country'] ?? null,
             'is_active' => ($data['status'] ?? 'Active') === 'Active',
             'sort_order' => $data['display_order'] ?? 0,
+            'map_embed_code' => $data['map_embed_code'] ?? null,
         ]);
 
         if (isset($data['cities']) && is_array($data['cities'])) {
@@ -48,8 +49,8 @@ class CreateDestination extends Page implements HasForms
                 $destination->cities()->create([
                     'name' => $cityData['city_name'],
                     'description' => $cityData['description'] ?? null,
-                    'slug' => \Illuminate\Support\Str::slug($cityData['city_name']['en'] ?? ''),
-                    'city_image' => $cityData['city_image'] ?? null,
+                    'slug' => \Illuminate\Support\Str::slug($cityData['city_name']['en'] ?? $cityData['city_name']['ar'] ?? 'city'),
+                    'city_image' => (is_string($cityData['city_image'] ?? null) && str_starts_with($cityData['city_image'], 'livewire-file:')) ? null : ($cityData['city_image'] ?? null),
                     'city_link' => $cityData['city_link'] ?? null,
                     'layout_type' => $cityData['layout_type'] ?? null,
                     'sort_order' => $cityData['sort_order'] ?? 0,

@@ -128,7 +128,7 @@
                         @forelse($destinations as $destination)
                             <tr style="border-bottom: 1px solid rgba(128,128,128,0.1); transition: background-color 0.15s ease-in-out;">
                                 <td style="padding: 1rem;">
-                                    <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                    <div style="height: 4rem; width: 8rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
                                         @if($destination['banner_url'])
                                             <img
                                                 src="{{ $destination['banner_url'] }}"
@@ -136,7 +136,7 @@
                                                 style="height: 100%; width: 100%; object-fit: cover;"
                                             />
                                         @else
-                                            <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
+                                            <x-filament::icon icon="heroicon-o-photo" style="height: 2rem; width: 2rem; opacity: 0.4;" />
                                         @endif
                                     </div>
                                 </td>

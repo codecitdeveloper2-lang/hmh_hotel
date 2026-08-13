@@ -17,7 +17,12 @@ class Destination extends Model implements HasMedia
 
     protected $translatable = ['name', 'description'];
 
-    protected $fillable = ['name', 'description', 'slug', 'country', 'is_active', 'sort_order'];
+    protected $fillable = ['name', 'description', 'slug', 'country', 'is_active', 'sort_order', 'map_embed_code'];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'map_embed_code' => 'array',
+    ];
 
     public function getSlugOptions(): SlugOptions
     {
@@ -27,6 +32,12 @@ class Destination extends Model implements HasMedia
     public function cities(): HasMany
     {
         return $this->hasMany(City::class);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('banner_images')
+            ->useDisk('public');
     }
 
     public function seoMetadata(): \Illuminate\Database\Eloquent\Relations\MorphOne
