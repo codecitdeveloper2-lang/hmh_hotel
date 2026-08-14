@@ -24,7 +24,7 @@ class ViewAmenity extends Page implements HasForms
         $this->amenity_id = $amenity_id;
         
         $mockData = \App\Filament\Pages\Hotels\Amenities\ListAmenities::getMockAmenities();
-        $this->data = $mockData[$this->amenity_id] ?? [];
+        $this->form->fill($mockData[$this->amenity_id] ?? []);
         $this->form->fill($this->data);
     }
 

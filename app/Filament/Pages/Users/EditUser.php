@@ -20,8 +20,13 @@ class EditUser extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageUsers::getMockUsers();
-        $this->data = $mockData[$this->record] ?? [];
+        $user = \App\Models\User::findOrFail($this->record);
+        $this->form->fill([
+            'full_name'     => $user->name,
+            'email'         => $user->email,
+            'employee_id'   => 'EMP-' . str_pad($user->id, 3, '0', STR_PAD_LEFT),
+            'status'        => $user->is_active ? 'Active' : 'Inactive',
+        ]);
     }
 
     public function form($form)
@@ -31,7 +36,20 @@ class EditUser extends Page implements HasForms
 
     public function save(): void
     {
-        \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
+        $data = $this->form->getState();
+        $user = \App\Models\User::findOrFail($this->record);
+
+        $updateData = [
+            'name'      => $data['full_name'] ?? $user->name,
+            'email'     => $data['email'] ?? $user->email,
+            'is_active' => ($data['status'] ?? 'Active') === 'Active',
+        ];
+        if (!empty($data['password'])) {
+            $updateData['password'] = bcrypt($data['password']);
+        }
+        $user->update($updateData);
+
+        \Filament\Notifications\Notification::make()->title('User updated successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageUsers::getUrl());
     }
 

@@ -39,14 +39,34 @@ class ManageCmsPages extends Page
         if ($this->currentPage < $lastPage) $this->currentPage++;
     }
 
-    public function previousPage(): void
+    protected function getViewData(): array
     {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
+        $query = \App\Models\Page::query();
+        
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+        
+        $pages = $query->skip(($currentPage - 1) * $this->perPage)
+                        ->take($this->perPage)
+                        ->get()
+                        ->map(function ($page) {
+                            return [
+                                'id' => $page->id,
+                                'title' => is_array($page->title) ? ($page->title['en'] ?? '') : $page->title,
+                                'page_type' => ucfirst(str_replace('-', ' ', $page->page_type)),
+                                'slug' => $page->slug,
+                                'status' => $page->is_active ? 'Published' : 'Draft',
+                                'seo_enabled' => !empty($page->meta_title),
+                                'last_updated' => $page->updated_at?->format('Y-m-d') ?? '',
+                                'show_in_main_nav' => true,
+                            ];
+                        });
+                        
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
 
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        return compact('totalItems', 'lastPage', 'currentPage', 'pages', 'from', 'to');
     }
 
         public static function getNavigationGroup(): ?string
@@ -100,6 +120,52 @@ class ManageCmsPages extends Page
                 
             ->url(\App\Filament\Pages\CmsPages\CreateCmsPage::getUrl())
             ->action(function (array $data) {
+                    $enumTypes = ['about','careers','best-rate-guarantee','sustainability','accessibility','terms-conditions','privacy-statement','newsletter','custom'];
+                    $pageType = 'custom';
+                    $slug = $data['slug'] ?? \Illuminate\Support\Str::slug($data['title'] ?? 'new-page');
+                    foreach ($enumTypes as $type) {
+                        if (strpos($slug, $type) !== false || $slug === $type || strpos($slug, str_replace('-', '', $type)) !== false) {
+                            $pageType = $type;
+                            break;
+                        }
+                    }
+                    if ($slug === 'privacy-policy') $pageType = 'privacy-statement';
+                    if ($slug === 'terms-and-conditions') $pageType = 'terms-conditions';
+                    if ($slug === 'about-us') $pageType = 'about';
+
+                    \App\Models\Page::create([
+                        'title' => ['en' => $data['title'] ?? ''],
+                        'page_type' => $pageType,
+                        'slug' => $slug,
+                        'is_active' => ($data['status'] ?? 'Published') === 'Published' ? 1 : 0,
+                        'meta_title' => ['en' => $data['meta_title'] ?? ''],
+                        'meta_description' => ['en' => $data['meta_description'] ?? ''],
+                        'body' => ['en' => json_encode([
+                            'show_in_main_nav' => $data['show_in_main_nav'] ?? true,
+                            'show_in_footer' => $data['show_in_footer'] ?? false,
+                            'allow_indexing' => $data['allow_indexing'] ?? true,
+                            'display_order' => $data['display_order'] ?? null,
+                            'banner_slides' => $data['banner_slides'] ?? [],
+                            'content_title' => $data['content_title'] ?? '',
+                            'content' => $data['content'] ?? '',
+                            'cta_text' => $data['cta_text'] ?? '',
+                            'cta_link' => $data['cta_link'] ?? '',
+                            'intro_subtitle' => $data['intro_subtitle'] ?? '',
+                            'intro_title' => $data['intro_title'] ?? '',
+                            'intro_text' => $data['intro_text'] ?? '',
+                            'expansion_image' => $data['expansion_image'] ?? '',
+                            'expansion_text' => $data['expansion_text'] ?? '',
+                            'our_vision_text' => $data['our_vision_text'] ?? '',
+                            'our_vision_image' => $data['our_vision_image'] ?? '',
+                            'our_mission_text' => $data['our_mission_text'] ?? '',
+                            'our_mission_image' => $data['our_mission_image'] ?? '',
+                            'our_values' => $data['our_values'] ?? '',
+                            'our_culture' => $data['our_culture'] ?? '',
+                            'our_promise' => $data['our_promise'] ?? '',
+                            'meta_keywords' => $data['meta_keywords'] ?? '',
+                            'canonical_url' => $data['canonical_url'] ?? '',
+                        ])],
+                    ]);
                     Notification::make()
                         ->title('Page saved successfully.')
                         ->success()
@@ -114,7 +180,56 @@ class ManageCmsPages extends Page
             ->modalHeading('View Page')
             ->modalWidth('7xl')
             ->form($this->getPageFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockPages()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $page = \App\Models\Page::find($arguments['id'] ?? null);
+                if (!$page) return [];
+                
+                $dbPageType = $page->page_type;
+                $formPageType = 'Standard';
+                if (in_array($dbPageType, ['privacy-statement', 'terms-conditions'])) {
+                    $formPageType = 'Legal';
+                } elseif ($dbPageType === 'newsletter') {
+                    $formPageType = 'Landing Page';
+                }
+
+                $bodyData = is_array($page->body) ? ($page->body['en'] ?? '') : $page->body;
+                $decodedBody = json_decode((string)$bodyData, true) ?? [];
+                if (!is_array($decodedBody)) {
+                    $decodedBody = ['content' => $bodyData];
+                }
+
+                return [
+                    'title' => is_array($page->title) ? ($page->title['en'] ?? '') : $page->title,
+                    'page_type' => $formPageType,
+                    'slug' => $page->slug,
+                    'status' => $page->is_active ? 'Published' : 'Draft',
+                    'meta_title' => is_array($page->meta_title) ? ($page->meta_title['en'] ?? '') : $page->meta_title,
+                    'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
+                    'show_in_main_nav' => $decodedBody['show_in_main_nav'] ?? true,
+                    'show_in_footer' => $decodedBody['show_in_footer'] ?? false,
+                    'allow_indexing' => $decodedBody['allow_indexing'] ?? true,
+                    'display_order' => $decodedBody['display_order'] ?? null,
+                    'banner_slides' => $decodedBody['banner_slides'] ?? [],
+                    'content_title' => $decodedBody['content_title'] ?? '',
+                    'content' => $decodedBody['content'] ?? '',
+                    'cta_text' => $decodedBody['cta_text'] ?? '',
+                    'cta_link' => $decodedBody['cta_link'] ?? '',
+                    'intro_subtitle' => $decodedBody['intro_subtitle'] ?? '',
+                    'intro_title' => $decodedBody['intro_title'] ?? '',
+                    'intro_text' => $decodedBody['intro_text'] ?? '',
+                    'expansion_image' => $decodedBody['expansion_image'] ?? '',
+                    'expansion_text' => $decodedBody['expansion_text'] ?? '',
+                    'our_vision_text' => $decodedBody['our_vision_text'] ?? '',
+                    'our_vision_image' => $decodedBody['our_vision_image'] ?? '',
+                    'our_mission_text' => $decodedBody['our_mission_text'] ?? '',
+                    'our_mission_image' => $decodedBody['our_mission_image'] ?? '',
+                    'our_values' => $decodedBody['our_values'] ?? '',
+                    'our_culture' => $decodedBody['our_culture'] ?? '',
+                    'our_promise' => $decodedBody['our_promise'] ?? '',
+                    'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
+                    'canonical_url' => $decodedBody['canonical_url'] ?? '',
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\CmsPages\ViewCmsPage::getUrl(['record' => $arguments['id'] ?? 0]))
@@ -127,10 +242,102 @@ class ManageCmsPages extends Page
             ->modalHeading('Edit Page')
             ->modalWidth('7xl')
             ->form($this->getPageFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockPages()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $page = \App\Models\Page::find($arguments['id']);
+                if (!$page) return [];
+                
+                $dbPageType = $page->page_type;
+                $formPageType = 'Standard';
+                if (in_array($dbPageType, ['privacy-statement', 'terms-conditions'])) {
+                    $formPageType = 'Legal';
+                } elseif ($dbPageType === 'newsletter') {
+                    $formPageType = 'Landing Page';
+                }
+
+                $bodyData = is_array($page->body) ? ($page->body['en'] ?? '') : $page->body;
+                $decodedBody = json_decode((string)$bodyData, true) ?? [];
+                if (!is_array($decodedBody)) {
+                    $decodedBody = ['content' => $bodyData];
+                }
+
+                return [
+                    'title' => is_array($page->title) ? ($page->title['en'] ?? '') : $page->title,
+                    'page_type' => $formPageType,
+                    'slug' => $page->slug,
+                    'status' => $page->is_active ? 'Published' : 'Draft',
+                    'meta_title' => is_array($page->meta_title) ? ($page->meta_title['en'] ?? '') : $page->meta_title,
+                    'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
+                    'show_in_main_nav' => $decodedBody['show_in_main_nav'] ?? true,
+                    'show_in_footer' => $decodedBody['show_in_footer'] ?? false,
+                    'allow_indexing' => $decodedBody['allow_indexing'] ?? true,
+                    'display_order' => $decodedBody['display_order'] ?? null,
+                    'banner_slides' => $decodedBody['banner_slides'] ?? [],
+                    'content_title' => $decodedBody['content_title'] ?? '',
+                    'content' => $decodedBody['content'] ?? '',
+                    'cta_text' => $decodedBody['cta_text'] ?? '',
+                    'cta_link' => $decodedBody['cta_link'] ?? '',
+                    'intro_subtitle' => $decodedBody['intro_subtitle'] ?? '',
+                    'intro_title' => $decodedBody['intro_title'] ?? '',
+                    'intro_text' => $decodedBody['intro_text'] ?? '',
+                    'expansion_image' => $decodedBody['expansion_image'] ?? '',
+                    'expansion_text' => $decodedBody['expansion_text'] ?? '',
+                    'our_vision_text' => $decodedBody['our_vision_text'] ?? '',
+                    'our_vision_image' => $decodedBody['our_vision_image'] ?? '',
+                    'our_mission_text' => $decodedBody['our_mission_text'] ?? '',
+                    'our_mission_image' => $decodedBody['our_mission_image'] ?? '',
+                    'our_values' => $decodedBody['our_values'] ?? '',
+                    'our_culture' => $decodedBody['our_culture'] ?? '',
+                    'our_promise' => $decodedBody['our_promise'] ?? '',
+                    'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
+                    'canonical_url' => $decodedBody['canonical_url'] ?? '',
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\CmsPages\EditCmsPage::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                $page = \App\Models\Page::find($arguments['id']);
+                if ($page) {
+                    $enumTypes = ['about','careers','best-rate-guarantee','sustainability','accessibility','terms-conditions','privacy-statement','newsletter','custom'];
+                    $pageType = 'custom';
+                    $slug = $data['slug'] ?? '';
+                    foreach ($enumTypes as $type) {
+                        if (strpos($slug, $type) !== false || $slug === $type || strpos($slug, str_replace('-', '', $type)) !== false) {
+                            $pageType = $type;
+                            break;
+                        }
+                    }
+                    if ($slug === 'privacy-policy') $pageType = 'privacy-statement';
+                    if ($slug === 'terms-and-conditions') $pageType = 'terms-conditions';
+                    if ($slug === 'about-us') $pageType = 'about';
+
+                    $page->update([
+                        'title' => ['en' => $data['title'] ?? ''],
+                        'page_type' => $pageType,
+                        'slug' => $slug,
+                        'is_active' => ($data['status'] ?? 'Published') === 'Published' ? 1 : 0,
+                        'meta_title' => ['en' => $data['meta_title'] ?? ''],
+                        'meta_description' => ['en' => $data['meta_description'] ?? ''],
+                        'body' => ['en' => json_encode([
+                            'content' => $data['content'] ?? '',
+                            'cta_text' => $data['cta_text'] ?? '',
+                            'cta_link' => $data['cta_link'] ?? '',
+                            'intro_subtitle' => $data['intro_subtitle'] ?? '',
+                            'intro_title' => $data['intro_title'] ?? '',
+                            'intro_text' => $data['intro_text'] ?? '',
+                            'expansion_image' => $data['expansion_image'] ?? '',
+                            'expansion_text' => $data['expansion_text'] ?? '',
+                            'our_vision_text' => $data['our_vision_text'] ?? '',
+                            'our_vision_image' => $data['our_vision_image'] ?? '',
+                            'our_mission_text' => $data['our_mission_text'] ?? '',
+                            'our_mission_image' => $data['our_mission_image'] ?? '',
+                            'our_values' => $data['our_values'] ?? '',
+                            'our_culture' => $data['our_culture'] ?? '',
+                            'our_promise' => $data['our_promise'] ?? '',
+                            'meta_keywords' => $data['meta_keywords'] ?? '',
+                            'canonical_url' => $data['canonical_url'] ?? '',
+                        ])],
+                    ]);
+                }
                 Notification::make()
                     ->title('Page saved successfully.')
                     ->success()
@@ -144,7 +351,8 @@ class ManageCmsPages extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Page::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Page deleted successfully.')
                     ->success()
@@ -164,7 +372,7 @@ class ManageCmsPages extends Page
                                         ->label('Page Title')
                                         ->required()
                                         ->live(onBlur: true)
-                                        ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                        ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                                     TextInput::make('slug')
                                         ->label('URL Slug')
                                         ->required(),
@@ -314,19 +522,5 @@ class ManageCmsPages extends Page
         ];
     }
 
-    public static function getMockPages(): array
-    {
-        return [
-            1 => ['id' => 1, 'title' => 'Home', 'page_type' => 'Standard', 'slug' => 'home', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2023-11-01', 'show_in_main_nav' => true],
-            2 => ['id' => 2, 'title' => 'About Us', 'page_type' => 'Standard', 'slug' => 'about-us', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2023-10-15', 'show_in_main_nav' => true],
-            3 => ['id' => 3, 'title' => 'Our Brands', 'page_type' => 'Standard', 'slug' => 'our-brands', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2023-10-18', 'show_in_main_nav' => true],
-            4 => ['id' => 4, 'title' => 'Sustainability', 'page_type' => 'Standard', 'slug' => 'sustainability', 'status' => 'Draft', 'seo_enabled' => false, 'last_updated' => '2023-11-02', 'show_in_main_nav' => false],
-            5 => ['id' => 5, 'title' => 'Careers', 'page_type' => 'Standard', 'slug' => 'careers', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2023-09-20', 'show_in_main_nav' => true],
-            6 => ['id' => 6, 'title' => 'Membership', 'page_type' => 'Landing Page', 'slug' => 'membership', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2023-10-25', 'show_in_main_nav' => true],
-            7 => ['id' => 7, 'title' => 'Contact Us', 'page_type' => 'Standard', 'slug' => 'contact-us', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2023-08-10', 'show_in_main_nav' => true],
-            8 => ['id' => 8, 'title' => 'Privacy Policy', 'page_type' => 'Legal', 'slug' => 'privacy-policy', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2022-12-05', 'show_in_footer' => true],
-            9 => ['id' => 9, 'title' => 'Terms & Conditions', 'page_type' => 'Legal', 'slug' => 'terms-and-conditions', 'status' => 'Published', 'seo_enabled' => true, 'last_updated' => '2022-12-05', 'show_in_footer' => true],
-            10 => ['id' => 10, 'title' => 'Cookie Policy', 'page_type' => 'Legal', 'slug' => 'cookie-policy', 'status' => 'Draft', 'seo_enabled' => true, 'last_updated' => '2023-11-03', 'show_in_footer' => true],
-        ];
-    }
+    // Mock Data removed
 }

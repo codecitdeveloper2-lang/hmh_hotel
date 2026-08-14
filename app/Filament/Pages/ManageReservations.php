@@ -38,19 +38,64 @@ class ManageReservations extends Page
     public function updatedFilterCheckOut(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
-    public function nextPage(int $lastPage): void
+    protected function getViewData(): array
     {
-        if ($this->currentPage < $lastPage) $this->currentPage++;
-    }
+        $query = \App\Models\Reservation::query()->with('property');
 
-    public function previousPage(): void
-    {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
+        if ($this->searchQuery) {
+            $query->where(function ($q) {
+                $q->where('confirmation_number', 'like', "%{$this->searchQuery}%")
+                  ->orWhere('travelclick_reservation_id', 'like', "%{$this->searchQuery}%");
+            });
+        }
 
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        if ($this->filterStatus) {
+            $query->where('status', strtolower($this->filterStatus));
+        }
+
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+
+        $reservations = $query->orderByDesc('created_at')
+            ->skip(($currentPage - 1) * $this->perPage)
+            ->take($this->perPage)
+            ->get()
+            ->map(function ($res) {
+                $nights = 0;
+                if ($res->check_in && $res->check_out) {
+                    $nights = \Carbon\Carbon::parse($res->check_in)->diffInDays(\Carbon\Carbon::parse($res->check_out));
+                }
+                return [
+                    'id' => $res->id,
+                    'reservation_number' => $res->confirmation_number,
+                    'guest_name' => $res->member ? ($res->member->first_name . ' ' . $res->member->last_name) : 'Walk-in Guest',
+                    'email' => $res->member?->email ?? 'N/A',
+                    'phone' => $res->member?->phone ?? 'N/A',
+                    'nationality' => 'N/A',
+                    'hotel' => $res->property?->name ?? 'Unknown',
+                    'room_type' => $res->rate_plan_id ?? 'Standard',
+                    'check_in_date' => $res->check_in,
+                    'check_out_date' => $res->check_out,
+                    'number_of_nights' => $nights,
+                    'number_of_adults' => $res->adults,
+                    'number_of_children' => $res->children,
+                    'booking_source' => 'TravelClick',
+                    'reservation_status' => ucfirst($res->status),
+                    'payment_status' => 'N/A',
+                    'payment_method' => 'N/A',
+                    'total_amount' => number_format($res->total_amount ?? 0, 2),
+                    'currency' => $res->currency ?? 'AED',
+                    'guest_notes' => '',
+                    'internal_notes' => '',
+                    'last_updated' => $res->updated_at?->format('Y-m-d') ?? '',
+                ];
+            });
+
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'reservations', 'from', 'to');
     }
     public static function getNavigationGroup(): ?string
     {
@@ -113,7 +158,32 @@ class ManageReservations extends Page
             ->modalHeading('View Reservation Details')
             ->modalWidth('7xl')
             ->form($this->getViewReservationFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockReservations()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $res = \App\Models\Reservation::with(['property', 'member'])->find($arguments['id']);
+                if (!$res) return [];
+                $nights = 0;
+                if ($res->check_in && $res->check_out) {
+                    $nights = \Carbon\Carbon::parse($res->check_in)->diffInDays(\Carbon\Carbon::parse($res->check_out));
+                }
+                return [
+                    'reservation_number' => $res->confirmation_number,
+                    'guest_name' => $res->member ? ($res->member->first_name . ' ' . $res->member->last_name) : 'Walk-in Guest',
+                    'email' => $res->member?->email ?? 'N/A',
+                    'phone' => $res->member?->phone ?? 'N/A',
+                    'hotel' => $res->property?->name ?? 'Unknown',
+                    'room_type' => $res->rate_plan_id ?? 'Standard',
+                    'check_in_date' => $res->check_in,
+                    'check_out_date' => $res->check_out,
+                    'number_of_nights' => $nights,
+                    'number_of_adults' => $res->adults,
+                    'number_of_children' => $res->children,
+                    'booking_source' => 'TravelClick',
+                    'total_amount' => number_format($res->total_amount ?? 0, 2),
+                    'currency' => $res->currency ?? 'AED',
+                    'payment_status' => 'N/A',
+                    'payment_method' => 'N/A',
+                ];
+            })
             ->disabledForm()
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
@@ -162,7 +232,8 @@ class ManageReservations extends Page
         return Action::make('markAsCheckedIn')
             ->icon('heroicon-m-arrow-right-on-rectangle')
             ->color('success')
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Reservation::find($arguments['id'])?->update(['status' => 'confirmed']);
                 Notification::make()
                     ->title('Reservation status updated to Checked In.')
                     ->success()
@@ -189,7 +260,8 @@ class ManageReservations extends Page
             ->icon('heroicon-m-x-circle')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Reservation::find($arguments['id'])?->update(['status' => 'cancelled']);
                 Notification::make()
                     ->title('Reservation cancelled successfully.')
                     ->success()
@@ -266,29 +338,5 @@ class ManageReservations extends Page
         ];
     }
 
-    public static function getMockReservations(): array
-    {
-        return [
-            1 => ['id' => 1, 'reservation_number' => 'RES-2023-11001', 'guest_name' => 'John Smith', 'email' => 'john.smith@example.com', 'phone' => '+971 50 123 4567', 'nationality' => 'United Kingdom', 'hotel' => 'Coral Beach Resort Sharjah', 'room_type' => 'Deluxe Sea View', 'check_in_date' => '2023-11-20', 'check_out_date' => '2023-11-25', 'number_of_nights' => 5, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Website', 'reservation_status' => 'Confirmed', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '3,500', 'currency' => 'AED', 'guest_notes' => 'High floor preferred. Anniversary trip.', 'internal_notes' => 'Arrange anniversary cake in room.', 'last_updated' => '2023-11-15'],
-            2 => ['id' => 2, 'reservation_number' => 'RES-2023-11002', 'guest_name' => 'Sarah Jenkins', 'email' => 's.jenkins@example.co.uk', 'phone' => '+44 7700 900123', 'nationality' => 'United Kingdom', 'hotel' => 'Bahi Ajman Palace Hotel', 'room_type' => 'Executive Suite', 'check_in_date' => '2023-11-16', 'check_out_date' => '2023-11-19', 'number_of_nights' => 3, 'number_of_adults' => 2, 'number_of_children' => 1, 'booking_source' => 'Booking.com', 'reservation_status' => 'Checked In', 'payment_status' => 'Paid', 'payment_method' => 'Online Transfer', 'total_amount' => '4,200', 'currency' => 'AED', 'guest_notes' => 'Need an extra bed for child.', 'internal_notes' => 'Extra bed setup confirmed.', 'last_updated' => '2023-11-16'],
-            3 => ['id' => 3, 'reservation_number' => 'RES-2023-11003', 'guest_name' => 'Ahmed Al Mansoori', 'email' => 'ahmed.m@company.ae', 'phone' => '+971 55 987 6543', 'nationality' => 'UAE', 'hotel' => 'Coral Dubai Deira Hotel', 'room_type' => 'Standard Room', 'check_in_date' => '2023-11-22', 'check_out_date' => '2023-11-24', 'number_of_nights' => 2, 'number_of_adults' => 1, 'number_of_children' => 0, 'booking_source' => 'Corporate', 'reservation_status' => 'Pending', 'payment_status' => 'Pending', 'payment_method' => 'Invoice', 'total_amount' => '1,100', 'currency' => 'AED', 'guest_notes' => 'Late check-in around 11 PM.', 'internal_notes' => 'Corporate account #4459.', 'last_updated' => '2023-11-14'],
-            4 => ['id' => 4, 'reservation_number' => 'RES-2023-11004', 'guest_name' => 'Maria Garcia', 'email' => 'mgarcia@example.es', 'phone' => '+34 600 123 456', 'nationality' => 'Spain', 'hotel' => 'ECOS Dubai Hotel', 'room_type' => 'Premium Room', 'check_in_date' => '2023-11-10', 'check_out_date' => '2023-11-15', 'number_of_nights' => 5, 'number_of_adults' => 2, 'number_of_children' => 2, 'booking_source' => 'Expedia', 'reservation_status' => 'Checked Out', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '2,800', 'currency' => 'AED', 'guest_notes' => 'Connecting rooms if possible.', 'internal_notes' => 'Rooms 401 and 402 provided.', 'last_updated' => '2023-11-15'],
-            5 => ['id' => 5, 'reservation_number' => 'RES-2023-11005', 'guest_name' => 'David Wilson', 'email' => 'david.w@techcorp.com', 'phone' => '+1 555 0198', 'nationality' => 'USA', 'hotel' => 'EWA Hotel Apartments', 'room_type' => 'Two Bedroom Apartment', 'check_in_date' => '2023-12-01', 'check_out_date' => '2023-12-15', 'number_of_nights' => 14, 'number_of_adults' => 4, 'number_of_children' => 0, 'booking_source' => 'TravelClick', 'reservation_status' => 'Confirmed', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '12,500', 'currency' => 'AED', 'guest_notes' => 'Airport pickup required.', 'internal_notes' => 'Transportation arranged for flight EK202.', 'last_updated' => '2023-11-13'],
-            6 => ['id' => 6, 'reservation_number' => 'RES-2023-11006', 'guest_name' => 'Fatima Noor', 'email' => 'f.noor@example.com', 'phone' => '+966 50 111 2222', 'nationality' => 'Saudi Arabia', 'hotel' => 'Corp Amman Hotel', 'room_type' => 'Junior Suite', 'check_in_date' => '2023-11-18', 'check_out_date' => '2023-11-20', 'number_of_nights' => 2, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Agoda', 'reservation_status' => 'Confirmed', 'payment_status' => 'Pending', 'payment_method' => 'Pay at Hotel', 'total_amount' => '300', 'currency' => 'JOD', 'guest_notes' => 'Quiet room preferred.', 'internal_notes' => 'Assigned room at end of hallway.', 'last_updated' => '2023-11-15'],
-            7 => ['id' => 7, 'reservation_number' => 'RES-2023-11007', 'guest_name' => 'Thomas Muller', 'email' => 't.muller@example.de', 'phone' => '+49 151 1234567', 'nationality' => 'Germany', 'hotel' => 'Coral Beach Resort Sharjah', 'room_type' => 'Standard Room', 'check_in_date' => '2023-12-24', 'check_out_date' => '2023-12-28', 'number_of_nights' => 4, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Website', 'reservation_status' => 'Cancel Pending', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '3,200', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => 'Guest called to modify dates, pending confirmation.', 'last_updated' => '2023-11-16'],
-            8 => ['id' => 8, 'reservation_number' => 'RES-2023-11008', 'guest_name' => 'Elena Popova', 'email' => 'elena.p@example.ru', 'phone' => '+7 916 123-45-67', 'nationality' => 'Russia', 'hotel' => 'Coral Beach Resort Sharjah', 'room_type' => 'Family Suite', 'check_in_date' => '2023-11-10', 'check_out_date' => '2023-11-20', 'number_of_nights' => 10, 'number_of_adults' => 2, 'number_of_children' => 2, 'booking_source' => 'Expedia', 'reservation_status' => 'Cancelled', 'payment_status' => 'Refunded', 'payment_method' => 'Credit Card', 'total_amount' => '8,500', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => 'Cancelled due to visa issues.', 'last_updated' => '2023-11-05'],
-            9 => ['id' => 9, 'reservation_number' => 'RES-2023-11009', 'guest_name' => 'James Clarke', 'email' => 'j.clarke@example.com', 'phone' => '+61 400 123 456', 'nationality' => 'Australia', 'hotel' => 'Bahi Ajman Palace Hotel', 'room_type' => 'Deluxe Room', 'check_in_date' => '2023-11-16', 'check_out_date' => '2023-11-21', 'number_of_nights' => 5, 'number_of_adults' => 1, 'number_of_children' => 0, 'booking_source' => 'Booking.com', 'reservation_status' => 'Checked In', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '2,900', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => '', 'last_updated' => '2023-11-16'],
-            10 => ['id' => 10, 'reservation_number' => 'RES-2023-11010', 'guest_name' => 'Aisha Khan', 'email' => 'akhan@example.com', 'phone' => '+92 300 1234567', 'nationality' => 'Pakistan', 'hotel' => 'Coral Dubai Deira Hotel', 'room_type' => 'Standard Room', 'check_in_date' => '2023-11-25', 'check_out_date' => '2023-11-27', 'number_of_nights' => 2, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Website', 'reservation_status' => 'Confirmed', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '1,200', 'currency' => 'AED', 'guest_notes' => 'Early check-in requested.', 'internal_notes' => 'Subject to availability upon arrival.', 'last_updated' => '2023-11-12'],
-            11 => ['id' => 11, 'reservation_number' => 'RES-2023-11011', 'guest_name' => 'Robert Taylor', 'email' => 'robert.t@example.com', 'phone' => '+1 202 555 0123', 'nationality' => 'USA', 'hotel' => 'ECOS Dubai Hotel', 'room_type' => 'Standard Room', 'check_in_date' => '2023-11-30', 'check_out_date' => '2023-12-05', 'number_of_nights' => 5, 'number_of_adults' => 1, 'number_of_children' => 0, 'booking_source' => 'Corporate', 'reservation_status' => 'Confirmed', 'payment_status' => 'Pending', 'payment_method' => 'Invoice', 'total_amount' => '2,500', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => 'TechCorp annual summit.', 'last_updated' => '2023-11-14'],
-            12 => ['id' => 12, 'reservation_number' => 'RES-2023-11012', 'guest_name' => 'Sophie Martin', 'email' => 'smartin@example.fr', 'phone' => '+33 6 12 34 56 78', 'nationality' => 'France', 'hotel' => 'Coral Beach Resort Sharjah', 'room_type' => 'Deluxe Sea View', 'check_in_date' => '2023-12-10', 'check_out_date' => '2023-12-17', 'number_of_nights' => 7, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'TravelClick', 'reservation_status' => 'Confirmed', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '5,400', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => '', 'last_updated' => '2023-11-08'],
-            13 => ['id' => 13, 'reservation_number' => 'RES-2023-11013', 'guest_name' => 'Mohammed Ali', 'email' => 'm.ali@example.om', 'phone' => '+968 9123 4567', 'nationality' => 'Oman', 'hotel' => 'EWA Hotel Apartments', 'room_type' => 'One Bedroom Apartment', 'check_in_date' => '2023-11-15', 'check_out_date' => '2023-11-18', 'number_of_nights' => 3, 'number_of_adults' => 2, 'number_of_children' => 1, 'booking_source' => 'Agoda', 'reservation_status' => 'Checked In', 'payment_status' => 'Paid', 'payment_method' => 'Online Transfer', 'total_amount' => '1,800', 'currency' => 'AED', 'guest_notes' => 'Baby cot needed.', 'internal_notes' => 'Baby cot placed in room 204.', 'last_updated' => '2023-11-15'],
-            14 => ['id' => 14, 'reservation_number' => 'RES-2023-11014', 'guest_name' => 'Lisa Wong', 'email' => 'lisa.w@example.sg', 'phone' => '+65 9123 4567', 'nationality' => 'Singapore', 'hotel' => 'Corp Amman Hotel', 'room_type' => 'Executive Room', 'check_in_date' => '2023-11-14', 'check_out_date' => '2023-11-16', 'number_of_nights' => 2, 'number_of_adults' => 1, 'number_of_children' => 0, 'booking_source' => 'Website', 'reservation_status' => 'Checked Out', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '280', 'currency' => 'JOD', 'guest_notes' => '', 'internal_notes' => '', 'last_updated' => '2023-11-16'],
-            15 => ['id' => 15, 'reservation_number' => 'RES-2023-11015', 'guest_name' => 'Daniel Kim', 'email' => 'dkim@example.kr', 'phone' => '+82 10 1234 5678', 'nationality' => 'South Korea', 'hotel' => 'Bahi Ajman Palace Hotel', 'room_type' => 'Deluxe Room', 'check_in_date' => '2023-12-05', 'check_out_date' => '2023-12-08', 'number_of_nights' => 3, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Booking.com', 'reservation_status' => 'Confirmed', 'payment_status' => 'Pending', 'payment_method' => 'Pay at Hotel', 'total_amount' => '2,100', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => '', 'last_updated' => '2023-11-10'],
-            16 => ['id' => 16, 'reservation_number' => 'RES-2023-11016', 'guest_name' => 'Yusuf Ibrahim', 'email' => 'y.ibrahim@example.com', 'phone' => '+20 10 1234 5678', 'nationality' => 'Egypt', 'hotel' => 'Coral Dubai Deira Hotel', 'room_type' => 'Suite', 'check_in_date' => '2023-11-19', 'check_out_date' => '2023-11-22', 'number_of_nights' => 3, 'number_of_adults' => 2, 'number_of_children' => 2, 'booking_source' => 'Expedia', 'reservation_status' => 'Pending', 'payment_status' => 'Pending', 'payment_method' => 'Pay at Hotel', 'total_amount' => '3,400', 'currency' => 'AED', 'guest_notes' => 'Wheelchair accessible room required.', 'internal_notes' => 'Assign room 102 (accessible).', 'last_updated' => '2023-11-15'],
-            17 => ['id' => 17, 'reservation_number' => 'RES-2023-11017', 'guest_name' => 'Nina Patel', 'email' => 'nina.p@example.in', 'phone' => '+91 98 7654 3210', 'nationality' => 'India', 'hotel' => 'ECOS Dubai Hotel', 'room_type' => 'Premium Room', 'check_in_date' => '2023-11-10', 'check_out_date' => '2023-11-12', 'number_of_nights' => 2, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Agoda', 'reservation_status' => 'Checked Out', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '1,100', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => '', 'last_updated' => '2023-11-12'],
-            18 => ['id' => 18, 'reservation_number' => 'RES-2023-11018', 'guest_name' => 'Jean Dupont', 'email' => 'j.dupont@example.fr', 'phone' => '+33 6 98 76 54 32', 'nationality' => 'France', 'hotel' => 'Coral Beach Resort Sharjah', 'room_type' => 'Standard Room', 'check_in_date' => '2023-11-28', 'check_out_date' => '2023-12-05', 'number_of_nights' => 7, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'Website', 'reservation_status' => 'Confirmed', 'payment_status' => 'Paid', 'payment_method' => 'Credit Card', 'total_amount' => '4,500', 'currency' => 'AED', 'guest_notes' => 'Honeymoon setup.', 'internal_notes' => 'Honeymoon amenities ordered.', 'last_updated' => '2023-11-09'],
-            19 => ['id' => 19, 'reservation_number' => 'RES-2023-11019', 'guest_name' => 'Oliver Smith', 'email' => 'o.smith@example.co.uk', 'phone' => '+44 7700 900456', 'nationality' => 'United Kingdom', 'hotel' => 'Bahi Ajman Palace Hotel', 'room_type' => 'Deluxe Room', 'check_in_date' => '2023-11-17', 'check_out_date' => '2023-11-24', 'number_of_nights' => 7, 'number_of_adults' => 2, 'number_of_children' => 0, 'booking_source' => 'TravelClick', 'reservation_status' => 'Pending', 'payment_status' => 'Pending', 'payment_method' => 'Pay at Hotel', 'total_amount' => '5,600', 'currency' => 'AED', 'guest_notes' => '', 'internal_notes' => 'Waiting for deposit payment.', 'last_updated' => '2023-11-16'],
-            20 => ['id' => 20, 'reservation_number' => 'RES-2023-11020', 'guest_name' => 'Kenji Tanaka', 'email' => 'k.tanaka@example.jp', 'phone' => '+81 90 1234 5678', 'nationality' => 'Japan', 'hotel' => 'Corp Amman Hotel', 'room_type' => 'Standard Room', 'check_in_date' => '2023-11-20', 'check_out_date' => '2023-11-22', 'number_of_nights' => 2, 'number_of_adults' => 1, 'number_of_children' => 0, 'booking_source' => 'Corporate', 'reservation_status' => 'Confirmed', 'payment_status' => 'Pending', 'payment_method' => 'Invoice', 'total_amount' => '220', 'currency' => 'JOD', 'guest_notes' => 'Late checkout needed.', 'internal_notes' => 'Approved late checkout until 2PM.', 'last_updated' => '2023-11-11'],
-        ];
-    }
+    // Mock Data removed
 }

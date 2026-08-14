@@ -41,4 +41,9 @@ class Offer extends Model implements HasMedia
             ->withPivot('travelclick_rate_plan_id')
             ->withTimestamps();
     }
+use Illuminate\Database\Eloquent\Model;
+
+class Offer extends Model
+{
+    //
 }

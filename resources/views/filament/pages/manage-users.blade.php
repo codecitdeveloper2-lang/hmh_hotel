@@ -1,4 +1,9 @@
 <x-filament-panels::page>
+    @php
+        $totalUsersCount  = \App\Models\User::count();
+        $activeUsersCount = \App\Models\User::where('is_active', true)->count();
+        $inactiveCount    = \App\Models\User::where('is_active', false)->count();
+    @endphp
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
 
         <!-- Stats Cards -->
@@ -10,7 +15,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Total Users</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">156</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $totalUsersCount }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -22,7 +27,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Active Users</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">142</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $activeUsersCount }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -33,8 +38,8 @@
                         <x-filament::icon icon="heroicon-o-no-symbol" style="height: 1.5rem; width: 1.5rem;" />
                     </div>
                     <div>
-                        <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Suspended Users</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">8</h3>
+                        <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Inactive Users</p>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $inactiveCount }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -45,8 +50,8 @@
                         <x-filament::icon icon="heroicon-o-bolt" style="height: 1.5rem; width: 1.5rem;" />
                     </div>
                     <div>
-                        <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Online Users</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">24</h3>
+                        <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Registered Today</p>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ \App\Models\User::whereDate('created_at', today())->count() }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -129,7 +134,7 @@
                                 Bulk Actions
                             </x-filament::button>
                         </x-slot>
-                        <x-filament::dropdown.list>
+                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                             <x-filament::dropdown.list.item icon="heroicon-m-check-circle" color="success" wire:click="bulkAction('activate')">Activate Users</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-pause-circle" color="warning" wire:click="bulkAction('suspend')">Suspend Users</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-document-arrow-down" wire:click="bulkAction('export')">Export Users</x-filament::dropdown.list.item>
@@ -141,17 +146,30 @@
         </x-filament::section>
 
         @php
-            $allUsers = collect($this->getMockUsers())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['full_name'], $searchQuery) !== false || 
-                           stripos($item['email'], $searchQuery) !== false ||
-                           stripos($item['employee_id'], $searchQuery) !== false ||
-                           stripos($item['username'], $searchQuery) !== false;
+            $allUsers = \App\Models\User::query()
+                ->when($searchQuery, fn($q) => $q->where(function($q2) use ($searchQuery) {
+                    $q2->where('name', 'like', "%{$searchQuery}%")
+                       ->orWhere('email', 'like', "%{$searchQuery}%");
                 }))
-                ->when($filterRole, fn($collection) => $collection->where('role', $filterRole))
-                ->when($filterDepartment, fn($collection) => $collection->where('department', $filterDepartment))
-                ->when($filterHotel, fn($collection) => $collection->where('assigned_hotel', $filterHotel))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus));
+                ->when($filterStatus === 'Active',    fn($q) => $q->where('is_active', true))
+                ->when($filterStatus === 'Inactive',  fn($q) => $q->where('is_active', false))
+                ->when($filterStatus === 'Suspended', fn($q) => $q->where('is_active', false))
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(fn($user) => [
+                    'id'             => $user->id,
+                    'full_name'      => $user->name,
+                    'employee_id'    => 'EMP-' . str_pad($user->id, 3, '0', STR_PAD_LEFT),
+                    'email'          => $user->email,
+                    'phone'          => '—',
+                    'department'     => '—',
+                    'assigned_hotel' => 'Global (All Hotels)',
+                    'role'           => 'User',
+                    'username'       => explode('@', $user->email)[0],
+                    'last_login'     => $user->updated_at?->format('Y-m-d H:i') ?? '—',
+                    'created_date'   => $user->created_at?->format('Y-m-d') ?? '—',
+                    'status'         => $user->is_active ? 'Active' : 'Inactive',
+                ]);
 
             $totalUsers  = $allUsers->count();
             $lastPage    = max(1, (int) ceil($totalUsers / $perPage));
@@ -240,7 +258,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\Users\ViewUser::getUrl(['record' => $item['id']]) }}"

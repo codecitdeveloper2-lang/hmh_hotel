@@ -25,6 +25,7 @@ class ManageHotels extends Page
 
     protected static ?int $navigationSort = 1;
 
+    public string $activeLocale = 'en';
 
     public int $perPage = 10;
     public int $currentPage = 1;
@@ -48,13 +49,36 @@ class ManageHotels extends Page
 
     protected function getViewData(): array
     {
-        $all         = collect($this->getMockHotels());
-        $totalItems  = $all->count();
+        $query = \App\Models\Property::where('type', 'hotel');
+        
+        $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
-        $hotels      = $all->forPage($currentPage, $this->perPage);
-        $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
-        $to          = min($currentPage * $this->perPage, $totalItems);
+        
+        $hotels = $query->with('parent')
+                        ->skip(($currentPage - 1) * $this->perPage)
+                        ->take($this->perPage)
+                        ->get()
+                        ->map(function ($hotel) {
+                            $statusMap = [
+                                'live' => 'Live',
+                                'coming_soon' => 'Coming Soon',
+                                'closed' => 'Closed',
+                            ];
+                            return [
+                                'id' => $hotel->id,
+                                'name' => $hotel->display_name,
+                                'brand' => $hotel->parent?->display_name ?? 'N/A',
+                                'country' => $hotel->country ?? 'N/A',
+                                'city' => $hotel->city ?? 'N/A',
+                                'star_rating' => $hotel->star_rating ? $hotel->star_rating . ' Star' : 'N/A',
+                                'status' => $statusMap[$hotel->status] ?? 'Live',
+                                'last_updated' => $hotel->updated_at?->format('Y-m-d') ?? '',
+                            ];
+                        });
+                        
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
 
         return compact('totalItems', 'lastPage', 'currentPage', 'hotels', 'from', 'to');
     }
@@ -105,9 +129,11 @@ class ManageHotels extends Page
                 
             ->url(\App\Filament\Pages\Hotels\CreateHotel::getUrl())
             ->action(function (array $data) {
+                    $data['type'] = 'hotel';
+                    \App\Models\Property::create($data);
                     Notification::make()
                         ->title('Hotel Created')
-                        ->body('The hotel has been created successfully (Mock).')
+                        ->body('The hotel has been created successfully.')
                         ->success()
                         ->send();
                 }),
@@ -126,13 +152,14 @@ class ManageHotels extends Page
             ->modalHeading('Edit Hotel')
             ->modalWidth('7xl')
             ->form($this->getHotelFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockHotels()[$arguments['id']] ?? [])
+            ->fillForm(fn (array $arguments) => \App\Models\Property::find($arguments['id'])?->toArray() ?? [])
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\EditHotel::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                \App\Models\Property::find($arguments['id'])?->update($data);
                 Notification::make()
                     ->title('Hotel Updated')
-                    ->body('The hotel has been updated successfully (Mock).')
+                    ->body('The hotel has been updated successfully.')
                     ->success()
                     ->send();
             });
@@ -144,10 +171,11 @@ class ManageHotels extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Property::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Hotel Deleted')
-                    ->body('The hotel has been deleted successfully (Mock).')
+                    ->body('The hotel has been deleted successfully.')
                     ->success()
                     ->send();
             });
@@ -157,28 +185,30 @@ class ManageHotels extends Page
     {
         return [
             Grid::make(3)->schema([
+                \Filament\Schemas\Components\View::make('filament.components.locale-toggle')->columnSpan(2),
                 \Filament\Schemas\Components\Tabs::make('Main Tabs')
                     ->tabs([
                         \Filament\Schemas\Components\Tabs\Tab::make('General Information')
                             ->schema([
                                 Section::make('Basic Information')
                                     ->schema([
-                                        TextInput::make('name')
+                                        TextInput::make('name.en')
                                             ->label('Hotel Name')
-                                            ->required()
+                                            ->required(fn ($livewire) => $livewire->activeLocale === 'en')
                                             ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Pages\Hotels\EditHotel)
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
                                             ->dehydrated()
                                             ->live(onBlur: true)
-                                            ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state ?? ''))),
-                                        Select::make('brand')
+                                            ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                        TextInput::make('name.ar')
+                                            ->label('Hotel Name (عربي)')
+                                            ->required(fn ($livewire) => $livewire->activeLocale === 'ar')
+                                            ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Pages\Hotels\EditHotel)
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
+                                            ->dehydrated(),
+                                        Select::make('parent_id')
                                             ->label('Brand')
-                                            ->options([
-                                                'coral-hotels-resorts' => 'Coral Hotels & Resorts',
-                                                'ecos-hotels' => 'ECOS Hotels',
-                                                'ewa-hotel-apartments' => 'EWA Hotel Apartments',
-                                                'hmh-hotels' => 'HMH Hotels',
-                                                'opera-hotel' => 'Opera Hotel',
-                                            ])
+                                            ->options(fn () => \App\Models\Property::where('type', 'brand')->get()->mapWithKeys(fn ($b) => [$b->id => $b->display_name])->toArray())
                                             ->required(),
                                         TextInput::make('slug')
                                             ->label('Slug')
@@ -197,7 +227,7 @@ class ManageHotels extends Page
                                             ->label('Status')
                                             ->options([
                                                 'live' => 'Live',
-                                                'coming-soon' => 'Coming Soon',
+                                                'coming_soon' => 'Coming Soon',
                                                 'closed' => 'Closed',
                                             ])
                                             ->default('live')
@@ -209,12 +239,30 @@ class ManageHotels extends Page
                                     
                                 Section::make('Hotel Intro')
                                     ->schema([
-                                        TextInput::make('intro_subtitle')
-                                            ->label('Intro Subtitle (e.g. IMPECCABLY PLUSH)'),
-                                        TextInput::make('intro_title')
-                                            ->label('Intro Title (e.g. WELCOME TO BAHI AJMAN PALACE HOTEL)'),
-                                        \App\Filament\Forms\Components\JoditEditor::make('description')
-                                            ->label('Description (Intro Text)'),
+                                        TextInput::make('intro_subtitle.en')
+                                            ->label('Intro Subtitle (e.g. IMPECCABLY PLUSH)')
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
+                                            ->dehydrated(),
+                                        TextInput::make('intro_subtitle.ar')
+                                            ->label('Intro Subtitle (عربي)')
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
+                                            ->dehydrated(),
+                                        TextInput::make('intro_title.en')
+                                            ->label('Intro Title (e.g. WELCOME TO BAHI AJMAN PALACE HOTEL)')
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
+                                            ->dehydrated(),
+                                        TextInput::make('intro_title.ar')
+                                            ->label('Intro Title (عربي)')
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
+                                            ->dehydrated(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                            ->label('Description (Intro Text)')
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
+                                            ->dehydrated(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                            ->label('Description (عربي)')
+                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
+                                            ->dehydrated(),
                                     ]),
                                     
                                 Section::make('Location')
@@ -306,70 +354,29 @@ class ManageHotels extends Page
                         
                     Section::make('SEO')
                         ->schema([
-                            TextInput::make('meta_title')
-                                ->label('Meta Title'),
-                            Textarea::make('meta_description')
+                            TextInput::make('meta_title.en')
+                                ->label('Meta Title')
+                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
+                                ->dehydrated(),
+                            TextInput::make('meta_title.ar')
+                                ->label('Meta Title (عربي)')
+                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
+                                ->dehydrated(),
+                            Textarea::make('meta_description.en')
                                 ->label('Meta Description')
-                                ->rows(3),
+                                ->rows(3)
+                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
+                                ->dehydrated(),
+                            Textarea::make('meta_description.ar')
+                                ->label('Meta Description (عربي)')
+                                ->rows(3)
+                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
+                                ->dehydrated(),
                         ]),
                 ])->columnSpan(1),
             ]),
         ];
     }
 
-    public static function getMockHotels(): array
-    {
-        return [
-            1 => [
-                'id' => 1,
-                'name' => 'Coral Beach Resort Sharjah',
-                'brand' => 'Coral Hotels & Resorts',
-                'country' => 'United Arab Emirates',
-                'city' => 'Sharjah',
-                'star_rating' => '4 Stars',
-                'status' => 'Live',
-                'last_updated' => '2023-10-15 09:30',
-            ],
-            2 => [
-                'id' => 2,
-                'name' => 'Coral Dubai Deira Hotel',
-                'brand' => 'Coral Hotels & Resorts',
-                'country' => 'United Arab Emirates',
-                'city' => 'Dubai',
-                'star_rating' => '4 Stars',
-                'status' => 'Live',
-                'last_updated' => '2023-10-16 11:45',
-            ],
-            3 => [
-                'id' => 3,
-                'name' => 'ECOS Dubai Hotel',
-                'brand' => 'ECOS Hotels',
-                'country' => 'United Arab Emirates',
-                'city' => 'Dubai',
-                'star_rating' => '3 Stars',
-                'status' => 'Live',
-                'last_updated' => '2023-10-17 14:20',
-            ],
-            4 => [
-                'id' => 4,
-                'name' => 'EWA Hotel Apartments',
-                'brand' => 'EWA Hotel Apartments',
-                'country' => 'United Arab Emirates',
-                'city' => 'Dubai',
-                'star_rating' => 'Unrated',
-                'status' => 'Coming Soon',
-                'last_updated' => '2023-10-18 10:15',
-            ],
-            5 => [
-                'id' => 5,
-                'name' => 'Opera Hotel',
-                'brand' => 'Opera Hotel',
-                'country' => 'United Arab Emirates',
-                'city' => 'Dubai',
-                'star_rating' => '5 Stars',
-                'status' => 'Closed',
-                'last_updated' => '2023-10-19 16:50',
-            ],
-        ];
-    }
+    // Mock Data removed
 }

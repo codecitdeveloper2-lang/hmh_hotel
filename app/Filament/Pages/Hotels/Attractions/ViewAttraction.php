@@ -22,9 +22,16 @@ class ViewAttraction extends Page implements HasForms
     {
         $this->record = $record;
         $this->attraction_id = $attraction_id;
-        $mockData = \App\Filament\Pages\Hotels\Attractions\ListAttractions::getMockAttractions();
-        $this->data = $mockData[$this->attraction_id] ?? [];
-        $this->form->fill($this->data);
+        $a = \App\Models\Attraction::find($attraction_id);
+        if ($a) {
+            $this->form->fill([
+                'hotel' => (int) $this->record,
+                'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                'slug' => $a->slug,
+                'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                'status' => $a->is_active ? 'active' : 'inactive',
+            ]);
+        }
     }
 
     public function getSubNavigation(): array

@@ -131,7 +131,7 @@
                                 Bulk Actions
                             </x-filament::button>
                         </x-slot>
-                        <x-filament::dropdown.list>
+                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                             <x-filament::dropdown.list.item icon="heroicon-m-document-arrow-down" wire:click="bulkAction('export')">Export Selected</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-no-symbol" color="warning" wire:click="bulkAction('unsubscribe')">Mark as Unsubscribed</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-check-circle" color="success" wire:click="bulkAction('reactivate')">Reactivate</x-filament::dropdown.list.item>
@@ -142,25 +142,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allSubscribers = collect($this->getMockSubscribers())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['full_name'], $searchQuery) !== false || 
-                           stripos($item['email'], $searchQuery) !== false ||
-                           stripos($item['country'], $searchQuery) !== false;
-                }))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus))
-                ->when($filterCountry, fn($collection) => $collection->where('country', $filterCountry))
-                ->when($filterSource, fn($collection) => $collection->where('subscription_source', $filterSource))
-                ->when($filterDate, fn($collection) => $collection->filter(fn($item) => str_starts_with($item['subscription_date'], $filterDate)));
-
-            $totalItems  = $allSubscribers->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $subscribers    = $allSubscribers->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
+        <!-- Data provided by getViewData() -->
 
         <!-- Table -->
         <x-filament::section>
@@ -222,7 +204,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\NewsletterSubscribers\ViewNewsletterSubscriber::getUrl(['record' => $item['id']]) }}"

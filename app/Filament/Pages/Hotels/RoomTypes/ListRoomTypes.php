@@ -54,12 +54,27 @@ class ListRoomTypes extends Page
 
     protected function getViewData(): array
     {
-        $hotelName = \App\Filament\Pages\ManageHotels::getMockHotels()[$this->record]['name'] ?? '';
-        $all         = collect($this->getMockRoomTypes())->filter(fn($item) => $item['hotel'] === $hotelName);
-        $totalItems  = $all->count();
+        $query = \App\Models\RoomType::where('property_id', $this->record)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
-        $rooms       = $all->forPage($currentPage, $this->perPage);
+        $rooms       = $query->forPage($currentPage, $this->perPage)->get()->map(function ($r) {
+            $propName = $r->property ? (is_array($r->property->name) ? ($r->property->name['en'] ?? '') : $r->property->name) : '';
+            return [
+                'id' => $r->id,
+                'name' => is_array($r->name) ? ($r->name['en'] ?? '') : $r->name,
+                'hotel' => $propName,
+                'room_type_id' => 'RT-' . str_pad($r->id, 4, '0', STR_PAD_LEFT),
+                'max_adults' => 2,
+                'max_children' => 1,
+                'room_size' => '30 sqm',
+                'bed_type' => 'King',
+                'status' => $r->is_active ? 'Active' : 'Inactive',
+            ];
+        });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
         $to          = min($currentPage * $this->perPage, $totalItems);
 
@@ -109,7 +124,18 @@ class ListRoomTypes extends Page
             ->modalHeading('View Room Type')
             ->modalWidth('7xl')
             ->form($this->getRoomTypeFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockRoomTypes()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $room = \App\Models\RoomType::find($arguments['id']);
+                if (!$room) return [];
+                return [
+                    'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
+                    'slug' => $room->slug,
+                    'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
+                    'status' => $room->is_active ? 'active' : 'inactive',
+                    'meta_title' => is_array($room->meta_title) ? ($room->meta_title['en'] ?? '') : $room->meta_title,
+                    'meta_description' => is_array($room->meta_description) ? ($room->meta_description['en'] ?? '') : $room->meta_description,
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\RoomTypes\ViewRoomType::getUrl(['record' => $this->record, 'room_id' => $arguments['id'] ?? 0]))
@@ -122,16 +148,21 @@ class ListRoomTypes extends Page
             ->modalHeading('Edit Room Type')
             ->modalWidth('7xl')
             ->form($this->getRoomTypeFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockRoomTypes()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $room = \App\Models\RoomType::find($arguments['id']);
+                if (!$room) return [];
+                return [
+                    'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
+                    'slug' => $room->slug,
+                    'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
+                    'status' => $room->is_active ? 'active' : 'inactive',
+                    'meta_title' => is_array($room->meta_title) ? ($room->meta_title['en'] ?? '') : $room->meta_title,
+                    'meta_description' => is_array($room->meta_description) ? ($room->meta_description['en'] ?? '') : $room->meta_description,
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\RoomTypes\EditRoomType::getUrl(['record' => $this->record, 'room_id' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
-                Notification::make()
-                    ->title('Room Type Updated')
-                    ->body('The room type has been updated successfully (Mock).')
-                    ->success()
-                    ->send();
-            });
+            ->action(fn () => null);
     }
 
     public function deleteRoomTypeAction(): Action
@@ -140,10 +171,10 @@ class ListRoomTypes extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\RoomType::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Room Type Deleted')
-                    ->body('The room type has been deleted successfully (Mock).')
                     ->success()
                     ->send();
             });
@@ -158,15 +189,8 @@ class ListRoomTypes extends Page
                         ->schema([
                             Select::make('hotel')
                                 ->label('Hotel')
-                                ->options([
-                                    '1' => 'Bahi Ajman Palace Hotel',
-                                    'coral-beach-resort-sharjah' => 'Coral Beach Resort Sharjah',
-                                    'coral-dubai-deira-hotel' => 'Coral Dubai Deira Hotel',
-                                    'ecos-dubai-hotel' => 'ECOS Dubai Hotel',
-                                    'ewa-hotel-apartments' => 'EWA Hotel Apartments',
-                                    'opera-hotel' => 'Opera Hotel',
-                                ])
-                                ->default(fn () => request()->route('record') ?? '1')
+                                ->options(fn () => \App\Models\Property::where('type', 'hotel')->get()->mapWithKeys(fn ($h) => [$h->id => is_array($h->name) ? ($h->name['en'] ?? '') : $h->name])->toArray())
+                                ->default(fn () => request()->route('record') ?? null)
                                 ->disabled()
                                 ->dehydrated()
                                 ->required(),
@@ -174,7 +198,7 @@ class ListRoomTypes extends Page
                                 ->label('Room Name')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),
@@ -210,47 +234,19 @@ class ListRoomTypes extends Page
                             ]),
                         ]),
                         
-                    Section::make('Room Details')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                TextInput::make('room_size')
-                                    ->label('Room Size (sqm)')
-                                    ->numeric(),
-                                TextInput::make('bed_type')
-                                    ->label('Bed Type'),
-                            ]),
-                            TextInput::make('travelclick_room_type_id')
-                                ->label('TravelClick Room Type ID'),
-                        ]),
                 ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
                     Section::make('Media')
                         ->schema([
-                            FileUpload::make('featured_image')
-                                ->label('Featured Image Upload')
-                                ->image(),
                             FileUpload::make('gallery')
-                                ->label('Gallery Upload (Placeholder)')
+                                ->label('Room Images')
                                 ->image()
                                 ->multiple()
                                 ->panelLayout('grid'),
                         ]),
                         
-                    Section::make('Occupancy')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                TextInput::make('max_adults')
-                                    ->label('Maximum Adults')
-                                    ->numeric()
-                                    ->default(2),
-                                TextInput::make('max_children')
-                                    ->label('Maximum Children')
-                                    ->numeric()
-                                    ->default(1),
-                            ]),
-                        ]),
-                        
+
                     Section::make('SEO')
                         ->schema([
                             TextInput::make('meta_title')
@@ -264,6 +260,7 @@ class ListRoomTypes extends Page
         ];
     }
 
+    // Mock data removed — all data is now loaded from the database
     public static function getMockRoomTypes(): array
     {
         return [

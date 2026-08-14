@@ -39,4 +39,14 @@ class NewsPost extends Model implements HasMedia
     {
         return $query->where('channel', 'press-release');
     }
+use Illuminate\Database\Eloquent\Model;
+use Spatie\Translatable\HasTranslations;
+
+class NewsPost extends Model
+{
+    use HasTranslations;
+
+    protected $guarded = [];
+
+    public $translatable = ['title', 'excerpt', 'body', 'meta_title', 'meta_description'];
 }

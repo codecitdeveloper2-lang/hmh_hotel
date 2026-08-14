@@ -42,6 +42,18 @@ class CreateAmenity extends Page implements HasForms
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\Amenities\ListAmenities::getUrl(['record' => $this->record]); }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('details_page')
+                ->label('Details Page')
+                ->disabled()
+                ->tooltip('Save the amenity first to access its details content page.')
+                ->color('gray')
+                ->icon('heroicon-m-document-text'),
+        ];
+    }
+
     public function getMaxContentWidth(): ?string
     {
         return 'full';

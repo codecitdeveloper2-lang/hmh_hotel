@@ -137,7 +137,7 @@
                                 Bulk Actions
                             </x-filament::button>
                         </x-slot>
-                        <x-filament::dropdown.list>
+                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                             <x-filament::dropdown.list.item icon="heroicon-m-check-circle" color="success" wire:click="bulkAction('confirm')">Mark as Confirmed</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-printer" wire:click="bulkAction('print')">Print Selected</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-document-arrow-down" wire:click="bulkAction('export')">Export Selected</x-filament::dropdown.list.item>
@@ -148,27 +148,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allReservations = collect($this->getMockReservations())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['reservation_number'], $searchQuery) !== false || 
-                           stripos($item['guest_name'], $searchQuery) !== false ||
-                           stripos($item['email'], $searchQuery) !== false ||
-                           stripos($item['phone'], $searchQuery) !== false;
-                }))
-                ->when($filterHotel, fn($collection) => $collection->where('hotel', $filterHotel))
-                ->when($filterStatus, fn($collection) => $collection->where('reservation_status', $filterStatus))
-                ->when($filterPaymentStatus, fn($collection) => $collection->where('payment_status', $filterPaymentStatus))
-                ->when($filterSource, fn($collection) => $collection->where('booking_source', $filterSource))
-                ->when($filterCheckIn, fn($collection) => $collection->filter(fn($item) => str_starts_with($item['check_in_date'], $filterCheckIn)));
-
-            $totalItems  = $allReservations->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $reservations    = $allReservations->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
+        <!-- Data provided by getViewData() -->
 
         <!-- Table -->
         <x-filament::section>
@@ -254,7 +234,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\Reservations\ViewReservation::getUrl(['record' => $item['id']]) }}"

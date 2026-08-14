@@ -27,6 +27,13 @@ class CreateGroupGallery extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        
+        \App\Models\GalleryItem::create([
+            'caption' => $data['title'] ?? 'Untitled',
+            'sort_order' => $data['display_order'] ?? 0,
+        ]);
+        
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageGroupGallery::getUrl());
     }

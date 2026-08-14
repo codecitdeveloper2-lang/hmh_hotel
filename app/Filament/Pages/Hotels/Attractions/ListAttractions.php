@@ -54,12 +54,25 @@ class ListAttractions extends Page
 
     protected function getViewData(): array
     {
-        $hotelName = \App\Filament\Pages\ManageHotels::getMockHotels()[$this->record]['name'] ?? '';
-        $all         = collect($this->getMockAttractions())->filter(fn($item) => $item['hotel'] === $hotelName);
-        $totalItems  = $all->count();
+        $query = \App\Models\Attraction::where('property_id', $this->record)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
-        $attractions = $all->forPage($currentPage, $this->perPage);
+        $attractions = $query->forPage($currentPage, $this->perPage)->get()->map(function ($a) {
+            $propName = $a->property ? (is_array($a->property->name) ? ($a->property->name['en'] ?? '') : $a->property->name) : '';
+            return [
+                'id' => $a->id,
+                'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                'hotel' => $propName,
+                'distance' => '5 km',
+                'category' => 'Local Attraction',
+                'status' => $a->is_active ? 'Active' : 'Inactive',
+                'last_updated' => $a->updated_at ? $a->updated_at->format('M d, Y') : 'Today',
+            ];
+        });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
         $to          = min($currentPage * $this->perPage, $totalItems);
 
@@ -109,7 +122,16 @@ class ListAttractions extends Page
             ->modalHeading('View Attraction')
             ->modalWidth('7xl')
             ->form($this->getAttractionFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockAttractions()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $a = \App\Models\Attraction::find($arguments['id']);
+                if (!$a) return [];
+                return [
+                    'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                    'slug' => $a->slug,
+                    'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                    'status' => $a->is_active ? 'active' : 'inactive',
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\Attractions\ViewAttraction::getUrl(['record' => $this->record, 'attraction_id' => $arguments['id'] ?? 0]))
@@ -122,16 +144,19 @@ class ListAttractions extends Page
             ->modalHeading('Edit Attraction')
             ->modalWidth('7xl')
             ->form($this->getAttractionFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockAttractions()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $a = \App\Models\Attraction::find($arguments['id']);
+                if (!$a) return [];
+                return [
+                    'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                    'slug' => $a->slug,
+                    'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                    'status' => $a->is_active ? 'active' : 'inactive',
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\Attractions\EditAttraction::getUrl(['record' => $this->record, 'attraction_id' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
-                Notification::make()
-                    ->title('Attraction Updated')
-                    ->body('The attraction has been updated successfully (Mock).')
-                    ->success()
-                    ->send();
-            });
+            ->action(fn () => null);
     }
 
     public function deleteAttractionAction(): Action
@@ -140,10 +165,10 @@ class ListAttractions extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Attraction::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Attraction Deleted')
-                    ->body('The attraction has been deleted successfully (Mock).')
                     ->success()
                     ->send();
             });
@@ -158,15 +183,8 @@ class ListAttractions extends Page
                         ->schema([
                             Select::make('hotel')
                                 ->label('Hotel')
-                                ->options([
-                                    '1' => 'Bahi Ajman Palace Hotel',
-                                    'coral-beach-resort-sharjah' => 'Coral Beach Resort Sharjah',
-                                    'coral-dubai-deira-hotel' => 'Coral Dubai Deira Hotel',
-                                    'ecos-dubai-hotel' => 'ECOS Dubai Hotel',
-                                    'ewa-hotel-apartments' => 'EWA Hotel Apartments',
-                                    'opera-hotel' => 'Opera Hotel',
-                                ])
-                                ->default(fn () => request()->route('record') ?? '1')
+                                ->options(fn () => \App\Models\Property::where('type', 'hotel')->get()->mapWithKeys(fn ($h) => [$h->id => is_array($h->name) ? ($h->name['en'] ?? '') : $h->name])->toArray())
+                                ->default(fn () => request()->route('record') ?? null)
                                 ->disabled()
                                 ->dehydrated()
                                 ->required(),
@@ -174,7 +192,7 @@ class ListAttractions extends Page
                                 ->label('Attraction Name')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),
@@ -188,9 +206,8 @@ class ListAttractions extends Page
                                     'family' => 'Family & Theme Park',
                                 ])
                                 ->required(),
-                            Textarea::make('description')
-                                ->label('Description')
-                                ->rows(4),
+                            \App\Filament\Forms\Components\JoditEditor::make('description')
+                                ->label('Description'),
                             Select::make('status')
                                 ->label('Status')
                                 ->options([
@@ -201,18 +218,15 @@ class ListAttractions extends Page
                                 ->required(),
                         ]),
                         
-                    Section::make('Location')
+                    Section::make('Call to Action')
                         ->schema([
-                            TextInput::make('distance')
-                                ->label('Distance from Hotel (e.g. 5 km)'),
-                            TextInput::make('maps_url')
-                                ->label('Google Maps URL')
-                                ->url(),
                             Grid::make(2)->schema([
-                                TextInput::make('latitude')
-                                    ->label('Latitude'),
-                                TextInput::make('longitude')
-                                    ->label('Longitude'),
+                                TextInput::make('read_more_label')
+                                    ->label('Read More Label')
+                                    ->default('READ MORE'),
+                                TextInput::make('read_more_link')
+                                    ->label('Read More Link')
+                                    ->url(),
                             ]),
                         ]),
                 ])->columnSpan(2),

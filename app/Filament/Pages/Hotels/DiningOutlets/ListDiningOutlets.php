@@ -56,12 +56,26 @@ class ListDiningOutlets extends Page
 
     protected function getViewData(): array
     {
-        $hotelName = \App\Filament\Pages\ManageHotels::getMockHotels()[$this->record]['name'] ?? '';
-        $all         = collect($this->getMockDiningOutlets())->filter(fn($item) => $item['hotel'] === $hotelName);
-        $totalItems  = $all->count();
+        $query = \App\Models\DiningOutlet::where('property_id', $this->record)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
-        $outlets     = $all->forPage($currentPage, $this->perPage);
+        $outlets     = $query->forPage($currentPage, $this->perPage)->get()->map(function ($o) {
+            $propName = $o->property ? (is_array($o->property->name) ? ($o->property->name['en'] ?? '') : $o->property->name) : '';
+            return [
+                'id' => $o->id,
+                'name' => is_array($o->name) ? ($o->name['en'] ?? '') : $o->name,
+                'hotel' => $propName,
+                'cuisine_type' => is_array($o->cuisine_type) ? ($o->cuisine_type['en'] ?? '') : $o->cuisine_type,
+                'opening_hours' => '10:00 AM',
+                'closing_hours' => '11:00 PM',
+                'table_booking' => $o->has_table_booking,
+                'status' => $o->is_active ? 'Active' : 'Inactive',
+            ];
+        });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
         $to          = min($currentPage * $this->perPage, $totalItems);
 
@@ -111,7 +125,16 @@ class ListDiningOutlets extends Page
             ->modalHeading('View Dining Outlet')
             ->modalWidth('7xl')
             ->form($this->getDiningOutletFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockDiningOutlets()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $d = \App\Models\DiningOutlet::find($arguments['id']);
+                if (!$d) return [];
+                return [
+                    'name' => is_array($d->name) ? ($d->name['en'] ?? '') : $d->name,
+                    'slug' => $d->slug,
+                    'cuisine_type' => is_array($d->cuisine_type) ? ($d->cuisine_type['en'] ?? '') : $d->cuisine_type,
+                    'status' => $d->is_active ? 'active' : 'inactive',
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\DiningOutlets\ViewDiningOutlet::getUrl(['record' => $this->record, 'outlet_id' => $arguments['id'] ?? 0]))
@@ -124,16 +147,19 @@ class ListDiningOutlets extends Page
             ->modalHeading('Edit Dining Outlet')
             ->modalWidth('7xl')
             ->form($this->getDiningOutletFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockDiningOutlets()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $d = \App\Models\DiningOutlet::find($arguments['id']);
+                if (!$d) return [];
+                return [
+                    'name' => is_array($d->name) ? ($d->name['en'] ?? '') : $d->name,
+                    'slug' => $d->slug,
+                    'cuisine_type' => is_array($d->cuisine_type) ? ($d->cuisine_type['en'] ?? '') : $d->cuisine_type,
+                    'status' => $d->is_active ? 'active' : 'inactive',
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\DiningOutlets\EditDiningOutlet::getUrl(['record' => $this->record, 'outlet_id' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
-                Notification::make()
-                    ->title('Dining Outlet Updated')
-                    ->body('The dining outlet has been updated successfully (Mock).')
-                    ->success()
-                    ->send();
-            });
+            ->action(fn () => null);
     }
 
     public function deleteDiningOutletAction(): Action
@@ -142,10 +168,10 @@ class ListDiningOutlets extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\DiningOutlet::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Dining Outlet Deleted')
-                    ->body('The dining outlet has been deleted successfully (Mock).')
                     ->success()
                     ->send();
             });
@@ -160,15 +186,8 @@ class ListDiningOutlets extends Page
                         ->schema([
                             Select::make('hotel')
                                 ->label('Hotel')
-                                ->options([
-                                    '1' => 'Bahi Ajman Palace Hotel',
-                                    'coral-beach-resort-sharjah' => 'Coral Beach Resort Sharjah',
-                                    'coral-dubai-deira-hotel' => 'Coral Dubai Deira Hotel',
-                                    'ecos-dubai-hotel' => 'ECOS Dubai Hotel',
-                                    'ewa-hotel-apartments' => 'EWA Hotel Apartments',
-                                    'opera-hotel' => 'Opera Hotel',
-                                ])
-                                ->default(fn () => request()->route('record') ?? '1')
+                                ->options(fn () => \App\Models\Property::where('type', 'hotel')->get()->mapWithKeys(fn ($h) => [$h->id => is_array($h->name) ? ($h->name['en'] ?? '') : $h->name])->toArray())
+                                ->default(fn () => request()->route('record') ?? null)
                                 ->disabled()
                                 ->dehydrated()
                                 ->required(),
@@ -176,13 +195,10 @@ class ListDiningOutlets extends Page
                                 ->label('Outlet Name')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),
-                            Textarea::make('description')
-                                ->label('Description')
-                                ->rows(4),
                             TextInput::make('cuisine_type')
                                 ->label('Cuisine Type')
                                 ->required(),
@@ -196,31 +212,26 @@ class ListDiningOutlets extends Page
                                 ->required(),
                         ]),
                         
-                    Section::make('Operating Information')
+                    Section::make('Call to Action')
                         ->schema([
                             Grid::make(2)->schema([
-                                TimePicker::make('opening_hours')
-                                    ->label('Opening Hours'),
-                                TimePicker::make('closing_hours')
-                                    ->label('Closing Hours'),
+                                TextInput::make('read_more_label')
+                                    ->label('Read More Label')
+                                    ->default('READ MORE'),
+                                TextInput::make('read_more_link')
+                                    ->label('Read More Link')
+                                    ->url(),
                             ]),
-                            Toggle::make('table_booking')
-                                ->label('Table Booking Available')
-                                ->default(false),
                         ]),
+                        
                 ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
                     Section::make('Media')
                         ->schema([
                             FileUpload::make('featured_image')
-                                ->label('Featured Image Upload')
+                                ->label('Image Upload')
                                 ->image(),
-                            FileUpload::make('gallery')
-                                ->label('Gallery Upload (Placeholder)')
-                                ->image()
-                                ->multiple()
-                                ->panelLayout('grid'),
                         ]),
                         
                     Section::make('SEO')

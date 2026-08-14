@@ -20,8 +20,29 @@ class ViewNewsAndPress extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageNewsAndPress::getMockArticles();
-        $this->data = $mockData[$this->record] ?? [];
+        $article = \App\Models\NewsPost::findOrFail($record);
+        $bodyData = is_array($article->body) ? ($article->body['en'] ?? '') : $article->body;
+        $decodedBody = json_decode((string)$bodyData, true) ?? [];
+        if (!is_array($decodedBody)) {
+            $decodedBody = ['content' => $bodyData];
+        }
+
+        $this->form->fill([
+            'title' => is_array($article->title) ? ($article->title['en'] ?? '') : $article->title,
+            'slug' => $article->slug,
+            'category' => $article->channel === 'press-release' ? 'Press Release' : 'News',
+            'publish_date' => $article->published_at,
+            'status' => $article->is_active ? 'Published' : 'Draft',
+            'meta_title' => is_array($article->meta_title) ? ($article->meta_title['en'] ?? '') : $article->meta_title,
+            'meta_description' => is_array($article->meta_description) ? ($article->meta_description['en'] ?? '') : $article->meta_description,
+            'content' => $decodedBody['content'] ?? '',
+            'author' => $decodedBody['author'] ?? '',
+            'featured_article' => $decodedBody['featured_article'] ?? false,
+            'featured_image' => $decodedBody['featured_image'] ?? null,
+            'gallery_images' => $decodedBody['gallery_images'] ?? [],
+            'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
+            'canonical_url' => $decodedBody['canonical_url'] ?? '',
+        ]);
     }
 
     public function form($form)

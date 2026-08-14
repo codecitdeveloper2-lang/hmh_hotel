@@ -22,9 +22,16 @@ class ViewDiningOutlet extends Page implements HasForms
     {
         $this->record = $record;
         $this->outlet_id = $outlet_id;
-        $mockData = \App\Filament\Pages\Hotels\DiningOutlets\ListDiningOutlets::getMockDiningOutlets();
-        $this->data = $mockData[$this->outlet_id] ?? [];
-        $this->form->fill($this->data);
+        $d = \App\Models\DiningOutlet::find($outlet_id);
+        if ($d) {
+            $this->form->fill([
+                'hotel' => (int) $this->record,
+                'name' => is_array($d->name) ? ($d->name['en'] ?? '') : $d->name,
+                'slug' => $d->slug,
+                'cuisine_type' => is_array($d->cuisine_type) ? ($d->cuisine_type['en'] ?? '') : $d->cuisine_type,
+                'status' => $d->is_active ? 'active' : 'inactive',
+            ]);
+        }
     }
 
     public function getSubNavigation(): array

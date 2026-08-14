@@ -36,19 +36,42 @@ class ManageMeetingsAndEvents extends Page
     public function updatedFilterStatus(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
-    public function nextPage(int $lastPage): void
+    protected function getViewData(): array
     {
-        if ($this->currentPage < $lastPage) $this->currentPage++;
-    }
+        $query = \App\Models\MeetingEventPage::query();
 
-    public function previousPage(): void
-    {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
+        if ($this->searchQuery) {
+            $query->where('title', 'like', "%{$this->searchQuery}%");
+        }
 
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        if ($this->filterEventType) {
+            $query->where('type', $this->filterEventType);
+        }
+
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+
+        $eventPages = $query->skip(($currentPage - 1) * $this->perPage)
+            ->take($this->perPage)
+            ->get()
+            ->map(function ($page) {
+                return [
+                    'id' => $page->id,
+                    'title' => $page->title,
+                    'hotel' => $page->property?->display_name ?? 'Unknown',
+                    'event_type' => ucfirst(str_replace('_', ' ', $page->type)),
+                    'status' => $page->is_active ? 'Published' : 'Draft',
+                    'last_updated' => $page->updated_at?->format('Y-m-d') ?? '',
+                    'venue_capacity' => $page->capacity_details ?? 'N/A',
+                    'cta_text' => 'Book Now',
+                ];
+            });
+
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'eventPages', 'from', 'to');
     }
 
         public static function getNavigationGroup(): ?string
@@ -116,7 +139,16 @@ class ManageMeetingsAndEvents extends Page
             ->modalHeading('View Event Page')
             ->modalWidth('7xl')
             ->form($this->getEventFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockEventPages()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $page = \App\Models\MeetingEventPage::find($arguments['id']);
+                if (!$page) return [];
+                return [
+                    'title' => $page->title,
+                    'event_type' => ucfirst(str_replace('_', ' ', $page->type)),
+                    'status' => $page->is_active ? 'Published' : 'Draft',
+                    'highlight_description' => $page->description,
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\MeetingsAndEvents\ViewMeetingsAndEvent::getUrl(['record' => $arguments['id'] ?? 0]))
@@ -129,10 +161,26 @@ class ManageMeetingsAndEvents extends Page
             ->modalHeading('Edit Event Page')
             ->modalWidth('7xl')
             ->form($this->getEventFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockEventPages()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $page = \App\Models\MeetingEventPage::find($arguments['id']);
+                if (!$page) return [];
+                return [
+                    'title' => $page->title,
+                    'event_type' => ucfirst(str_replace('_', ' ', $page->type)),
+                    'status' => $page->is_active ? 'Published' : 'Draft',
+                    'highlight_description' => $page->description,
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\MeetingsAndEvents\EditMeetingsAndEvent::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                $page = \App\Models\MeetingEventPage::find($arguments['id']);
+                if ($page) {
+                    $page->title = $data['title'] ?? $page->title;
+                    $page->description = $data['highlight_description'] ?? $page->description;
+                    $page->is_active = ($data['status'] ?? 'Published') === 'Published';
+                    $page->save();
+                }
                 Notification::make()
                     ->title('Meetings & Events page saved successfully.')
                     ->success()
@@ -146,7 +194,8 @@ class ManageMeetingsAndEvents extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\MeetingEventPage::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Event page deleted successfully.')
                     ->success()
@@ -159,13 +208,15 @@ class ManageMeetingsAndEvents extends Page
         return [
             Grid::make(3)->schema([
                 Grid::make(1)->schema([
-                    Section::make('Basic Information')
-                        ->schema([
+                    \Filament\Schemas\Components\Tabs::make('Tabs')
+                        ->tabs([
+                            \Filament\Schemas\Components\Tabs\Tab::make('General Information')
+                                ->schema([
                             TextInput::make('title')
                                 ->label('Page Title')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             Select::make('hotel')
                                 ->label('Associated Hotel')
                                 ->options([
@@ -198,44 +249,33 @@ class ManageMeetingsAndEvents extends Page
                                 ])
                                 ->default('Published')
                                 ->required(),
-                        ]),
-
-                    Section::make('Content')
-                        ->schema([
+                            TextInput::make('highlight_subtitle')
+                                ->label('Meetings Subtitle'),
+                            TextInput::make('highlight_title')
+                                ->label('Meetings Title'),
+                            \App\Filament\Forms\Components\JoditEditor::make('highlight_description')
+                                ->label('Meetings Description'),
+                                ]),
+                            \Filament\Schemas\Components\Tabs\Tab::make('Banner')
+                                ->schema([
                             TextInput::make('banner_title')
                                 ->label('Banner Title'),
-                            TextInput::make('banner_subtitle')
-                                ->label('Banner Subtitle'),
-                            \App\Filament\Forms\Components\JoditEditor::make('description')
-                                ->label('Rich Text Description'),
-                            TextInput::make('venue_capacity')
-                                ->label('Venue Capacity')
-                                ->numeric(),
-                            TagsInput::make('facilities')
-                                ->label('Facilities Included')
-                                ->placeholder('Add facilities (e.g., Projector, WiFi)'),
-                            Grid::make(2)->schema([
-                                TextInput::make('cta_text')
-                                    ->label('Call-to-Action Button Text'),
-                                TextInput::make('cta_url')
-                                    ->label('Call-to-Action URL')
-                                    ->url(),
-                            ]),
+                            Section::make('Media')
+                                ->schema([
+                                    FileUpload::make('banner_image')
+                                        ->label('Banner Image')
+                                        ->image(),
+                                    FileUpload::make('gallery')
+                                        ->label('Gallery Images')
+                                        ->image()
+                                        ->multiple(),
+                                ]),
+                                ]),
                         ]),
                 ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
-                    Section::make('Media')
-                        ->schema([
-                            FileUpload::make('banner_image')
-                                ->label('Banner Image')
-                                ->image(),
-                            FileUpload::make('gallery')
-                                ->label('Gallery Images')
-                                ->image()
-                                ->multiple(),
-                        ]),
-                        
+
                     Section::make('SEO')
                         ->schema([
                             TextInput::make('meta_title')
@@ -251,15 +291,5 @@ class ManageMeetingsAndEvents extends Page
         ];
     }
 
-    public static function getMockEventPages(): array
-    {
-        return [
-            1 => ['id' => 1, 'title' => 'Executive Boardroom', 'hotel' => 'Opera Hotel', 'event_type' => 'Corporate Meetings', 'status' => 'Published', 'last_updated' => '2023-10-15', 'venue_capacity' => '20', 'cta_text' => 'Book Now'],
-            2 => ['id' => 2, 'title' => 'Grand Crystal Ballroom', 'hotel' => 'Coral Dubai Deira Hotel', 'event_type' => 'Weddings', 'status' => 'Published', 'last_updated' => '2023-10-18', 'venue_capacity' => '500', 'cta_text' => 'Inquire Now'],
-            3 => ['id' => 3, 'title' => 'Oasis Convention Center', 'hotel' => 'Coral Beach Resort Sharjah', 'event_type' => 'Conference Facilities', 'status' => 'Published', 'last_updated' => '2023-10-20', 'venue_capacity' => '1000', 'cta_text' => 'Plan Your Event'],
-            4 => ['id' => 4, 'title' => 'Sapphire Banquet Hall', 'hotel' => 'EWA Hotel Apartments', 'event_type' => 'Banquet Halls', 'status' => 'Draft', 'last_updated' => '2023-10-22', 'venue_capacity' => '150', 'cta_text' => 'Learn More'],
-            5 => ['id' => 5, 'title' => 'Rooftop Lounge', 'hotel' => 'ECOS Dubai Hotel', 'event_type' => 'Private Events', 'status' => 'Published', 'last_updated' => '2023-10-25', 'venue_capacity' => '80', 'cta_text' => 'Reserve Space'],
-            6 => ['id' => 6, 'title' => 'Beachfront Gardens', 'hotel' => 'Coral Beach Resort Sharjah', 'event_type' => 'Outdoor Venues', 'status' => 'Published', 'last_updated' => '2023-10-28', 'venue_capacity' => '300', 'cta_text' => 'Book Venue'],
-        ];
-    }
+    // Mock Data removed
 }

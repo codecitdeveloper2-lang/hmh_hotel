@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Total Articles</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">45</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $totalArticles }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -22,7 +22,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Published Articles</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">38</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $publishedArticles }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -34,7 +34,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Draft Articles</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">7</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $draftArticles }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -46,7 +46,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Featured Articles</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">4</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $featuredArticles }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -111,25 +111,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allArticles = collect($this->getMockArticles())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['title'], $searchQuery) !== false || 
-                           stripos($item['category'], $searchQuery) !== false ||
-                           stripos($item['author'], $searchQuery) !== false;
-                }))
-                ->when($filterCategory, fn($collection) => $collection->where('category', $filterCategory))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus))
-                ->when($filterFeatured !== '', fn($collection) => $collection->where('featured', (bool)$filterFeatured))
-                ->when($filterPublishDate, fn($collection) => $collection->where('publish_date', $filterPublishDate));
 
-            $totalItems  = $allArticles->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $articles    = $allArticles->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
 
         <!-- Table -->
         <x-filament::section>
@@ -194,7 +176,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\NewsAndPress\ViewNewsAndPress::getUrl(['record' => $article['id']]) }}"

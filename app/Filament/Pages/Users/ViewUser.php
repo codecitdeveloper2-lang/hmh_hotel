@@ -20,8 +20,15 @@ class ViewUser extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageUsers::getMockUsers();
-        $this->data = $mockData[$this->record] ?? [];
+        $user = \App\Models\User::findOrFail($this->record);
+        $this->form->fill([
+            'full_name'     => $user->name,
+            'email'         => $user->email,
+            'employee_id'   => 'EMP-' . str_pad($user->id, 3, '0', STR_PAD_LEFT),
+            'status'        => $user->is_active ? 'Active' : 'Inactive',
+            'created_date'  => $user->created_at?->format('Y-m-d'),
+            'last_login'    => $user->updated_at?->format('Y-m-d H:i'),
+        ]);
     }
 
     public function form($form)

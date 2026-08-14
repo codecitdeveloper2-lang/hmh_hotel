@@ -58,6 +58,8 @@ class EditDestination extends Page implements HasForms
 
         // Fill the form — Spatie media upload loads automatically via the record binding
         $this->form->fill($formData);
+        $mockData = \App\Filament\Pages\ManageDestinations::getMockDestinations();
+        $this->form->fill($mockData[$this->record] ?? []);
     }
 
     public function form($form)

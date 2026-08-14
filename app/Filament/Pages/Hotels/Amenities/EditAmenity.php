@@ -24,7 +24,7 @@ class EditAmenity extends Page implements HasForms
         $this->amenity_id = $amenity_id;
         
         $mockData = \App\Filament\Pages\Hotels\Amenities\ListAmenities::getMockAmenities();
-        $this->data = $mockData[$this->amenity_id] ?? [];
+        $this->form->fill($mockData[$this->amenity_id] ?? []);
         $this->form->fill($this->data);
     }
 
@@ -45,6 +45,17 @@ class EditAmenity extends Page implements HasForms
     }
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\Amenities\ListAmenities::getUrl(['record' => $this->record]); }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('details_page')
+                ->label('Manage Amenity Details')
+                ->url(fn () => \App\Filament\Pages\Hotels\Amenities\AmenityDetailsContent::getUrl(['record' => $this->record, 'amenity_id' => $this->amenity_id]))
+                ->color('primary')
+                ->icon('heroicon-m-document-text'),
+        ];
+    }
 
     public function getMaxContentWidth(): ?string
     {

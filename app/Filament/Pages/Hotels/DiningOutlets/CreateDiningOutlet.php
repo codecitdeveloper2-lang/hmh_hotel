@@ -21,6 +21,9 @@ class CreateDiningOutlet extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
+        $this->form->fill([
+            'hotel' => (int) $this->record,
+        ]);
     }
 
     public function getSubNavigation(): array
@@ -35,11 +38,32 @@ class CreateDiningOutlet extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        \App\Models\DiningOutlet::create([
+            'property_id' => $this->record,
+            'name' => ['en' => $data['name'] ?? ''],
+            'slug' => $data['slug'] ?? \Illuminate\Support\Str::slug($data['name'] ?? ''),
+            'cuisine_type' => ['en' => $data['cuisine_type'] ?? ''],
+            'is_active' => ($data['status'] ?? 'active') === 'active',
+            'sort_order' => 0,
+        ]);
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\DiningOutlets\ListDiningOutlets::getUrl(['record' => $this->record]));
     }
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\DiningOutlets\ListDiningOutlets::getUrl(['record' => $this->record]); }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('manage_dining_details')
+                ->label('Manage Dining Details')
+                ->disabled()
+                ->tooltip('Please save the dining outlet before managing its details content.')
+                ->color('primary')
+                ->icon('heroicon-m-document-text'),
+        ];
+    }
 
     public function getMaxContentWidth(): ?string
     {

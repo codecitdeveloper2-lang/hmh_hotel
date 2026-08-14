@@ -18,5 +18,14 @@ class MeetingEventPage extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class); // brand OR hotel
+    use HasTranslations;
+
+    protected $guarded = [];
+
+    public $translatable = ['title', 'description', 'capacity_details'];
+
+    public function property(): BelongsTo
+    {
+        return $this->belongsTo(Property::class);
     }
 }

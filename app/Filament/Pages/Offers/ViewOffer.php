@@ -31,6 +31,8 @@ class ViewOffer extends Page implements HasForms
     public function switchLocale(string $locale): void
     {
         $this->activeLocale = $locale;
+        $mockData = \App\Filament\Pages\ManageOffers::getMockOffers();
+        $this->form->fill($mockData[$this->record] ?? []);
     }
 
     public function getBackUrl(): string

@@ -20,8 +20,13 @@ class EditGroupGallery extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageGroupGallery::getMockGalleryItems();
-        $this->data = $mockData[$this->record] ?? [];
+        $item = \App\Models\GalleryItem::findOrFail($this->record);
+        $this->form->fill([
+            'title' => $item->caption,
+            'slug' => \Illuminate\Support\Str::slug($item->caption ?? ''),
+            'display_order' => $item->sort_order,
+            'status' => 'Published',
+        ]);
     }
 
     public function form($form)
@@ -31,6 +36,13 @@ class EditGroupGallery extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        $item = \App\Models\GalleryItem::findOrFail($this->record);
+        $item->update([
+            'caption' => $data['title'] ?? 'Untitled',
+            'sort_order' => $data['display_order'] ?? 0,
+        ]);
+        
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageGroupGallery::getUrl());
     }
