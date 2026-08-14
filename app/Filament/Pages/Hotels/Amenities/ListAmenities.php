@@ -139,8 +139,8 @@ class ListAmenities extends Page
                             TextInput::make('title')
                                 ->label('Title')
                                 ->required(),
-                            \App\Filament\Forms\Components\JoditEditor::make('description')
-                                ->label('Description'),
+                            TextInput::make('subtitle')
+                                ->label('Subtitle'),
                             TextInput::make('button_label')
                                 ->label('Button Label'),
                             TextInput::make('button_link')

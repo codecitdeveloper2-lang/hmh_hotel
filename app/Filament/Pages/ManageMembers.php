@@ -37,19 +37,64 @@ class ManageMembers extends Page
     public function updatedFilterDate(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
-    public function nextPage(int $lastPage): void
+    protected function getViewData(): array
     {
-        if ($this->currentPage < $lastPage) $this->currentPage++;
-    }
+        $query = \App\Models\Member::query();
 
-    public function previousPage(): void
-    {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
+        if ($this->searchQuery) {
+            $query->where(function ($q) {
+                $q->where('first_name', 'like', "%{$this->searchQuery}%")
+                  ->orWhere('last_name', 'like', "%{$this->searchQuery}%")
+                  ->orWhere('email', 'like', "%{$this->searchQuery}%")
+                  ->orWhere('id', 'like', "%{$this->searchQuery}%");
+            });
+        }
 
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        if ($this->filterTier) {
+            $query->where('loyalty_tier', $this->filterTier);
+        }
+
+        if ($this->filterCountry) {
+            $query->where('country', $this->filterCountry);
+        }
+
+        if ($this->filterDate) {
+            $query->whereDate('created_at', $this->filterDate);
+        }
+
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+
+        $members = $query->skip(($currentPage - 1) * $this->perPage)
+            ->take($this->perPage)
+            ->get()
+            ->map(function ($member) {
+                return [
+                    'id' => $member->id,
+                    'member_id' => 'MEM-' . str_pad($member->id, 3, '0', STR_PAD_LEFT),
+                    'full_name' => $member->first_name . ' ' . $member->last_name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'country' => $member->country,
+                    'nationality' => 'Unknown',
+                    'gender' => 'Unknown',
+                    'date_of_birth' => 'Unknown',
+                    'membership_number' => 'HMH-' . str_pad($member->id, 9, '0', STR_PAD_LEFT),
+                    'membership_tier' => $member->loyalty_tier ?? 'Silver',
+                    'registration_date' => $member->created_at?->format('Y-m-d') ?? '',
+                    'status' => 'Active', // Mocked as members table doesn't have status
+                    'expiry_date' => 'N/A',
+                    'email_notifications' => true,
+                    'sms_notifications' => true,
+                    'marketing_emails' => true,
+                ];
+            });
+
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'members', 'from', 'to');
     }
     public static function getNavigationGroup(): ?string
     {
@@ -112,7 +157,20 @@ class ManageMembers extends Page
             ->modalHeading('View Member')
             ->modalWidth('7xl')
             ->form($this->getViewMemberFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockMembers()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $member = \App\Models\Member::find($arguments['id']);
+                if (!$member) return [];
+                return [
+                    'full_name' => $member->first_name . ' ' . $member->last_name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'membership_number' => 'HMH-' . str_pad($member->id, 9, '0', STR_PAD_LEFT),
+                    'membership_tier' => $member->loyalty_tier ?? 'Silver',
+                    'registration_date' => $member->created_at?->format('Y-m-d') ?? '',
+                    'status' => 'Active',
+                    'nationality' => 'Unknown',
+                ];
+            })
             ->disabledForm()
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
@@ -124,12 +182,34 @@ class ManageMembers extends Page
             ->modalHeading('Edit Member')
             ->modalWidth('7xl')
             ->form($this->getEditMemberFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockMembers()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $member = \App\Models\Member::find($arguments['id']);
+                if (!$member) return [];
+                return [
+                    'full_name' => $member->first_name . ' ' . $member->last_name,
+                    'email' => $member->email,
+                    'phone' => $member->phone,
+                    'country' => $member->country,
+                    'membership_tier' => $member->loyalty_tier ?? 'Silver',
+                    'status' => 'Active',
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Members\EditMember::getUrl(['record' => $arguments['id'] ?? 0]))
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Members\ViewMember::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                $member = \App\Models\Member::find($arguments['id']);
+                if ($member) {
+                    $parts = explode(' ', $data['full_name'], 2);
+                    $member->first_name = $parts[0] ?? '';
+                    $member->last_name = $parts[1] ?? '';
+                    $member->email = $data['email'];
+                    $member->phone = $data['phone'];
+                    $member->country = $data['country'];
+                    $member->loyalty_tier = $data['membership_tier'];
+                    $member->save();
+                }
                 Notification::make()
                     ->title('Member updated successfully.')
                     ->success()
@@ -198,7 +278,8 @@ class ManageMembers extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Member::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Member deleted successfully.')
                     ->success()
@@ -300,29 +381,5 @@ class ManageMembers extends Page
         ];
     }
 
-    public static function getMockMembers(): array
-    {
-        return [
-            1 => ['id' => 1, 'member_id' => 'MEM-001', 'full_name' => 'John Smith', 'email' => 'john.smith@example.com', 'phone' => '+971 50 123 4567', 'country' => 'UAE', 'nationality' => 'Emirati', 'gender' => 'Male', 'date_of_birth' => '1985-06-15', 'membership_number' => 'HMH-987654321', 'membership_tier' => 'Platinum', 'registration_date' => '2020-01-15', 'status' => 'Active', 'expiry_date' => '2024-12-31', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            2 => ['id' => 2, 'member_id' => 'MEM-002', 'full_name' => 'Sarah Jenkins', 'email' => 's.jenkins@example.co.uk', 'phone' => '+44 7700 900123', 'country' => 'United Kingdom', 'nationality' => 'British', 'gender' => 'Female', 'date_of_birth' => '1990-03-22', 'membership_number' => 'HMH-876543210', 'membership_tier' => 'Gold', 'registration_date' => '2021-05-20', 'status' => 'Active', 'expiry_date' => '2024-05-20', 'email_notifications' => true, 'sms_notifications' => false, 'marketing_emails' => true],
-            3 => ['id' => 3, 'member_id' => 'MEM-003', 'full_name' => 'Ahmed Al Mansoori', 'email' => 'ahmed.m@company.ae', 'phone' => '+971 55 987 6543', 'country' => 'UAE', 'nationality' => 'Emirati', 'gender' => 'Male', 'date_of_birth' => '1978-11-10', 'membership_number' => 'HMH-765432109', 'membership_tier' => 'Corporate', 'registration_date' => '2019-11-10', 'status' => 'Active', 'expiry_date' => '2025-11-10', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => false],
-            4 => ['id' => 4, 'member_id' => 'MEM-004', 'full_name' => 'Maria Garcia', 'email' => 'mgarcia@example.es', 'phone' => '+34 600 123 456', 'country' => 'Spain', 'nationality' => 'Spanish', 'gender' => 'Female', 'date_of_birth' => '1992-08-05', 'membership_number' => 'HMH-654321098', 'membership_tier' => 'Silver', 'registration_date' => '2023-02-14', 'status' => 'Inactive', 'expiry_date' => '2024-02-14', 'email_notifications' => false, 'sms_notifications' => false, 'marketing_emails' => false],
-            5 => ['id' => 5, 'member_id' => 'MEM-005', 'full_name' => 'David Wilson', 'email' => 'david.w@techcorp.com', 'phone' => '+1 555 0198', 'country' => 'USA', 'nationality' => 'American', 'gender' => 'Male', 'date_of_birth' => '1982-01-30', 'membership_number' => 'HMH-543210987', 'membership_tier' => 'Corporate', 'registration_date' => '2022-09-01', 'status' => 'Active', 'expiry_date' => '2024-09-01', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            6 => ['id' => 6, 'member_id' => 'MEM-006', 'full_name' => 'Fatima Noor', 'email' => 'f.noor@example.com', 'phone' => '+966 50 111 2222', 'country' => 'Saudi Arabia', 'nationality' => 'Saudi', 'gender' => 'Female', 'date_of_birth' => '1988-12-12', 'membership_number' => 'HMH-432109876', 'membership_tier' => 'Gold', 'registration_date' => '2021-08-15', 'status' => 'Active', 'expiry_date' => '2024-08-15', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => false],
-            7 => ['id' => 7, 'member_id' => 'MEM-007', 'full_name' => 'Thomas Muller', 'email' => 't.muller@example.de', 'phone' => '+49 151 1234567', 'country' => 'Germany', 'nationality' => 'German', 'gender' => 'Male', 'date_of_birth' => '1975-04-25', 'membership_number' => 'HMH-321098765', 'membership_tier' => 'Platinum', 'registration_date' => '2018-05-10', 'status' => 'Suspended', 'expiry_date' => '2023-05-10', 'email_notifications' => false, 'sms_notifications' => false, 'marketing_emails' => false],
-            8 => ['id' => 8, 'member_id' => 'MEM-008', 'full_name' => 'Elena Popova', 'email' => 'elena.p@example.ru', 'phone' => '+7 916 123-45-67', 'country' => 'Russia', 'nationality' => 'Russian', 'gender' => 'Female', 'date_of_birth' => '1995-09-09', 'membership_number' => 'HMH-210987654', 'membership_tier' => 'Silver', 'registration_date' => '2023-10-01', 'status' => 'Active', 'expiry_date' => '2024-10-01', 'email_notifications' => true, 'sms_notifications' => false, 'marketing_emails' => true],
-            9 => ['id' => 9, 'member_id' => 'MEM-009', 'full_name' => 'James Clarke', 'email' => 'j.clarke@example.com', 'phone' => '+61 400 123 456', 'country' => 'Australia', 'nationality' => 'Australian', 'gender' => 'Male', 'date_of_birth' => '1980-02-18', 'membership_number' => 'HMH-109876543', 'membership_tier' => 'Gold', 'registration_date' => '2020-12-05', 'status' => 'Active', 'expiry_date' => '2024-12-05', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            10 => ['id' => 10, 'member_id' => 'MEM-010', 'full_name' => 'Aisha Khan', 'email' => 'akhan@example.com', 'phone' => '+92 300 1234567', 'country' => 'Pakistan', 'nationality' => 'Pakistani', 'gender' => 'Female', 'date_of_birth' => '1991-07-30', 'membership_number' => 'HMH-098765432', 'membership_tier' => 'Silver', 'registration_date' => '2023-11-01', 'status' => 'Active', 'expiry_date' => '2024-11-01', 'email_notifications' => true, 'sms_notifications' => false, 'marketing_emails' => true],
-            11 => ['id' => 11, 'member_id' => 'MEM-011', 'full_name' => 'Robert Taylor', 'email' => 'robert.t@example.com', 'phone' => '+1 202 555 0123', 'country' => 'USA', 'nationality' => 'American', 'gender' => 'Male', 'date_of_birth' => '1968-10-12', 'membership_number' => 'HMH-987654322', 'membership_tier' => 'Platinum', 'registration_date' => '2017-03-20', 'status' => 'Active', 'expiry_date' => '2025-03-20', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            12 => ['id' => 12, 'member_id' => 'MEM-012', 'full_name' => 'Sophie Martin', 'email' => 'smartin@example.fr', 'phone' => '+33 6 12 34 56 78', 'country' => 'France', 'nationality' => 'French', 'gender' => 'Female', 'date_of_birth' => '1987-05-08', 'membership_number' => 'HMH-876543211', 'membership_tier' => 'Gold', 'registration_date' => '2022-01-15', 'status' => 'Active', 'expiry_date' => '2024-01-15', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => false],
-            13 => ['id' => 13, 'member_id' => 'MEM-013', 'full_name' => 'Mohammed Ali', 'email' => 'm.ali@example.om', 'phone' => '+968 9123 4567', 'country' => 'Oman', 'nationality' => 'Omani', 'gender' => 'Male', 'date_of_birth' => '1983-09-25', 'membership_number' => 'HMH-765432108', 'membership_tier' => 'Silver', 'registration_date' => '2023-06-10', 'status' => 'Active', 'expiry_date' => '2024-06-10', 'email_notifications' => true, 'sms_notifications' => false, 'marketing_emails' => true],
-            14 => ['id' => 14, 'member_id' => 'MEM-014', 'full_name' => 'Lisa Wong', 'email' => 'lisa.w@example.sg', 'phone' => '+65 9123 4567', 'country' => 'Singapore', 'nationality' => 'Singaporean', 'gender' => 'Female', 'date_of_birth' => '1994-11-18', 'membership_number' => 'HMH-654321097', 'membership_tier' => 'Gold', 'registration_date' => '2021-10-05', 'status' => 'Active', 'expiry_date' => '2024-10-05', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            15 => ['id' => 15, 'member_id' => 'MEM-015', 'full_name' => 'Daniel Kim', 'email' => 'dkim@example.kr', 'phone' => '+82 10 1234 5678', 'country' => 'South Korea', 'nationality' => 'Korean', 'gender' => 'Male', 'date_of_birth' => '1989-04-14', 'membership_number' => 'HMH-543210986', 'membership_tier' => 'Silver', 'registration_date' => '2023-08-20', 'status' => 'Inactive', 'expiry_date' => '2024-08-20', 'email_notifications' => false, 'sms_notifications' => false, 'marketing_emails' => false],
-            16 => ['id' => 16, 'member_id' => 'MEM-016', 'full_name' => 'Yusuf Ibrahim', 'email' => 'y.ibrahim@example.com', 'phone' => '+20 10 1234 5678', 'country' => 'Egypt', 'nationality' => 'Egyptian', 'gender' => 'Male', 'date_of_birth' => '1986-12-05', 'membership_number' => 'HMH-432109875', 'membership_tier' => 'Gold', 'registration_date' => '2020-07-15', 'status' => 'Active', 'expiry_date' => '2024-07-15', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            17 => ['id' => 17, 'member_id' => 'MEM-017', 'full_name' => 'Nina Patel', 'email' => 'nina.p@example.in', 'phone' => '+91 98 7654 3210', 'country' => 'India', 'nationality' => 'Indian', 'gender' => 'Female', 'date_of_birth' => '1993-02-28', 'membership_number' => 'HMH-321098764', 'membership_tier' => 'Silver', 'registration_date' => '2023-09-10', 'status' => 'Suspended', 'expiry_date' => '2024-09-10', 'email_notifications' => false, 'sms_notifications' => false, 'marketing_emails' => false],
-            18 => ['id' => 18, 'member_id' => 'MEM-018', 'full_name' => 'Jean Dupont', 'email' => 'j.dupont@example.fr', 'phone' => '+33 6 98 76 54 32', 'country' => 'France', 'nationality' => 'French', 'gender' => 'Male', 'date_of_birth' => '1979-08-15', 'membership_number' => 'HMH-210987653', 'membership_tier' => 'Platinum', 'registration_date' => '2016-11-20', 'status' => 'Active', 'expiry_date' => '2024-11-20', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => true],
-            19 => ['id' => 19, 'member_id' => 'MEM-019', 'full_name' => 'Oliver Smith', 'email' => 'o.smith@example.co.uk', 'phone' => '+44 7700 900456', 'country' => 'United Kingdom', 'nationality' => 'British', 'gender' => 'Male', 'date_of_birth' => '1996-01-10', 'membership_number' => 'HMH-109876542', 'membership_tier' => 'Silver', 'registration_date' => '2023-11-05', 'status' => 'Active', 'expiry_date' => '2024-11-05', 'email_notifications' => true, 'sms_notifications' => false, 'marketing_emails' => true],
-            20 => ['id' => 20, 'member_id' => 'MEM-020', 'full_name' => 'Kenji Tanaka', 'email' => 'k.tanaka@example.jp', 'phone' => '+81 90 1234 5678', 'country' => 'Japan', 'nationality' => 'Japanese', 'gender' => 'Male', 'date_of_birth' => '1984-06-30', 'membership_number' => 'HMH-098765431', 'membership_tier' => 'Corporate', 'registration_date' => '2019-04-01', 'status' => 'Active', 'expiry_date' => '2025-04-01', 'email_notifications' => true, 'sms_notifications' => true, 'marketing_emails' => false],
-        ];
-    }
+    // Mock Data removed
 }

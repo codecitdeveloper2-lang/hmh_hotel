@@ -34,19 +34,38 @@ class ManageNewsletterSubscribers extends Page
     public function updatedFilterDate(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
-    public function nextPage(int $lastPage): void
+    protected function getViewData(): array
     {
-        if ($this->currentPage < $lastPage) $this->currentPage++;
-    }
+        $query = \App\Models\NewsletterSubscriber::query();
+        
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+        
+        $subscribers = $query->skip(($currentPage - 1) * $this->perPage)
+                        ->take($this->perPage)
+                        ->get()
+                        ->map(function ($sub) {
+                            return [
+                                'id' => $sub->id,
+                                'subscriber_id' => 'NL-' . $sub->id,
+                                'email' => $sub->email,
+                                'full_name' => 'Unknown',
+                                'country' => 'Unknown',
+                                'subscription_source' => 'Website',
+                                'subscription_date' => $sub->subscribed_at,
+                                'status' => $sub->is_active ? 'Subscribed' : 'Unsubscribed',
+                                'last_activity' => 'N/A',
+                                'last_email_opened' => 'N/A',
+                                'last_campaign' => 'N/A',
+                                'last_updated' => $sub->subscribed_at,
+                            ];
+                        });
+                        
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
 
-    public function previousPage(): void
-    {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
-
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        return compact('totalItems', 'lastPage', 'currentPage', 'subscribers', 'from', 'to');
     }
     public static function getNavigationGroup(): ?string
     {
@@ -109,7 +128,15 @@ class ManageNewsletterSubscribers extends Page
             ->modalHeading('View Subscriber')
             ->modalWidth('7xl')
             ->form($this->getSubscriberFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockSubscribers()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $sub = \App\Models\NewsletterSubscriber::find($arguments['id']);
+                if (!$sub) return [];
+                return [
+                    'email' => $sub->email,
+                    'status' => $sub->is_active ? 'Subscribed' : 'Unsubscribed',
+                    'subscription_date' => $sub->subscribed_at,
+                ];
+            })
             ->disabledForm()
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
@@ -122,7 +149,8 @@ class ManageNewsletterSubscribers extends Page
             ->color('warning')
             
             ->url(fn (array $arguments) => \App\Filament\Pages\NewsletterSubscribers\ViewNewsletterSubscriber::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\NewsletterSubscriber::find($arguments['id'])?->update(['is_active' => 0]);
                 Notification::make()
                     ->title('Subscriber unsubscribed successfully.')
                     ->success()
@@ -135,7 +163,8 @@ class ManageNewsletterSubscribers extends Page
         return Action::make('reactivate')
             ->icon('heroicon-m-check-circle')
             ->color('success')
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\NewsletterSubscriber::find($arguments['id'])?->update(['is_active' => 1]);
                 Notification::make()
                     ->title('Subscriber reactivated successfully.')
                     ->success()
@@ -161,7 +190,8 @@ class ManageNewsletterSubscribers extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\NewsletterSubscriber::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Subscriber deleted.')
                     ->success()
@@ -229,29 +259,5 @@ class ManageNewsletterSubscribers extends Page
         ];
     }
 
-    public static function getMockSubscribers(): array
-    {
-        return [
-            1 => ['id' => 1, 'subscriber_id' => 'NL-8001', 'full_name' => 'Michael Chen', 'email' => 'm.chen@example.com', 'country' => 'Singapore', 'subscription_source' => 'Homepage', 'subscription_date' => '2023-11-15', 'status' => 'Subscribed', 'last_activity' => '2 days ago', 'last_email_opened' => '2023-11-14 10:20', 'last_campaign' => 'Winter Promo 2023', 'last_updated' => '2023-11-15 09:30', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => true, 'pref_events' => false, 'pref_product_updates' => false],
-            2 => ['id' => 2, 'subscriber_id' => 'NL-8002', 'full_name' => 'Emma Davis', 'email' => 'emma.davis@example.co.uk', 'country' => 'United Kingdom', 'subscription_source' => 'Footer', 'subscription_date' => '2023-11-14', 'status' => 'Subscribed', 'last_activity' => '1 week ago', 'last_email_opened' => '2023-11-10 14:15', 'last_campaign' => 'Weekend Getaways', 'last_updated' => '2023-11-14 14:15', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => false, 'pref_events' => true, 'pref_product_updates' => false],
-            3 => ['id' => 3, 'subscriber_id' => 'NL-8003', 'full_name' => 'Ahmed Al Sayed', 'email' => 'a.alsayed@example.ae', 'country' => 'UAE', 'subscription_source' => 'Offers Page', 'subscription_date' => '2023-11-12', 'status' => 'Unsubscribed', 'last_activity' => '2 weeks ago', 'last_email_opened' => '2023-10-25 09:05', 'last_campaign' => 'Summer Recap', 'last_updated' => '2023-11-12 10:05', 'pref_promotions' => false, 'pref_hotel_offers' => false, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            4 => ['id' => 4, 'subscriber_id' => 'NL-8004', 'full_name' => 'Maria Garcia', 'email' => 'mgarcia@example.es', 'country' => 'Spain', 'subscription_source' => 'Membership Page', 'subscription_date' => '2023-11-10', 'status' => 'Subscribed', 'last_activity' => 'Just now', 'last_email_opened' => '2023-11-15 18:45', 'last_campaign' => 'Loyalty Rewards update', 'last_updated' => '2023-11-10 18:45', 'pref_promotions' => true, 'pref_hotel_offers' => false, 'pref_brand_news' => true, 'pref_events' => true, 'pref_product_updates' => true],
-            5 => ['id' => 5, 'subscriber_id' => 'NL-8005', 'full_name' => 'David Wilson', 'email' => 'david.w@example.com', 'country' => 'USA', 'subscription_source' => 'Popup Campaign', 'subscription_date' => '2023-11-09', 'status' => 'Subscribed', 'last_activity' => '3 days ago', 'last_email_opened' => '2023-11-12 08:20', 'last_campaign' => 'Welcome Series 1', 'last_updated' => '2023-11-09 08:20', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => true, 'pref_events' => true, 'pref_product_updates' => false],
-            6 => ['id' => 6, 'subscriber_id' => 'NL-8006', 'full_name' => 'Fatima Noor', 'email' => 'f.noor@example.com', 'country' => 'Saudi Arabia', 'subscription_source' => 'Hotel Detail Page', 'subscription_date' => '2023-11-08', 'status' => 'Subscribed', 'last_activity' => '1 month ago', 'last_email_opened' => '2023-10-15 11:10', 'last_campaign' => 'Autumn Specials', 'last_updated' => '2023-11-08 11:10', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => false, 'pref_events' => true, 'pref_product_updates' => false],
-            7 => ['id' => 7, 'subscriber_id' => 'NL-8007', 'full_name' => 'Thomas Muller', 'email' => 't.muller@example.de', 'country' => 'Germany', 'subscription_source' => 'Homepage', 'subscription_date' => '2023-11-05', 'status' => 'Unsubscribed', 'last_activity' => '5 days ago', 'last_email_opened' => '2023-11-10 09:15', 'last_campaign' => 'Corporate Updates', 'last_updated' => '2023-11-10 09:15', 'pref_promotions' => false, 'pref_hotel_offers' => false, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            8 => ['id' => 8, 'subscriber_id' => 'NL-8008', 'full_name' => 'Elena Popova', 'email' => 'elena.p@example.ru', 'country' => 'Russia', 'subscription_source' => 'Footer', 'subscription_date' => '2023-11-04', 'status' => 'Subscribed', 'last_activity' => '2 days ago', 'last_email_opened' => '2023-11-13 16:30', 'last_campaign' => 'Winter Promo 2023', 'last_updated' => '2023-11-04 16:30', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => true, 'pref_events' => false, 'pref_product_updates' => false],
-            9 => ['id' => 9, 'subscriber_id' => 'NL-8009', 'full_name' => 'James Clarke', 'email' => 'j.clarke@example.com', 'country' => 'Australia', 'subscription_source' => 'Offers Page', 'subscription_date' => '2023-11-03', 'status' => 'Subscribed', 'last_activity' => '1 day ago', 'last_email_opened' => '2023-11-14 10:45', 'last_campaign' => 'Weekend Getaways', 'last_updated' => '2023-11-03 10:45', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            10 => ['id' => 10, 'subscriber_id' => 'NL-8010', 'full_name' => 'Aisha Khan', 'email' => 'akhan@example.com', 'country' => 'Pakistan', 'subscription_source' => 'Membership Page', 'subscription_date' => '2023-11-01', 'status' => 'Subscribed', 'last_activity' => '1 week ago', 'last_email_opened' => '2023-11-08 13:20', 'last_campaign' => 'Loyalty Rewards update', 'last_updated' => '2023-11-01 13:20', 'pref_promotions' => false, 'pref_hotel_offers' => true, 'pref_brand_news' => true, 'pref_events' => true, 'pref_product_updates' => false],
-            11 => ['id' => 11, 'subscriber_id' => 'NL-8011', 'full_name' => 'Robert Taylor', 'email' => 'robert.t@example.com', 'country' => 'USA', 'subscription_source' => 'Popup Campaign', 'subscription_date' => '2023-10-28', 'status' => 'Subscribed', 'last_activity' => '3 weeks ago', 'last_email_opened' => '2023-10-25 08:05', 'last_campaign' => 'Welcome Series 2', 'last_updated' => '2023-10-28 08:05', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            12 => ['id' => 12, 'subscriber_id' => 'NL-8012', 'full_name' => 'Sophie Martin', 'email' => 'smartin@example.fr', 'country' => 'France', 'subscription_source' => 'Hotel Detail Page', 'subscription_date' => '2023-10-25', 'status' => 'Subscribed', 'last_activity' => '4 days ago', 'last_email_opened' => '2023-11-11 19:30', 'last_campaign' => 'Winter Promo 2023', 'last_updated' => '2023-10-25 19:30', 'pref_promotions' => true, 'pref_hotel_offers' => false, 'pref_brand_news' => true, 'pref_events' => true, 'pref_product_updates' => false],
-            13 => ['id' => 13, 'subscriber_id' => 'NL-8013', 'full_name' => 'Mohammed Ali', 'email' => 'm.ali@example.om', 'country' => 'Oman', 'subscription_source' => 'Homepage', 'subscription_date' => '2023-10-20', 'status' => 'Unsubscribed', 'last_activity' => '2 months ago', 'last_email_opened' => '2023-09-15 11:15', 'last_campaign' => 'Autumn Specials', 'last_updated' => '2023-10-20 11:15', 'pref_promotions' => false, 'pref_hotel_offers' => false, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            14 => ['id' => 14, 'subscriber_id' => 'NL-8014', 'full_name' => 'Lisa Wong', 'email' => 'lisa.w@example.sg', 'country' => 'Singapore', 'subscription_source' => 'Footer', 'subscription_date' => '2023-10-18', 'status' => 'Subscribed', 'last_activity' => '2 weeks ago', 'last_email_opened' => '2023-11-01 14:40', 'last_campaign' => 'Brand News Digest', 'last_updated' => '2023-10-18 14:40', 'pref_promotions' => false, 'pref_hotel_offers' => false, 'pref_brand_news' => true, 'pref_events' => false, 'pref_product_updates' => true],
-            15 => ['id' => 15, 'subscriber_id' => 'NL-8015', 'full_name' => 'Daniel Kim', 'email' => 'dkim@example.kr', 'country' => 'South Korea', 'subscription_source' => 'Offers Page', 'subscription_date' => '2023-10-15', 'status' => 'Subscribed', 'last_activity' => '1 day ago', 'last_email_opened' => '2023-11-14 07:25', 'last_campaign' => 'Winter Promo 2023', 'last_updated' => '2023-10-15 07:25', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            16 => ['id' => 16, 'subscriber_id' => 'NL-8016', 'full_name' => 'Sarah Johnson', 'email' => 'sarah.j@example.com', 'country' => 'USA', 'subscription_source' => 'Membership Page', 'subscription_date' => '2023-10-10', 'status' => 'Subscribed', 'last_activity' => '3 days ago', 'last_email_opened' => '2023-11-12 10:00', 'last_campaign' => 'Loyalty Rewards update', 'last_updated' => '2023-10-10 10:00', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => true, 'pref_events' => true, 'pref_product_updates' => false],
-            17 => ['id' => 17, 'subscriber_id' => 'NL-8017', 'full_name' => 'Yusuf Ibrahim', 'email' => 'y.ibrahim@example.com', 'country' => 'Egypt', 'subscription_source' => 'Popup Campaign', 'subscription_date' => '2023-10-05', 'status' => 'Subscribed', 'last_activity' => '2 weeks ago', 'last_email_opened' => '2023-11-01 12:30', 'last_campaign' => 'Weekend Getaways', 'last_updated' => '2023-10-05 12:30', 'pref_promotions' => true, 'pref_hotel_offers' => true, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            18 => ['id' => 18, 'subscriber_id' => 'NL-8018', 'full_name' => 'Nina Patel', 'email' => 'nina.p@example.in', 'country' => 'India', 'subscription_source' => 'Hotel Detail Page', 'subscription_date' => '2023-10-01', 'status' => 'Unsubscribed', 'last_activity' => '1 month ago', 'last_email_opened' => '2023-10-10 09:45', 'last_campaign' => 'Corporate Updates', 'last_updated' => '2023-10-15 09:45', 'pref_promotions' => false, 'pref_hotel_offers' => false, 'pref_brand_news' => false, 'pref_events' => false, 'pref_product_updates' => false],
-            19 => ['id' => 19, 'subscriber_id' => 'NL-8019', 'full_name' => 'Jean Dupont', 'email' => 'j.dupont@example.fr', 'country' => 'France', 'subscription_source' => 'Homepage', 'subscription_date' => '2023-09-28', 'status' => 'Subscribed', 'last_activity' => '5 days ago', 'last_email_opened' => '2023-11-10 15:20', 'last_campaign' => 'Winter Promo 2023', 'last_updated' => '2023-09-28 15:20', 'pref_promotions' => true, 'pref_hotel_offers' => false, 'pref_brand_news' => true, 'pref_events' => true, 'pref_product_updates' => false],
-            20 => ['id' => 20, 'subscriber_id' => 'NL-8020', 'full_name' => 'Oliver Smith', 'email' => 'o.smith@example.co.uk', 'country' => 'United Kingdom', 'subscription_source' => 'Footer', 'subscription_date' => '2023-09-25', 'status' => 'Subscribed', 'last_activity' => '1 day ago', 'last_email_opened' => '2023-11-14 11:10', 'last_campaign' => 'Brand News Digest', 'last_updated' => '2023-09-25 11:10', 'pref_promotions' => false, 'pref_hotel_offers' => false, 'pref_brand_news' => true, 'pref_events' => false, 'pref_product_updates' => true],
-        ];
-    }
+    // Mock Data removed
 }

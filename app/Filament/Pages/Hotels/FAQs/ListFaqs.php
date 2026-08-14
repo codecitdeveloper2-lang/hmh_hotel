@@ -53,12 +53,25 @@ class ListFaqs extends Page
 
     protected function getViewData(): array
     {
-        $hotelName = \App\Filament\Pages\ManageHotels::getMockHotels()[$this->record]['name'] ?? '';
-        $all         = collect($this->getMockFaqs())->filter(fn($item) => $item['hotel'] === $hotelName);
-        $totalItems  = $all->count();
+        $query = \App\Models\FaqItem::where('property_id', $this->record)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+
+        $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
-        $faqs        = $all->forPage($currentPage, $this->perPage);
+        $faqs       = $query->forPage($currentPage, $this->perPage)->get()->map(function ($f) {
+            $propName = $f->property ? (is_array($f->property->name) ? ($f->property->name['en'] ?? '') : $f->property->name) : '';
+            return [
+                'id' => $f->id,
+                'question' => is_array($f->question) ? ($f->question['en'] ?? '') : $f->question,
+                'hotel' => $propName,
+                'category' => 'General',
+                'display_order' => $f->sort_order,
+                'status' => 'Active',
+                'last_updated' => $f->updated_at ? $f->updated_at->format('M d, Y') : 'Today',
+            ];
+        });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
         $to          = min($currentPage * $this->perPage, $totalItems);
 
@@ -108,7 +121,15 @@ class ListFaqs extends Page
             ->modalHeading('View FAQ')
             ->modalWidth('4xl')
             ->form($this->getFaqFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockFaqs()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $faq = \App\Models\FaqItem::find($arguments['id']);
+                if (!$faq) return [];
+                return [
+                    'question' => is_array($faq->question) ? ($faq->question['en'] ?? '') : $faq->question,
+                    'answer' => is_array($faq->answer) ? ($faq->answer['en'] ?? '') : $faq->answer,
+                    'display_order' => $faq->sort_order,
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\FAQs\ViewFaq::getUrl(['record' => $this->record, 'faq_id' => $arguments['id'] ?? 0]))
@@ -121,16 +142,18 @@ class ListFaqs extends Page
             ->modalHeading('Edit FAQ')
             ->modalWidth('4xl')
             ->form($this->getFaqFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockFaqs()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $faq = \App\Models\FaqItem::find($arguments['id']);
+                if (!$faq) return [];
+                return [
+                    'question' => is_array($faq->question) ? ($faq->question['en'] ?? '') : $faq->question,
+                    'answer' => is_array($faq->answer) ? ($faq->answer['en'] ?? '') : $faq->answer,
+                    'display_order' => $faq->sort_order,
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\FAQs\EditFaq::getUrl(['record' => $this->record, 'faq_id' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
-                Notification::make()
-                    ->title('FAQ Updated')
-                    ->body('The FAQ has been updated successfully (Mock).')
-                    ->success()
-                    ->send();
-            });
+            ->action(fn () => null);
     }
 
     public function deleteFaqAction(): Action
@@ -139,10 +162,10 @@ class ListFaqs extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\FaqItem::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('FAQ Deleted')
-                    ->body('The FAQ has been deleted successfully (Mock).')
                     ->success()
                     ->send();
             });
@@ -157,15 +180,8 @@ class ListFaqs extends Page
                         Grid::make(2)->schema([
                             Select::make('hotel')
                                 ->label('Hotel')
-                                ->options([
-                                    '1' => 'Bahi Ajman Palace Hotel',
-                                    'coral-beach-resort-sharjah' => 'Coral Beach Resort Sharjah',
-                                    'coral-dubai-deira-hotel' => 'Coral Dubai Deira Hotel',
-                                    'ecos-dubai-hotel' => 'ECOS Dubai Hotel',
-                                    'ewa-hotel-apartments' => 'EWA Hotel Apartments',
-                                    'opera-hotel' => 'Opera Hotel',
-                                ])
-                                ->default(fn () => request()->route('record') ?? '1')
+                                ->options(fn () => \App\Models\Property::where('type', 'hotel')->get()->mapWithKeys(fn ($h) => [$h->id => is_array($h->name) ? ($h->name['en'] ?? '') : $h->name])->toArray())
+                                ->default(fn () => request()->route('record') ?? null)
                                 ->disabled()
                                 ->dehydrated()
                                 ->required(),

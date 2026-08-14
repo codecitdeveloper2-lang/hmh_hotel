@@ -94,6 +94,36 @@ class ManageOffers extends Page
         return 'Create and manage promotional offers available across HMH Hotel Group properties.';
     }
 
+    protected function getViewData(): array
+    {
+        $query = \App\Models\Offer::query();
+        
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+        
+        $offers = $query->skip(($currentPage - 1) * $this->perPage)
+                        ->take($this->perPage)
+                        ->get()
+                        ->map(function ($offer) {
+                            return [
+                                'id' => $offer->id,
+                                'title' => $offer->name,
+                                'hotel' => 'All Hotels',
+                                'offer_type' => 'Seasonal',
+                                'status' => $offer->is_active ? 'Active' : 'Inactive',
+                                'last_updated' => $offer->updated_at?->format('Y-m-d H:i') ?? '',
+                                'valid_from' => $offer->valid_from,
+                                'valid_until' => $offer->valid_to,
+                            ];
+                        });
+                        
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'offers', 'from', 'to');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -105,8 +135,14 @@ class ManageOffers extends Page
                 
             ->url(\App\Filament\Pages\Offers\CreateOffer::getUrl())
             ->action(function (array $data) {
+                    \App\Models\Offer::create([
+                        'name' => $data['title'] ?? 'New Offer',
+                        'slug' => \Illuminate\Support\Str::slug($data['title'] ?? 'offer-' . time()),
+                        'description' => $data['highlight_description'] ?? null,
+                        'is_active' => ($data['status'] ?? 'Active') === 'Active' ? 1 : 0,
+                    ]);
                     Notification::make()
-                        ->title('Offer saved successfully.')
+                        ->title('Offer Created successfully.')
                         ->success()
                         ->send();
                 }),
@@ -132,12 +168,26 @@ class ManageOffers extends Page
             ->modalHeading('Edit Offer')
             ->modalWidth('7xl')
             ->form($this->getOfferFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockOffers()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $offer = \App\Models\Offer::find($arguments['id']);
+                if (!$offer) return [];
+                return [
+                    'title' => $offer->name,
+                    'status' => $offer->is_active ? 'Active' : 'Inactive',
+                    'highlight_description' => $offer->description,
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Offers\EditOffer::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                \App\Models\Offer::find($arguments['id'])?->update([
+                    'name' => $data['title'] ?? 'New Offer',
+                    'slug' => \Illuminate\Support\Str::slug($data['title'] ?? 'offer-' . time()),
+                    'description' => $data['highlight_description'] ?? null,
+                    'is_active' => ($data['status'] ?? 'Active') === 'Active' ? 1 : 0,
+                ]);
                 Notification::make()
-                    ->title('Offer saved successfully.')
+                    ->title('Offer Updated successfully.')
                     ->success()
                     ->send();
             });
@@ -149,7 +199,8 @@ class ManageOffers extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Offer::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Offer deleted successfully.')
                     ->success()
@@ -162,8 +213,11 @@ class ManageOffers extends Page
         return [
             Grid::make(3)->schema([
                 Grid::make(1)->schema([
-                    Section::make('Basic Information')
-                        ->schema([
+
+                    \Filament\Schemas\Components\Tabs::make('Tabs')
+                        ->tabs([
+                            \Filament\Schemas\Components\Tabs\Tab::make('General Information')
+                                ->schema([
                             TextInput::make('title')
                                 ->label('Offer Title')
                                 ->required(),
@@ -188,10 +242,7 @@ class ManageOffers extends Page
                                     'Long Stay' => 'Long Stay',
                                 ])
                                 ->required(),
-                            \App\Filament\Forms\Components\JoditEditor::make('short_description')
-                                ->label('Short Description'),
-                            \App\Filament\Forms\Components\JoditEditor::make('detailed_description')
-                                ->label('Detailed Description'),
+
                             Select::make('status')
                                 ->label('Status')
                                 ->options([
@@ -202,50 +253,34 @@ class ManageOffers extends Page
                                 ])
                                 ->default('Active')
                                 ->required(),
-                        ]),
+                            TextInput::make('highlight_title')
+                                ->label('Offer Highlight Title')
+                                ->default('GREAT OFFERS ARE JUST A CLICK'),
+                            TextInput::make('highlight_subtitle')
+                                ->label('Offer Highlight Subtitle')
+                                ->default('Unbeatable packages for your holidays'),
+                            \App\Filament\Forms\Components\JoditEditor::make('highlight_description')
+                                ->label('Offer Highlight Description')
+                                ->default('Elevate your stay with exclusive offers designed to enhance every moment of your journey.'),
+                                ]),
+                            \Filament\Schemas\Components\Tabs\Tab::make('Banner')
+                                ->schema([
+                            TextInput::make('banner_title')
+                                ->label('Banner Title')
+                                ->default('VIEW OFFERS'),
 
-                    Section::make('Offer Validity')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                DatePicker::make('valid_from')
-                                    ->label('Valid From'),
-                                DatePicker::make('valid_until')
-                                    ->label('Valid Until'),
-                            ]),
-                            TextInput::make('booking_period')
-                                ->label('Booking Period (e.g., Book by 30th Nov)'),
-                        ]),
-                        
-                    Section::make('Pricing')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                Select::make('discount_type')
-                                    ->label('Discount Type')
-                                    ->options([
-                                        'Percentage' => 'Percentage',
-                                        'Fixed Amount' => 'Fixed Amount',
-                                    ]),
-                                TextInput::make('discount_value')
-                                    ->label('Discount Value')
-                                    ->numeric(),
-                            ]),
-                            TextInput::make('promo_code')
-                                ->label('Promo Code'),
-                        ]),
-                ])->columnSpan(2),
-                
-                Grid::make(1)->schema([
-                    Section::make('Media')
-                        ->schema([
                             FileUpload::make('banner_image')
                                 ->label('Banner Image Upload')
                                 ->image(),
-                            FileUpload::make('gallery')
-                                ->label('Gallery Upload')
-                                ->image()
-                                ->multiple(),
+                                ]),
                         ]),
-                        
+
+
+
+                ])->columnSpan(2),
+                
+                Grid::make(1)->schema([
+
                     Section::make('SEO')
                         ->schema([
                             TextInput::make('meta_title')
@@ -261,15 +296,5 @@ class ManageOffers extends Page
         ];
     }
 
-    public static function getMockOffers(): array
-    {
-        return [
-            1 => ['id' => 1, 'title' => 'Summer Escape', 'hotel' => 'Coral Beach Resort Sharjah', 'offer_type' => 'Seasonal', 'valid_from' => '2023-06-01', 'valid_until' => '2023-08-31', 'promo_code' => 'SUMMER23', 'status' => 'Expired', 'last_updated' => '2023-05-15', 'discount_type' => 'Percentage', 'discount_value' => '20', 'short_description' => 'Enjoy your summer...'],
-            2 => ['id' => 2, 'title' => 'Weekend Getaway', 'hotel' => 'Coral Dubai Deira Hotel', 'offer_type' => 'Weekend', 'valid_from' => '2023-11-01', 'valid_until' => '2023-12-31', 'promo_code' => 'WKND15', 'status' => 'Active', 'last_updated' => '2023-10-20', 'discount_type' => 'Percentage', 'discount_value' => '15', 'short_description' => 'Relax this weekend...'],
-            3 => ['id' => 3, 'title' => 'Family Stay Package', 'hotel' => 'ECOS Dubai Hotel', 'offer_type' => 'Family', 'valid_from' => '2023-11-15', 'valid_until' => '2024-01-15', 'promo_code' => 'FAM2023', 'status' => 'Active', 'last_updated' => '2023-10-25', 'discount_type' => 'Fixed Amount', 'discount_value' => '500', 'short_description' => 'Fun for the whole family...'],
-            4 => ['id' => 4, 'title' => 'Honeymoon Special', 'hotel' => 'EWA Hotel Apartments', 'offer_type' => 'Honeymoon', 'valid_from' => '2023-01-01', 'valid_until' => '2024-12-31', 'promo_code' => 'LOVE', 'status' => 'Active', 'last_updated' => '2023-01-10', 'discount_type' => 'Percentage', 'discount_value' => '25', 'short_description' => 'Romantic getaway...'],
-            5 => ['id' => 5, 'title' => 'Business Traveller Offer', 'hotel' => 'Opera Hotel', 'offer_type' => 'Corporate', 'valid_from' => '2023-09-01', 'valid_until' => '2024-03-31', 'promo_code' => 'BIZ10', 'status' => 'Draft', 'last_updated' => '2023-10-10', 'discount_type' => 'Percentage', 'discount_value' => '10', 'short_description' => 'For the working professional...'],
-            6 => ['id' => 6, 'title' => 'Early Bird Discount', 'hotel' => 'Coral Beach Resort Sharjah', 'offer_type' => 'Seasonal', 'valid_from' => '2024-01-01', 'valid_until' => '2024-03-31', 'promo_code' => 'EARLY24', 'status' => 'Active', 'last_updated' => '2023-10-28', 'discount_type' => 'Percentage', 'discount_value' => '30', 'short_description' => 'Book early and save...'],
-        ];
-    }
+    // Mock Data removed
 }

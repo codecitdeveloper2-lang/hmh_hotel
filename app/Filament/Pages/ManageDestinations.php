@@ -161,7 +161,7 @@ class ManageDestinations extends Page
                                 ->label('Destination Name')
                                 ->required()
                                 ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),

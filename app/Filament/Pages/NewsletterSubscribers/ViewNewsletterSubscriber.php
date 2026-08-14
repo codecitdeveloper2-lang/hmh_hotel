@@ -21,7 +21,7 @@ class ViewNewsletterSubscriber extends Page implements HasForms
     {
         $this->record = $record;
         $mockData = \App\Filament\Pages\ManageNewsletterSubscribers::getMockSubscribers();
-        $this->data = $mockData[$this->record] ?? [];
+        $this->form->fill($mockData[$this->record] ?? []);
     }
 
     public function form($form)

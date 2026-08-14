@@ -27,7 +27,16 @@ class CreateUser extends Page implements HasForms
 
     public function save(): void
     {
-        \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
+        $data = $this->form->getState();
+
+        \App\Models\User::create([
+            'name'      => $data['full_name'] ?? 'Unknown',
+            'email'     => $data['email'],
+            'password'  => bcrypt($data['password']),
+            'is_active' => ($data['status'] ?? 'Active') === 'Active',
+        ]);
+
+        \Filament\Notifications\Notification::make()->title('User created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageUsers::getUrl());
     }
 

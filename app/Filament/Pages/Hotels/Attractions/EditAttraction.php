@@ -22,9 +22,16 @@ class EditAttraction extends Page implements HasForms
     {
         $this->record = $record;
         $this->attraction_id = $attraction_id;
-        $mockData = \App\Filament\Pages\Hotels\Attractions\ListAttractions::getMockAttractions();
-        $this->data = $mockData[$this->attraction_id] ?? [];
-        $this->form->fill($this->data);
+        $a = \App\Models\Attraction::find($attraction_id);
+        if ($a) {
+            $this->form->fill([
+                'hotel' => (int) $this->record,
+                'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                'slug' => $a->slug,
+                'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                'status' => $a->is_active ? 'active' : 'inactive',
+            ]);
+        }
     }
 
     public function getSubNavigation(): array
@@ -39,11 +46,36 @@ class EditAttraction extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        $a = \App\Models\Attraction::find($this->attraction_id);
+        if ($a) {
+            $name = is_array($a->name) ? $a->name : ['en' => $a->name];
+            $name['en'] = $data['name'] ?? '';
+            $desc = is_array($a->description) ? $a->description : ['en' => $a->description];
+            $desc['en'] = $data['description'] ?? '';
+            $a->update([
+                'name' => $name,
+                'slug' => $data['slug'] ?? $a->slug,
+                'description' => $desc,
+                'is_active' => ($data['status'] ?? 'active') === 'active',
+            ]);
+        }
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\Attractions\ListAttractions::getUrl(['record' => $this->record]));
     }
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\Attractions\ListAttractions::getUrl(['record' => $this->record]); }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('manage_attraction_details')
+                ->label('Manage Attraction Details')
+                ->url(fn () => \App\Filament\Pages\Hotels\Attractions\ManageAttractionDetails::getUrl(['record' => $this->record, 'attraction_id' => $this->attraction_id]))
+                ->color('primary')
+                ->icon('heroicon-m-document-text'),
+        ];
+    }
 
     public function getMaxContentWidth(): ?string
     {

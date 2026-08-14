@@ -15,13 +15,24 @@ class Overview extends Page implements HasForms
     protected static ?string $slug = 'manage-hotels/{record}/overview';
     protected static ?string $cluster = \App\Filament\Clusters\HotelManagement\HotelManagementCluster::class;
 
+    public string $activeLocale = 'en';
     public ?array $data = [];
 
     public function mount($record): void
     {
         $this->mountHasHotelTabs($record);
-        $mockData = \App\Filament\Pages\ManageHotels::getMockHotels();
-        $this->data = $mockData[$this->record] ?? [];
+        $property = \App\Models\Property::findOrFail($record);
+        $data = $property->toArray();
+
+        // No need to extract English values, we use data.name.en and data.name.ar now
+
+        $this->form->fill($data);
+    }
+
+    public function getTitle(): string | \Illuminate\Contracts\Support\Htmlable
+    {
+        $property = \App\Models\Property::find($this->record);
+        return $property?->display_name ?? 'Overview';
     }
 
     public function form($form)

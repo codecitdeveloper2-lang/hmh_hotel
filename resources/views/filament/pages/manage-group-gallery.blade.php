@@ -113,24 +113,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allGalleryItems = collect($this->getMockGalleryItems())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['title'], $searchQuery) !== false || 
-                           stripos($item['category'], $searchQuery) !== false ||
-                           stripos($item['display_location'], $searchQuery) !== false;
-                }))
-                ->when($filterCategory, fn($collection) => $collection->where('category', $filterCategory))
-                ->when($filterDisplayLocation, fn($collection) => $collection->where('display_location', $filterDisplayLocation))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus));
-
-            $totalItems  = $allGalleryItems->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $galleryItems    = $allGalleryItems->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
+        <!-- Data provided by getViewData() -->
 
         <!-- Table -->
         <x-filament::section>
@@ -187,7 +170,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\GroupGallery\ViewGroupGallery::getUrl(['record' => $item['id']]) }}"

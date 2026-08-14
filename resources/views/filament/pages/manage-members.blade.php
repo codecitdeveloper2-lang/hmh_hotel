@@ -132,7 +132,7 @@
                                 Bulk Actions
                             </x-filament::button>
                         </x-slot>
-                        <x-filament::dropdown.list>
+                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                             <x-filament::dropdown.list.item icon="heroicon-m-check-circle" color="success" wire:click="bulkAction('activate')">Activate Selected</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-pause-circle" color="warning" wire:click="bulkAction('suspend')">Suspend Selected</x-filament::dropdown.list.item>
                             <x-filament::dropdown.list.item icon="heroicon-m-document-arrow-down" wire:click="bulkAction('export')">Export Members</x-filament::dropdown.list.item>
@@ -143,26 +143,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allMembers = collect($this->getMockMembers())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['member_id'], $searchQuery) !== false || 
-                           stripos($item['full_name'], $searchQuery) !== false ||
-                           stripos($item['email'], $searchQuery) !== false ||
-                           stripos($item['membership_number'], $searchQuery) !== false;
-                }))
-                ->when($filterTier, fn($collection) => $collection->where('membership_tier', $filterTier))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus))
-                ->when($filterCountry, fn($collection) => $collection->where('country', $filterCountry))
-                ->when($filterDate, fn($collection) => $collection->filter(fn($item) => str_starts_with($item['registration_date'], $filterDate)));
-
-            $totalItems  = $allMembers->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $members    = $allMembers->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
+        <!-- Pagination & rendering handled by Livewire automatically -->
 
         <!-- Table -->
         <x-filament::section>
@@ -237,7 +218,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\Members\ViewMember::getUrl(['record' => $item['id']]) }}"
@@ -339,7 +320,7 @@
                         @if($pgEnd < $lastPage - 1)<span style="opacity:0.4;font-size:0.85rem;padding:0 0.25rem;">…</span>@endif
                         <button wire:click="gotoPage({{ $lastPage }})" style="min-width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;cursor:pointer;font-size:0.85rem;">{{ $lastPage }}</button>
                     @endif
-                    <button wire:click="nextPage({{ $lastPage }})" @if($currentPage >= $lastPage) disabled @endif style="display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;cursor:{{ $currentPage >= $lastPage ? 'not-allowed' : 'pointer' }};opacity:{{ $currentPage >= $lastPage ? '0.3' : '1' }};transition:all 0.15s;">
+                    <button wire:click="nextPage" @if($currentPage >= $lastPage) disabled @endif style="display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;cursor:{{ $currentPage >= $lastPage ? 'not-allowed' : 'pointer' }};opacity:{{ $currentPage >= $lastPage ? '0.3' : '1' }};transition:all 0.15s;">
                         <x-filament::icon icon="heroicon-m-chevron-right" style="width:1rem;height:1rem;" />
                     </button>
                 </div>

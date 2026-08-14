@@ -43,13 +43,29 @@ class ManageBrands extends Page
 
     protected function getViewData(): array
     {
-        $all         = collect($this->getMockBrands());
-        $totalItems  = $all->count();
+        $query = \App\Models\Property::where('type', 'brand');
+        
+        $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
-        $brands      = $all->forPage($currentPage, $this->perPage);
-        $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
-        $to          = min($currentPage * $this->perPage, $totalItems);
+        
+        $brands = $query->skip(($currentPage - 1) * $this->perPage)
+                        ->take($this->perPage)
+                        ->get()
+                        ->map(function ($brand) {
+                            return [
+                                'id' => $brand->id,
+                                'name' => $brand->display_name,
+                                'slug' => $brand->slug,
+                                'star_segment' => $brand->star_rating ? $brand->star_rating . ' Star' : 'N/A',
+                                'status' => $brand->is_active,
+                                'sort_order' => $brand->sort_order,
+                                'last_updated' => $brand->updated_at?->format('Y-m-d') ?? '',
+                            ];
+                        });
+                        
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
 
         return compact('totalItems', 'lastPage', 'currentPage', 'brands', 'from', 'to');
     }
@@ -95,9 +111,11 @@ class ManageBrands extends Page
                 
             ->url(\App\Filament\Pages\Brands\CreateBrand::getUrl())
             ->action(function (array $data) {
+                    $data['type'] = 'brand';
+                    \App\Models\Property::create($data);
                     Notification::make()
                         ->title('Brand Created')
-                        ->body('The brand has been created successfully (Mock).')
+                        ->body('The brand has been created successfully.')
                         ->success()
                         ->send();
                 }),
@@ -110,7 +128,7 @@ class ManageBrands extends Page
             ->modalHeading('View Brand')
             ->modalWidth('7xl')
             ->form($this->getBrandFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockBrands()[$arguments['id']] ?? [])
+            ->fillForm(fn (array $arguments) => \App\Models\Property::find($arguments['id'])?->toArray() ?? [])
             ->disabledForm()
             ->modalSubmitAction(false)
             ->modalCancelActionLabel('Close');
@@ -122,15 +140,16 @@ class ManageBrands extends Page
             ->modalHeading('Edit Brand')
             ->modalWidth('7xl')
             ->form($this->getBrandFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockBrands()[$arguments['id']] ?? [])
+            ->fillForm(fn (array $arguments) => \App\Models\Property::find($arguments['id'])?->toArray() ?? [])
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Brands\EditBrand::getUrl(['record' => $arguments['id'] ?? 0]))
             
             ->url(fn (array $arguments) => \App\Filament\Pages\Brands\ViewBrand::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                \App\Models\Property::find($arguments['id'])?->update($data);
                 Notification::make()
                     ->title('Brand Updated')
-                    ->body('The brand has been updated successfully (Mock).')
+                    ->body('The brand has been updated successfully.')
                     ->success()
                     ->send();
             });
@@ -140,10 +159,11 @@ class ManageBrands extends Page
     {
         return Action::make('deleteBrand')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\Property::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Brand Deleted')
-                    ->body('The brand has been deleted successfully (Mock).')
+                    ->body('The brand has been deleted successfully.')
                     ->success()
                     ->send();
             });
@@ -153,13 +173,23 @@ class ManageBrands extends Page
     {
         return [
             Grid::make(3)->schema([
+                \Filament\Schemas\Components\View::make('filament.components.locale-toggle')->columnSpanFull(),
                 Grid::make(1)->schema([
                     \Filament\Schemas\Components\Tabs::make('Brand Tabs')->tabs([
                         \Filament\Schemas\Components\Tabs\Tab::make('General Details')->schema([
                             Section::make('General')->schema([
-                                TextInput::make('name')->required()->label('Brand Name')
+                                TextInput::make('name.en')
+                                    ->required(fn ($livewire) => ($livewire->activeLocale ?? 'en') === 'en')
+                                    ->hidden(fn ($livewire) => ($livewire->activeLocale ?? 'en') !== 'en')
+                                    ->dehydrated()
+                                    ->label('Brand Name')
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (?string $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                    ->afterStateUpdated(fn (?string $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state ?? ''))),
+                                TextInput::make('name.ar')
+                                    ->required(fn ($livewire) => ($livewire->activeLocale ?? 'en') === 'ar')
+                                    ->hidden(fn ($livewire) => ($livewire->activeLocale ?? 'en') !== 'ar')
+                                    ->dehydrated()
+                                    ->label('Brand Name (عربي)'),
                                 TextInput::make('slug')->required()->label('Slug'),
                                 TextInput::make('tagline')->label('Tagline'),
                                 TextInput::make('google_location')->label('Google Location URL')->url(),
@@ -205,15 +235,5 @@ class ManageBrands extends Page
             ]),
         ];
     }
-
-    public static function getMockBrands(): array
-    {
-        return [
-            0 => ['id' => 0, 'name' => 'Coral Hotels & Resorts', 'slug' => 'coral-hotels-resorts', 'star_segment' => 'Premium', 'status' => true, 'sort_order' => 1, 'last_updated' => '2023-10-01 10:30'],
-            1 => ['id' => 1, 'name' => 'ECOS Hotels', 'slug' => 'ecos-hotels', 'star_segment' => 'Economy', 'status' => true, 'sort_order' => 2, 'last_updated' => '2023-10-02 11:15'],
-            2 => ['id' => 2, 'name' => 'EWA Hotel Apartments', 'slug' => 'ewa-hotel-apartments', 'star_segment' => 'Midscale', 'status' => true, 'sort_order' => 3, 'last_updated' => '2023-10-03 09:45'],
-            3 => ['id' => 3, 'name' => 'HMH Hotels', 'slug' => 'hmh-hotels', 'star_segment' => 'Luxury', 'status' => false, 'sort_order' => 4, 'last_updated' => '2023-10-04 14:20'],
-            4 => ['id' => 4, 'name' => 'Opera Hotel', 'slug' => 'opera-hotel', 'star_segment' => 'Premium', 'status' => true, 'sort_order' => 5, 'last_updated' => '2023-10-05 16:00'],
-        ];
-    }
+    // Mock Data removed
 }

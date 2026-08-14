@@ -39,6 +39,65 @@ class ManageNewsAndPress extends Page
     public function updatedFilterPublishDate(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
+    protected function getViewData(): array
+    {
+        $query = \App\Models\NewsPost::query();
+
+        if ($this->searchQuery) {
+            $query->where(function ($q) {
+                $q->where('title', 'like', '%' . $this->searchQuery . '%')
+                  ->orWhere('author_name', 'like', '%' . $this->searchQuery . '%');
+            });
+        }
+        if ($this->filterCategory) {
+            // Map category names back to channels
+            $channel = $this->filterCategory === 'Press Release' ? 'press-release' : 'news';
+            $query->where('channel', $channel);
+        }
+        if ($this->filterStatus !== '') {
+            $isActive = $this->filterStatus === 'Published';
+            $query->where('is_active', $isActive);
+        }
+        if ($this->filterPublishDate) {
+            $query->whereDate('published_at', $this->filterPublishDate);
+        }
+        
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+        
+        $articles = $query->skip(($currentPage - 1) * $this->perPage)
+                        ->take($this->perPage)
+                        ->get()
+                        ->map(function ($article) {
+                            return [
+                                'id' => $article->id,
+                                'title' => $article->title,
+                                'category' => $article->channel === 'press-release' ? 'Press Release' : 'News',
+                                'slug' => $article->slug,
+                                'author' => $article->author_name ?? 'System',
+                                'publish_date' => $article->published_at ? \Carbon\Carbon::parse($article->published_at)->format('Y-m-d') : null,
+                                'status' => $article->is_active ? 'Published' : 'Draft',
+                                'featured' => false,
+                                'last_updated' => $article->updated_at?->format('Y-m-d') ?? '',
+                            ];
+                        });
+                        
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        // Calculate stats for the cards
+        $totalArticles = \App\Models\NewsPost::count();
+        $publishedArticles = \App\Models\NewsPost::where('is_active', 1)->count();
+        $draftArticles = \App\Models\NewsPost::where('is_active', 0)->count();
+        $featuredArticles = 0; // Featured is not tracked in DB yet, but we'll return 0 to be safe
+
+        return compact(
+            'totalItems', 'lastPage', 'currentPage', 'articles', 'from', 'to',
+            'totalArticles', 'publishedArticles', 'draftArticles', 'featuredArticles'
+        );
+    }
+
     public function nextPage(int $lastPage): void
     {
         if ($this->currentPage < $lastPage) $this->currentPage++;
@@ -105,6 +164,24 @@ class ManageNewsAndPress extends Page
                 
             ->url(\App\Filament\Pages\NewsAndPress\CreateNewsAndPress::getUrl())
             ->action(function (array $data) {
+                    \App\Models\NewsPost::create([
+                        'title' => ['en' => $data['title'] ?? ''],
+                        'slug' => $data['slug'],
+                        'channel' => (strtolower(str_replace(' ', '-', $data['category'] ?? '')) === 'press-release') ? 'press-release' : 'news',
+                        'published_at' => $data['publish_date'] ?? now(),
+                        'is_active' => ($data['status'] ?? 'Published') === 'Published' ? 1 : 0,
+                        'meta_title' => ['en' => $data['meta_title'] ?? ''],
+                        'meta_description' => ['en' => $data['meta_description'] ?? ''],
+                        'body' => ['en' => json_encode([
+                            'content' => $data['content'] ?? '',
+                            'author' => $data['author'] ?? '',
+                            'featured_article' => $data['featured_article'] ?? false,
+                            'featured_image' => $data['featured_image'] ?? null,
+                            'gallery_images' => $data['gallery_images'] ?? [],
+                            'meta_keywords' => $data['meta_keywords'] ?? '',
+                            'canonical_url' => $data['canonical_url'] ?? '',
+                        ])],
+                    ]);
                     Notification::make()
                         ->title('Article saved successfully.')
                         ->success()
@@ -119,7 +196,33 @@ class ManageNewsAndPress extends Page
             ->modalHeading('View Article')
             ->modalWidth('7xl')
             ->form($this->getArticleFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockArticles()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $article = \App\Models\NewsPost::find($arguments['id']);
+                if (!$article) return [];
+                
+                $bodyData = is_array($article->body) ? ($article->body['en'] ?? '') : $article->body;
+                $decodedBody = json_decode((string)$bodyData, true) ?? [];
+                if (!is_array($decodedBody)) {
+                    $decodedBody = ['content' => $bodyData];
+                }
+
+                return [
+                    'title' => is_array($article->title) ? ($article->title['en'] ?? '') : $article->title,
+                    'slug' => $article->slug,
+                    'category' => $article->channel === 'press-release' ? 'Press Release' : 'News',
+                    'publish_date' => $article->published_at,
+                    'status' => $article->is_active ? 'Published' : 'Draft',
+                    'meta_title' => is_array($article->meta_title) ? ($article->meta_title['en'] ?? '') : $article->meta_title,
+                    'meta_description' => is_array($article->meta_description) ? ($article->meta_description['en'] ?? '') : $article->meta_description,
+                    'content' => $decodedBody['content'] ?? '',
+                    'author' => $decodedBody['author'] ?? '',
+                    'featured_article' => $decodedBody['featured_article'] ?? false,
+                    'featured_image' => $decodedBody['featured_image'] ?? null,
+                    'gallery_images' => $decodedBody['gallery_images'] ?? [],
+                    'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
+                    'canonical_url' => $decodedBody['canonical_url'] ?? '',
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\NewsAndPress\ViewNewsAndPress::getUrl(['record' => $arguments['id'] ?? 0]))
@@ -132,10 +235,54 @@ class ManageNewsAndPress extends Page
             ->modalHeading('Edit Article')
             ->modalWidth('7xl')
             ->form($this->getArticleFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockArticles()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $article = \App\Models\NewsPost::find($arguments['id']);
+                if (!$article) return [];
+                
+                $bodyData = is_array($article->body) ? ($article->body['en'] ?? '') : $article->body;
+                $decodedBody = json_decode((string)$bodyData, true) ?? [];
+                if (!is_array($decodedBody)) {
+                    $decodedBody = ['content' => $bodyData];
+                }
+
+                return [
+                    'title' => is_array($article->title) ? ($article->title['en'] ?? '') : $article->title,
+                    'slug' => $article->slug,
+                    'category' => $article->channel === 'press-release' ? 'Press Release' : 'News',
+                    'publish_date' => $article->published_at,
+                    'status' => $article->is_active ? 'Published' : 'Draft',
+                    'meta_title' => is_array($article->meta_title) ? ($article->meta_title['en'] ?? '') : $article->meta_title,
+                    'meta_description' => is_array($article->meta_description) ? ($article->meta_description['en'] ?? '') : $article->meta_description,
+                    'content' => $decodedBody['content'] ?? '',
+                    'author' => $decodedBody['author'] ?? '',
+                    'featured_article' => $decodedBody['featured_article'] ?? false,
+                    'featured_image' => $decodedBody['featured_image'] ?? null,
+                    'gallery_images' => $decodedBody['gallery_images'] ?? [],
+                    'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
+                    'canonical_url' => $decodedBody['canonical_url'] ?? '',
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\NewsAndPress\EditNewsAndPress::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                \App\Models\NewsPost::find($arguments['id'])?->update([
+                    'title' => ['en' => $data['title'] ?? ''],
+                    'slug' => $data['slug'],
+                    'channel' => (strtolower(str_replace(' ', '-', $data['category'] ?? '')) === 'press-release') ? 'press-release' : 'news',
+                    'published_at' => $data['publish_date'] ?? now(),
+                    'is_active' => ($data['status'] ?? 'Published') === 'Published' ? 1 : 0,
+                    'meta_title' => ['en' => $data['meta_title'] ?? ''],
+                    'meta_description' => ['en' => $data['meta_description'] ?? ''],
+                    'body' => ['en' => json_encode([
+                        'content' => $data['content'] ?? '',
+                        'author' => $data['author'] ?? '',
+                        'featured_article' => $data['featured_article'] ?? false,
+                        'featured_image' => $data['featured_image'] ?? null,
+                        'gallery_images' => $data['gallery_images'] ?? [],
+                        'meta_keywords' => $data['meta_keywords'] ?? '',
+                        'canonical_url' => $data['canonical_url'] ?? '',
+                    ])],
+                ]);
                 Notification::make()
                     ->title('Article saved successfully.')
                     ->success()
@@ -149,7 +296,8 @@ class ManageNewsAndPress extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\NewsPost::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Article deleted successfully.')
                     ->success()
@@ -169,7 +317,7 @@ class ManageNewsAndPress extends Page
                                     ->label('Article Title')
                                     ->required()
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                    ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                                 TextInput::make('slug')
                                     ->label('URL Slug')
                                     ->required(),
@@ -205,14 +353,6 @@ class ManageNewsAndPress extends Page
                                     ->default(false),
                             ]),
                         ]),
-
-                    Section::make('Content')
-                        ->schema([
-                            \App\Filament\Forms\Components\JoditEditor::make('short_description')
-                                ->label('Short Description'),
-                            \App\Filament\Forms\Components\JoditEditor::make('content')
-                                ->label('Rich Text Content'),
-                        ]),
                 ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
@@ -245,17 +385,5 @@ class ManageNewsAndPress extends Page
         ];
     }
 
-    public static function getMockArticles(): array
-    {
-        return [
-            1 => ['id' => 1, 'title' => 'HMH Opens New Hotel in Dubai', 'category' => 'Press Release', 'slug' => 'hmh-opens-new-hotel-in-dubai', 'author' => 'Corporate Communications', 'publish_date' => '2023-11-01', 'status' => 'Published', 'featured' => true, 'last_updated' => '2023-11-01'],
-            2 => ['id' => 2, 'title' => 'Summer Stay Campaign 2026', 'category' => 'Announcement', 'slug' => 'summer-stay-campaign-2026', 'author' => 'Marketing Team', 'publish_date' => '2023-10-15', 'status' => 'Published', 'featured' => false, 'last_updated' => '2023-10-15'],
-            3 => ['id' => 3, 'title' => 'Hospitality Excellence Award', 'category' => 'Award', 'slug' => 'hospitality-excellence-award', 'author' => 'PR Department', 'publish_date' => '2023-10-05', 'status' => 'Published', 'featured' => true, 'last_updated' => '2023-10-05'],
-            4 => ['id' => 4, 'title' => 'New Sustainability Initiative', 'category' => 'News', 'slug' => 'new-sustainability-initiative', 'author' => 'Sustainability Board', 'publish_date' => '2023-09-28', 'status' => 'Published', 'featured' => false, 'last_updated' => '2023-09-28'],
-            5 => ['id' => 5, 'title' => 'New Executive Chef Announcement', 'category' => 'Announcement', 'slug' => 'new-executive-chef-announcement', 'author' => 'HR Department', 'publish_date' => '2023-09-20', 'status' => 'Draft', 'featured' => false, 'last_updated' => '2023-11-02'],
-            6 => ['id' => 6, 'title' => 'Annual Business Conference', 'category' => 'Press Release', 'slug' => 'annual-business-conference', 'author' => 'Corporate Events', 'publish_date' => '2023-09-15', 'status' => 'Published', 'featured' => false, 'last_updated' => '2023-09-15'],
-            7 => ['id' => 7, 'title' => 'Hotel Renovation Completed', 'category' => 'News', 'slug' => 'hotel-renovation-completed', 'author' => 'Operations Team', 'publish_date' => '2023-09-10', 'status' => 'Published', 'featured' => false, 'last_updated' => '2023-09-10'],
-            8 => ['id' => 8, 'title' => 'Corporate Partnership Announcement', 'category' => 'Press Release', 'slug' => 'corporate-partnership-announcement', 'author' => 'Corporate Communications', 'publish_date' => '2023-11-05', 'status' => 'Draft', 'featured' => false, 'last_updated' => '2023-11-04'],
-        ];
-    }
+    // Mock Data removed
 }

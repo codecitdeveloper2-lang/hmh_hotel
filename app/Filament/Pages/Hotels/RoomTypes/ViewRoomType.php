@@ -22,9 +22,18 @@ class ViewRoomType extends Page implements HasForms
     {
         $this->record = $record;
         $this->room_id = $room_id;
-        $mockData = \App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getMockRoomTypes();
-        $this->data = $mockData[$this->room_id] ?? [];
-        $this->form->fill($this->data);
+        $room = \App\Models\RoomType::find($room_id);
+        if ($room) {
+            $this->form->fill([
+                'hotel' => (int) $this->record,
+                'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
+                'slug' => $room->slug,
+                'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
+                'status' => $room->is_active ? 'active' : 'inactive',
+                'meta_title' => is_array($room->meta_title) ? ($room->meta_title['en'] ?? '') : $room->meta_title,
+                'meta_description' => is_array($room->meta_description) ? ($room->meta_description['en'] ?? '') : $room->meta_description,
+            ]);
+        }
     }
 
     public function getSubNavigation(): array

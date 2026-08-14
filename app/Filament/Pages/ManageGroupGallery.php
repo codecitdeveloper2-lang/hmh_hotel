@@ -35,19 +35,39 @@ class ManageGroupGallery extends Page
     public function updatedFilterStatus(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
-    public function nextPage(int $lastPage): void
+    protected function getViewData(): array
     {
-        if ($this->currentPage < $lastPage) $this->currentPage++;
-    }
+        $query = \App\Models\GalleryItem::query();
 
-    public function previousPage(): void
-    {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
+        if ($this->searchQuery) {
+            $query->where('caption', 'like', "%{$this->searchQuery}%");
+        }
 
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+
+        $galleryItems = $query->orderBy('sort_order')
+            ->skip(($currentPage - 1) * $this->perPage)
+            ->take($this->perPage)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'title' => $item->caption ?? 'Untitled',
+                    'category' => 'General',
+                    'slug' => \Illuminate\Support\Str::slug($item->caption ?? 'item-' . $item->id),
+                    'display_location' => 'Website',
+                    'status' => 'Published',
+                    'display_order' => $item->sort_order,
+                    'last_updated' => $item->updated_at?->format('Y-m-d') ?? '',
+                ];
+            });
+
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'galleryItems', 'from', 'to');
     }
 
         public static function getNavigationGroup(): ?string
@@ -115,7 +135,16 @@ class ManageGroupGallery extends Page
             ->modalHeading('View Gallery Item')
             ->modalWidth('7xl')
             ->form($this->getGalleryItemFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockGalleryItems()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $item = \App\Models\GalleryItem::find($arguments['id']);
+                if (!$item) return [];
+                return [
+                    'title' => $item->caption,
+                    'slug' => \Illuminate\Support\Str::slug($item->caption ?? ''),
+                    'display_order' => $item->sort_order,
+                    'status' => 'Published',
+                ];
+            })
             ->disabledForm()
             
             ->url(fn (array $arguments) => \App\Filament\Pages\GroupGallery\ViewGroupGallery::getUrl(['record' => $arguments['id'] ?? 0]))
@@ -128,10 +157,25 @@ class ManageGroupGallery extends Page
             ->modalHeading('Edit Gallery Item')
             ->modalWidth('7xl')
             ->form($this->getGalleryItemFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockGalleryItems()[$arguments['id']] ?? [])
+            ->fillForm(function (array $arguments) {
+                $item = \App\Models\GalleryItem::find($arguments['id']);
+                if (!$item) return [];
+                return [
+                    'title' => $item->caption,
+                    'slug' => \Illuminate\Support\Str::slug($item->caption ?? ''),
+                    'display_order' => $item->sort_order,
+                    'status' => 'Published',
+                ];
+            })
             
             ->url(fn (array $arguments) => \App\Filament\Pages\GroupGallery\EditGroupGallery::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->action(function (array $data, array $arguments) {
+                $item = \App\Models\GalleryItem::find($arguments['id']);
+                if ($item) {
+                    $item->caption = $data['title'] ?? $item->caption;
+                    $item->sort_order = $data['display_order'] ?? $item->sort_order;
+                    $item->save();
+                }
                 Notification::make()
                     ->title('Gallery item saved successfully.')
                     ->success()
@@ -145,7 +189,8 @@ class ManageGroupGallery extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                \App\Models\GalleryItem::find($arguments['id'])?->delete();
                 Notification::make()
                     ->title('Gallery item deleted successfully.')
                     ->success()
@@ -165,7 +210,7 @@ class ManageGroupGallery extends Page
                                     ->label('Gallery Title')
                                     ->required()
                                     ->live(onBlur: true)
-                                    ->afterStateUpdated(fn (string $operation, $state, \Filament\Forms\Set $set) => $set('slug', Str::slug($state))),
+                                    ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                                 TextInput::make('slug')
                                     ->label('URL Slug')
                                     ->required(),
@@ -244,19 +289,5 @@ class ManageGroupGallery extends Page
         ];
     }
 
-    public static function getMockGalleryItems(): array
-    {
-        return [
-            1 => ['id' => 1, 'title' => 'Homepage Hero Banner', 'category' => 'Homepage', 'slug' => 'homepage-hero-banner', 'display_location' => 'Main Header', 'status' => 'Published', 'display_order' => 1, 'last_updated' => '2023-11-01'],
-            2 => ['id' => 2, 'title' => 'About Us Gallery', 'category' => 'Corporate', 'slug' => 'about-us-gallery', 'display_location' => 'About Page Content', 'status' => 'Published', 'display_order' => 2, 'last_updated' => '2023-10-15'],
-            3 => ['id' => 3, 'title' => 'Corporate Events', 'category' => 'Events', 'slug' => 'corporate-events', 'display_location' => 'Events Section', 'status' => 'Published', 'display_order' => 3, 'last_updated' => '2023-10-05'],
-            4 => ['id' => 4, 'title' => 'Brand Campaign', 'category' => 'Brands', 'slug' => 'brand-campaign', 'display_location' => 'Brands Page Slider', 'status' => 'Published', 'display_order' => 4, 'last_updated' => '2023-09-28'],
-            5 => ['id' => 5, 'title' => 'CSR Activities', 'category' => 'CSR', 'slug' => 'csr-activities', 'display_location' => 'CSR Section', 'status' => 'Published', 'display_order' => 5, 'last_updated' => '2023-09-20'],
-            6 => ['id' => 6, 'title' => 'Awards & Recognition', 'category' => 'Awards', 'slug' => 'awards-recognition', 'display_location' => 'Awards Page Grid', 'status' => 'Published', 'display_order' => 6, 'last_updated' => '2023-09-15'],
-            7 => ['id' => 7, 'title' => 'Leadership Team', 'category' => 'Leadership', 'slug' => 'leadership-team', 'display_location' => 'Leadership Page Grid', 'status' => 'Published', 'display_order' => 7, 'last_updated' => '2023-09-10'],
-            8 => ['id' => 8, 'title' => 'Media Coverage', 'category' => 'Media', 'slug' => 'media-coverage', 'display_location' => 'Media Center', 'status' => 'Published', 'display_order' => 8, 'last_updated' => '2023-11-05'],
-            9 => ['id' => 9, 'title' => 'Destination Highlights', 'category' => 'Destinations', 'slug' => 'destination-highlights', 'display_location' => 'Destinations Page Slider', 'status' => 'Draft', 'display_order' => 9, 'last_updated' => '2023-11-06'],
-            10 => ['id' => 10, 'title' => 'Sustainability Initiatives', 'category' => 'Sustainability', 'slug' => 'sustainability-initiatives', 'display_location' => 'Sustainability Section', 'status' => 'Draft', 'display_order' => 10, 'last_updated' => '2023-11-06'],
-        ];
-    }
+    // Mock Data removed
 }

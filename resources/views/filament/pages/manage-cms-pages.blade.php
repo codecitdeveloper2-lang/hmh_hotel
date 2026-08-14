@@ -88,22 +88,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allCmsPages = collect($this->getMockPages())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['title'], $searchQuery) !== false || 
-                           stripos($item['slug'], $searchQuery) !== false;
-                }))
-                ->when($filterType, fn($collection) => $collection->where('page_type', $filterType))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus));
 
-            $totalItems  = $allCmsPages->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $cmsPages    = $allCmsPages->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
 
         <!-- Table -->
         <x-filament::section>
@@ -122,7 +107,7 @@
                         </tr>
                     </thead>
                     <tbody style="font-size: 0.875rem;">
-                        @forelse($cmsPages as $page)
+                        @forelse($pages as $page)
                             <tr style="border-bottom: 1px solid rgba(128,128,128,0.1); transition: background-color 0.15s ease-in-out;">
                                 <td style="padding: 1rem;">
                                     <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
@@ -164,7 +149,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\CmsPages\ViewCmsPage::getUrl(['record' => $page['id']]) }}"

@@ -21,6 +21,9 @@ class CreateRoomType extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
+        $this->form->fill([
+            'hotel' => (int) $this->record,
+        ]);
     }
 
     public function getSubNavigation(): array
@@ -35,11 +38,32 @@ class CreateRoomType extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        \App\Models\RoomType::create([
+            'property_id' => $this->record,
+            'name' => ['en' => $data['name'] ?? ''],
+            'slug' => $data['slug'] ?? \Illuminate\Support\Str::slug($data['name'] ?? ''),
+            'description' => ['en' => $data['description'] ?? ''],
+            'is_active' => ($data['status'] ?? 'active') === 'active',
+            'sort_order' => 0,
+        ]);
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getUrl(['record' => $this->record]));
     }
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getUrl(['record' => $this->record]); }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('manage_room_details')
+                ->label('Manage Room Details')
+                ->disabled()
+                ->tooltip('Please save the room type before managing its details.')
+                ->color('primary')
+                ->icon('heroicon-m-document-text'),
+        ];
+    }
 
     public function getMaxContentWidth(): ?string
     {

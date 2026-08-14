@@ -104,24 +104,7 @@
             </div>
         </x-filament::section>
 
-        @php
-            $allEventPages = collect($this->getMockEventPages())
-                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
-                    return stripos($item['title'], $searchQuery) !== false || 
-                           stripos($item['hotel'], $searchQuery) !== false || 
-                           stripos($item['event_type'], $searchQuery) !== false;
-                }))
-                ->when($filterHotel, fn($collection) => $collection->where('hotel', $filterHotel))
-                ->when($filterEventType, fn($collection) => $collection->where('event_type', $filterEventType))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus));
-
-            $totalItems  = $allEventPages->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $eventPages    = $allEventPages->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
-        @endphp
+        <!-- Data provided by getViewData() -->
 
         <!-- Table -->
         <x-filament::section>
@@ -174,7 +157,7 @@
                                                 label="Actions"
                                             />
                                         </x-slot>
-                                        <x-filament::dropdown.list>
+                                        <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
                                                 icon="heroicon-m-eye"
                                                 tag="a" href="{{ \App\Filament\Pages\MeetingsAndEvents\ViewMeetingsAndEvent::getUrl(['record' => $page['id']]) }}"

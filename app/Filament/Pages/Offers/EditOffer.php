@@ -21,7 +21,17 @@ class EditOffer extends Page implements HasForms
     {
         $this->record = $record;
         $mockData = \App\Filament\Pages\ManageOffers::getMockOffers();
-        $this->data = $mockData[$this->record] ?? [];
+        $this->form->fill($mockData[$this->record] ?? []);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('manageOfferDetails')
+                ->label('Manage Offer Details')
+                ->icon('heroicon-o-document-text')
+                ->url(fn () => \App\Filament\Pages\Offers\OfferDetailsContent::getUrl(['record' => $this->record]))
+        ];
     }
 
     public function form($form)

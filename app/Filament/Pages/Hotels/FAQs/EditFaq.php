@@ -22,9 +22,15 @@ class EditFaq extends Page implements HasForms
     {
         $this->record = $record;
         $this->faq_id = $faq_id;
-        $mockData = \App\Filament\Pages\Hotels\FAQs\ListFaqs::getMockFaqs();
-        $this->data = $mockData[$this->faq_id] ?? [];
-        $this->form->fill($this->data);
+        $faq = \App\Models\FaqItem::find($faq_id);
+        if ($faq) {
+            $this->form->fill([
+                'hotel' => (int) $this->record,
+                'question' => is_array($faq->question) ? ($faq->question['en'] ?? '') : $faq->question,
+                'answer' => is_array($faq->answer) ? ($faq->answer['en'] ?? '') : $faq->answer,
+                'display_order' => $faq->sort_order,
+            ]);
+        }
     }
 
     public function getSubNavigation(): array
@@ -39,6 +45,19 @@ class EditFaq extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        $faq = \App\Models\FaqItem::find($this->faq_id);
+        if ($faq) {
+            $question = is_array($faq->question) ? $faq->question : ['en' => $faq->question];
+            $question['en'] = $data['question'] ?? '';
+            $answer = is_array($faq->answer) ? $faq->answer : ['en' => $faq->answer];
+            $answer['en'] = $data['answer'] ?? '';
+            $faq->update([
+                'question' => $question,
+                'answer' => $answer,
+                'sort_order' => $data['display_order'] ?? $faq->sort_order,
+            ]);
+        }
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\FAQs\ListFaqs::getUrl(['record' => $this->record]));
     }

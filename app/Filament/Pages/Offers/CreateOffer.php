@@ -20,6 +20,17 @@ class CreateOffer extends Page implements HasForms
     {
     }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('manageOfferDetails')
+                ->label('Manage Offer Details')
+                ->icon('heroicon-o-document-text')
+                ->disabled()
+                ->tooltip('Please create the offer first to manage its details.')
+        ];
+    }
+
     public function form($form)
     {
         return $form->schema(\App\Filament\Pages\ManageOffers::getOfferFormSchema())->statePath('data');

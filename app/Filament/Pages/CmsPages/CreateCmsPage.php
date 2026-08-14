@@ -27,6 +27,55 @@ class CreateCmsPage extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        
+        $enumTypes = ['about','careers','best-rate-guarantee','sustainability','accessibility','terms-conditions','privacy-statement','newsletter','custom'];
+        $pageType = 'custom';
+        $slug = $data['slug'] ?? \Illuminate\Support\Str::slug($data['title'] ?? 'new-page');
+        foreach ($enumTypes as $type) {
+            if (strpos($slug, $type) !== false || $slug === $type || strpos($slug, str_replace('-', '', $type)) !== false) {
+                $pageType = $type;
+                break;
+            }
+        }
+        if ($slug === 'privacy-policy') $pageType = 'privacy-statement';
+        if ($slug === 'terms-and-conditions') $pageType = 'terms-conditions';
+        if ($slug === 'about-us') $pageType = 'about';
+
+        \App\Models\Page::create([
+            'title' => ['en' => $data['title'] ?? ''],
+            'page_type' => $pageType,
+            'slug' => $slug,
+            'is_active' => ($data['status'] ?? 'Published') === 'Published',
+            'meta_title' => ['en' => $data['meta_title'] ?? ''],
+            'meta_description' => ['en' => $data['meta_description'] ?? ''],
+            'body' => ['en' => json_encode([
+                'show_in_main_nav' => $data['show_in_main_nav'] ?? true,
+                'show_in_footer' => $data['show_in_footer'] ?? false,
+                'allow_indexing' => $data['allow_indexing'] ?? true,
+                'display_order' => $data['display_order'] ?? null,
+                'banner_slides' => $data['banner_slides'] ?? [],
+                'content_title' => $data['content_title'] ?? '',
+                'content' => $data['content'] ?? '',
+                'cta_text' => $data['cta_text'] ?? '',
+                'cta_link' => $data['cta_link'] ?? '',
+                'intro_subtitle' => $data['intro_subtitle'] ?? '',
+                'intro_title' => $data['intro_title'] ?? '',
+                'intro_text' => $data['intro_text'] ?? '',
+                'expansion_image' => $data['expansion_image'] ?? '',
+                'expansion_text' => $data['expansion_text'] ?? '',
+                'our_vision_text' => $data['our_vision_text'] ?? '',
+                'our_vision_image' => $data['our_vision_image'] ?? '',
+                'our_mission_text' => $data['our_mission_text'] ?? '',
+                'our_mission_image' => $data['our_mission_image'] ?? '',
+                'our_values' => $data['our_values'] ?? '',
+                'our_culture' => $data['our_culture'] ?? '',
+                'our_promise' => $data['our_promise'] ?? '',
+                'meta_keywords' => $data['meta_keywords'] ?? '',
+                'canonical_url' => $data['canonical_url'] ?? '',
+            ])],
+        ]);
+
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageCmsPages::getUrl());
     }

@@ -21,6 +21,9 @@ class CreateFaq extends Page implements HasForms
     public function mount($record): void
     {
         $this->record = $record;
+        $this->form->fill([
+            'hotel' => (int) $this->record,
+        ]);
     }
 
     public function getSubNavigation(): array
@@ -35,6 +38,13 @@ class CreateFaq extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        \App\Models\FaqItem::create([
+            'property_id' => $this->record,
+            'question' => ['en' => $data['question'] ?? ''],
+            'answer' => ['en' => $data['answer'] ?? ''],
+            'sort_order' => $data['display_order'] ?? 0,
+        ]);
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\FAQs\ListFaqs::getUrl(['record' => $this->record]));
     }

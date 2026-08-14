@@ -15,13 +15,23 @@ class ViewBrand extends Page implements HasForms
     
 
     public $record;
+    public string $activeLocale = 'en';
     public ?array $data = [];
 
     public function mount($record): void
     {
         $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageBrands::getMockBrands();
-        $this->data = $mockData[$this->record] ?? [];
+        $property = \App\Models\Property::findOrFail($record);
+        $data = $property->toArray();
+
+        // Keep nested arrays so locale-aware fields (name.en / name.ar) are populated
+        $this->form->fill($data);
+    }
+
+    public function getTitle(): string | \Illuminate\Contracts\Support\Htmlable
+    {
+        $property = \App\Models\Property::find($this->record);
+        return $property?->display_name ?? 'View Brand';
     }
 
     public function form($form)
