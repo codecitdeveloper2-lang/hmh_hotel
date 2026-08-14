@@ -8,9 +8,8 @@
         </div>
     @else
         <div
+            wire:ignore
             x-data="{
-                state: $wire.$entangle('{{ $getStatePath() }}'),
-                editor: null,
                 init() {
                     // Ensure Jodit CSS is loaded
                     if (!document.getElementById('jodit-css')) {
@@ -42,30 +41,22 @@
                     } else {
                         this.initEditor();
                     }
-
-                    $watch('state', value => {
-                        if (this.editor && this.editor.value !== value) {
-                            this.editor.value = value || '';
-                        }
-                    });
                 },
                 initEditor() {
-                    this.editor = Jodit.make(this.$refs.editor, {
+                    const editor = Jodit.make(this.$refs.editor, {
                         theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default',
                         height: 400,
+                        direction: '{{ $getDirection() }}' || '',
                     });
                     
-                    this.editor.value = this.state || '';
-                    
-                    this.editor.events.on('change', () => {
-                        this.state = this.editor.value;
+                    editor.events.on('change', () => {
+                        this.$refs.editor.value = editor.value;
+                        this.$refs.editor.dispatchEvent(new Event('input', { bubbles: true }));
                     });
                 }
             }"
         >
-            <div wire:ignore>
-                <textarea x-ref="editor"></textarea>
-            </div>
+            <textarea x-ref="editor" wire:model="{{ $getStatePath() }}">{!! $getState() !!}</textarea>
         </div>
     @endif
 </x-dynamic-component>

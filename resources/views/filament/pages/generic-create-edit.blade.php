@@ -62,7 +62,7 @@
         ">
             <div style="display: flex; align-items: center; gap: 0.625rem;">
                 <x-filament::icon icon="heroicon-m-information-circle" style="width: 1rem; height: 1rem; opacity: 0.35;" />
-                <span style="font-size: 0.78rem; opacity: 0.45;">Changes are saved as mock data only.</span>
+                <span style="font-size: 0.78rem; opacity: 0.45;">Changes are saved to the database.</span>
             </div>
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <x-filament::button

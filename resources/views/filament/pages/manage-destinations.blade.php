@@ -1,9 +1,10 @@
 <x-filament-panels::page>
     @php
-        $allDestinations = collect($this->getMockDestinations())
+        $allDestinations = $this->getDestinationRows()
             ->when($searchQuery, fn($collection) => $collection->filter(fn($item) => stripos($item['name'], $searchQuery) !== false))
             ->when($filterCountry, fn($collection) => $collection->where('country', $filterCountry))
             ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus));
+        $countryOptions = $this->getCountryOptions();
 
         $totalItems  = $allDestinations->count();
         $lastPage    = max(1, (int) ceil($totalItems / max(1, $perPage)));
@@ -15,7 +16,7 @@
         $totalDestinationsCount = $totalItems;
         $activeDestinationsCount = $allDestinations->where('status', 'Active')->count();
         $totalHotelsCount = $allDestinations->sum('hotels_count');
-        $recentlyUpdated = $allDestinations->sortByDesc('last_updated')->first()['name'] ?? 'N/A';
+        $recentlyUpdated = $allDestinations->sortByDesc('updated_at_timestamp')->first()['name'] ?? 'N/A';
     @endphp
 
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
@@ -88,11 +89,9 @@
                     <x-filament::input.wrapper>
                         <x-filament::input.select wire:model.live="filterCountry">
                             <option value="">All Countries</option>
-                            <option value="United Arab Emirates">United Arab Emirates</option>
-                            <option value="Saudi Arabia">Saudi Arabia</option>
-                            <option value="Bahrain">Bahrain</option>
-                            <option value="Oman">Oman</option>
-                            <option value="Qatar">Qatar</option>
+                            @foreach($countryOptions as $country)
+                                <option value="{{ $country }}">{{ $country }}</option>
+                            @endforeach
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
                 </div>
@@ -129,8 +128,16 @@
                         @forelse($destinations as $destination)
                             <tr style="border-bottom: 1px solid rgba(128,128,128,0.1); transition: background-color 0.15s ease-in-out;">
                                 <td style="padding: 1rem;">
-                                    <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                        <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
+                                    <div style="height: 4rem; width: 8rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden; border: 1px solid rgba(128,128,128,0.2);">
+                                        @if($destination['banner_url'])
+                                            <img
+                                                src="{{ $destination['banner_url'] }}"
+                                                alt="{{ $destination['name'] }} banner"
+                                                style="height: 100%; width: 100%; object-fit: cover;"
+                                            />
+                                        @else
+                                            <x-filament::icon icon="heroicon-o-photo" style="height: 2rem; width: 2rem; opacity: 0.4;" />
+                                        @endif
                                     </div>
                                 </td>
                                 <td style="padding: 1rem; font-weight: 500;">
@@ -216,7 +223,7 @@
                         </x-filament::input.wrapper>
                     </div>
                     <span style="font-size: 0.8rem; opacity: 0.55;">
-                        Showing {{ $from }}–{{ $to }} of {{ $totalItems }} records
+                        Showing {{ $from }}-{{ $to }} of {{ $totalItems }} records
                     </span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.4rem;">
@@ -226,13 +233,13 @@
                     @php $pgStart = max(1, $currentPage - 2); $pgEnd = min($lastPage, $currentPage + 2); @endphp
                     @if($pgStart > 1)
                         <button wire:click="gotoPage(1)" style="min-width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;cursor:pointer;font-size:0.85rem;">1</button>
-                        @if($pgStart > 2)<span style="opacity:0.4;font-size:0.85rem;padding:0 0.25rem;">…</span>@endif
+                        @if($pgStart > 2)<span style="opacity:0.4;font-size:0.85rem;padding:0 0.25rem;">...</span>@endif
                     @endif
                     @for($p = $pgStart; $p <= $pgEnd; $p++)
                         <button wire:click="gotoPage({{ $p }})" style="min-width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid {{ $p === $currentPage ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.1)' }};background:{{ $p === $currentPage ? 'linear-gradient(135deg,#6366f1,#8b5cf6)' : 'transparent' }};color:inherit;cursor:pointer;font-size:0.85rem;font-weight:{{ $p === $currentPage ? '600' : '400' }};box-shadow:{{ $p === $currentPage ? '0 2px 12px rgba(99,102,241,0.35)' : 'none' }};transition:all 0.15s;">{{ $p }}</button>
                     @endfor
                     @if($pgEnd < $lastPage)
-                        @if($pgEnd < $lastPage - 1)<span style="opacity:0.4;font-size:0.85rem;padding:0 0.25rem;">…</span>@endif
+                        @if($pgEnd < $lastPage - 1)<span style="opacity:0.4;font-size:0.85rem;padding:0 0.25rem;">...</span>@endif
                         <button wire:click="gotoPage({{ $lastPage }})" style="min-width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;cursor:pointer;font-size:0.85rem;">{{ $lastPage }}</button>
                     @endif
                     <button wire:click="nextPage({{ $lastPage }})" @if($currentPage >= $lastPage) disabled @endif style="display:flex;align-items:center;justify-content:center;width:2.25rem;height:2.25rem;border-radius:0.5rem;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;cursor:{{ $currentPage >= $lastPage ? 'not-allowed' : 'pointer' }};opacity:{{ $currentPage >= $lastPage ? '0.3' : '1' }};transition:all 0.15s;">

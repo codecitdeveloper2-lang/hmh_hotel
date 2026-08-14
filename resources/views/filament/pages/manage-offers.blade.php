@@ -127,6 +127,19 @@
             </div>
         </x-filament::section>
 
+        @php
+            $allOffers = collect($this->getDatabaseOffers())
+                ->when($searchQuery, fn($collection) => $collection->filter(function($item) use ($searchQuery) {
+                    $title = is_array($item['title']) ? ($item['title']['en'] ?? '') : $item['title'];
+                    return stripos($title, $searchQuery) !== false || 
+                           stripos($item['hotel'], $searchQuery) !== false || 
+                           stripos($item['promo_code'], $searchQuery) !== false;
+                }))
+                ->when($filterHotel, fn($collection) => $collection->where('hotel', $filterHotel))
+                ->when($filterType, fn($collection) => $collection->where('offer_type', $filterType))
+                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus))
+                ->when($filterDateFrom, fn($collection) => $collection->where('valid_from', '>=', $filterDateFrom))
+                ->when($filterDateTo, fn($collection) => $collection->where('valid_until', '<=', $filterDateTo));
 
 
         <!-- Table -->
@@ -151,11 +164,15 @@
                             <tr style="border-bottom: 1px solid rgba(128,128,128,0.1); transition: background-color 0.15s ease-in-out;">
                                 <td style="padding: 1rem;">
                                     <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                        <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
+                                        @if(!empty($offer['banner_image']))
+                                            <img src="{{ asset('storage/' . $offer['banner_image']) }}" alt="Banner" style="width: 100%; height: 100%; object-fit: cover;" />
+                                        @else
+                                            <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
+                                        @endif
                                     </div>
                                 </td>
                                 <td style="padding: 1rem; font-weight: 500;">
-                                    {{ $offer['title'] }}
+                                    {{ is_array($offer['title']) ? ($offer['title']['en'] ?? '') : $offer['title'] }}
                                 </td>
                                 <td style="padding: 1rem; opacity: 0.8;">
                                     {{ $offer['hotel'] }}
