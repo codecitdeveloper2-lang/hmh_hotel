@@ -20,10 +20,17 @@ class MeetingsAndEventDetailsContent extends Page implements HasForms
     {
         $this->record = $record;
         
-        $mockData = \App\Filament\Pages\ManageMeetingsAndEvents::getMockEventPages();
-        // Fallback to empty array if record doesn't exist
-        $this->form->fill($mockData[$this->record] ?? []);
-        $this->form->fill($this->data);
+        $page = \App\Models\MeetingEventPage::find($this->record);
+        $data = [];
+        if ($page) {
+            $data = [
+                'title' => $page->title,
+                'description' => $page->description,
+                'venue_capacity' => $page->capacity_details,
+                'cta_url' => $page->rfp_url,
+            ];
+        }
+        $this->form->fill($data);
     }
 
     public function getSubNavigation(): array

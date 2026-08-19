@@ -41,9 +41,7 @@ class EditCmsPage extends Page implements HasForms
                 'title' => is_array($page->title) ? ($page->title['en'] ?? '') : $page->title,
                 'page_type' => $formPageType,
                 'slug' => $page->slug,
-                'show_in_main_nav' => $decodedBody['show_in_main_nav'] ?? true,
-                'show_in_footer' => $decodedBody['show_in_footer'] ?? false,
-                'allow_indexing' => $decodedBody['allow_indexing'] ?? true,
+
                 'status' => $page->is_active ? 'Published' : 'Draft',
                 'meta_title' => is_array($page->meta_title) ? ($page->meta_title['en'] ?? '') : $page->meta_title,
                 'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
@@ -65,6 +63,7 @@ class EditCmsPage extends Page implements HasForms
                 'our_values' => $decodedBody['our_values'] ?? '',
                 'our_culture' => $decodedBody['our_culture'] ?? '',
                 'our_promise' => $decodedBody['our_promise'] ?? '',
+                'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
                 'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                 'canonical_url' => $decodedBody['canonical_url'] ?? '',
             ];
@@ -103,9 +102,7 @@ class EditCmsPage extends Page implements HasForms
                 'meta_title' => ['en' => $data['meta_title'] ?? ''],
                 'meta_description' => ['en' => $data['meta_description'] ?? ''],
                 'body' => ['en' => json_encode([
-                    'show_in_main_nav' => $data['show_in_main_nav'] ?? true,
-                    'show_in_footer' => $data['show_in_footer'] ?? false,
-                    'allow_indexing' => $data['allow_indexing'] ?? true,
+
                     'display_order' => $data['display_order'] ?? null,
                     'banner_slides' => $data['banner_slides'] ?? [],
                     'content_title' => $data['content_title'] ?? '',
@@ -124,6 +121,7 @@ class EditCmsPage extends Page implements HasForms
                     'our_values' => $data['our_values'] ?? '',
                     'our_culture' => $data['our_culture'] ?? '',
                     'our_promise' => $data['our_promise'] ?? '',
+                    'responsibilities_list' => $data['responsibilities_list'] ?? [],
                     'meta_keywords' => $data['meta_keywords'] ?? '',
                     'canonical_url' => $data['canonical_url'] ?? '',
                 ])],

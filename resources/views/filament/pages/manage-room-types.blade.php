@@ -8,8 +8,6 @@
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Room Name</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Hotel Name</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Room Type ID</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Max Adults</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Max Children</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Room Size</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Bed Type</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Status</th>
@@ -32,12 +30,6 @@
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
                                 {{ $room['room_type_id'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $room['max_adults'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $room['max_children'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
                                 {{ $room['room_size'] }}
@@ -94,7 +86,7 @@
         </div>
 
         {{-- Pagination --}}
-        <x-filament::section>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-white/10">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -132,7 +124,7 @@
                     </button>
                 </div>
             </div>
-        </x-filament::section>
+        </div>
 
     </div>
 </x-filament-panels::page>

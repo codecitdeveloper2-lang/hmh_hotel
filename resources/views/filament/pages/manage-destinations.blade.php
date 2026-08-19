@@ -163,7 +163,7 @@
                                     {{ $destination['last_updated'] }}
                                 </td>
                                 <td style="padding: 1rem; text-align: right;">
-                                    <x-filament::dropdown placement="bottom-end">
+                                    <x-filament::dropdown placement="bottom-end" teleport>
                                         <x-slot name="trigger">
                                             <x-filament::icon-button
                                                 icon="heroicon-m-ellipsis-vertical"
@@ -209,7 +209,7 @@
 
 
         {{-- Pagination --}}
-        <x-filament::section>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-white/10">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -247,7 +247,7 @@
                     </button>
                 </div>
             </div>
-        </x-filament::section>
+        </div>
 
     </div>
 </x-filament-panels::page>

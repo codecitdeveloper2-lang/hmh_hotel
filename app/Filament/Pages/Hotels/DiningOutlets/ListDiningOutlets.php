@@ -70,8 +70,7 @@ class ListDiningOutlets extends Page
                 'name' => is_array($o->name) ? ($o->name['en'] ?? '') : $o->name,
                 'hotel' => $propName,
                 'cuisine_type' => is_array($o->cuisine_type) ? ($o->cuisine_type['en'] ?? '') : $o->cuisine_type,
-                'opening_hours' => '10:00 AM',
-                'closing_hours' => '11:00 PM',
+                'opening_hours' => is_array($o->opening_hours) ? ($o->opening_hours['en'] ?? '') : $o->opening_hours,
                 'table_booking' => $o->has_table_booking,
                 'status' => $o->is_active ? 'Active' : 'Inactive',
             ];
@@ -202,6 +201,12 @@ class ListDiningOutlets extends Page
                             TextInput::make('cuisine_type')
                                 ->label('Cuisine Type')
                                 ->required(),
+                            TextInput::make('opening_hours')
+                                ->label('Opening Hours')
+                                ->placeholder('e.g. 10:00 AM - 11:00 PM'),
+                            Toggle::make('has_table_booking')
+                                ->label('Has Table Booking')
+                                ->default(false),
                             Select::make('status')
                                 ->label('Status')
                                 ->options([
@@ -229,7 +234,8 @@ class ListDiningOutlets extends Page
                 Grid::make(1)->schema([
                     Section::make('Media')
                         ->schema([
-                            FileUpload::make('featured_image')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
+                                ->collection('featured_image')
                                 ->label('Image Upload')
                                 ->image(),
                         ]),

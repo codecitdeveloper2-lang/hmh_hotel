@@ -11,32 +11,13 @@ class FaqItem extends Model
 {
     use HasFactory, HasTranslations;
 
+    protected $table = 'faq_items';
+
     protected $translatable = ['question', 'answer'];
 
     protected $fillable = ['property_id', 'question', 'answer', 'sort_order'];
 
     public function property(): BelongsTo
-    {
-        return $this->belongsTo(Property::class); // brand OR hotel
-use Illuminate\Database\Eloquent\Model;
-
-class FaqItem extends Model
-{
-    protected $table = 'faq_items';
-
-    protected $fillable = [
-        'property_id',
-        'question',
-        'answer',
-        'sort_order',
-    ];
-
-    protected $casts = [
-        'question' => 'array',
-        'answer' => 'array',
-    ];
-
-    public function property()
     {
         return $this->belongsTo(Property::class);
     }

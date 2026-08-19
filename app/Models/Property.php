@@ -31,6 +31,9 @@ class Property extends Model implements HasMedia
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'is_active' => 'boolean',
+        'star_rating' => 'integer',
+        'is_featured' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     // slug is unique across the WHOLE table (brand + hotel share one flat namespace)
@@ -44,41 +47,15 @@ class Property extends Model implements HasMedia
     // --- self-referencing brand/hotel relationship ---
 
     public function brand(): BelongsTo
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
-
-class Property extends Model
-{
-    protected $guarded = [];
-
-    protected $casts = [
-        'name' => 'array',
-        'description' => 'array',
-        'meta_title' => 'array',
-        'meta_description' => 'array',
-        'intro_subtitle' => 'array',
-        'intro_title' => 'array',
-        'intro_text' => 'array',
-        'banner_slides' => 'array',
-        'banner_images' => 'array',
-        // cover_image and logo are single file uploads (string), not arrays
-        'star_rating' => 'integer',
-        'is_active' => 'boolean',
-        'is_featured' => 'boolean',
-        'sort_order' => 'integer',
-    ];
-
+    {
+        return $this->belongsTo(Property::class, 'parent_id');
+    }
     /**
      * Get the display name (English by default).
      */
     public function getDisplayNameAttribute(): string
     {
-        $name = $this->name;
-        if (is_array($name)) {
-            return $name['en'] ?? $name['ar'] ?? '';
-        }
-        return $name ?? '';
+        return $this->belongsTo(Property::class, 'parent_id');
     }
 
     public function parent(): BelongsTo
@@ -87,6 +64,11 @@ class Property extends Model
     }
 
     public function hotels(): HasMany
+    {
+        return $this->hasMany(Property::class, 'parent_id');
+    }
+
+    public function children(): HasMany
     {
         return $this->hasMany(Property::class, 'parent_id');
     }
@@ -101,7 +83,7 @@ class Property extends Model
         return $query->where('type', 'hotel');
     }
 
-    // --- child content (relation-manager tabs in the admin, per Section 15) ---
+    // --- child content ---
 
     public function roomTypes(): HasMany
     {
@@ -145,7 +127,7 @@ class Property extends Model
             ->withTimestamps();
     }
 
-    // --- row-level access control (Section 16) ---
+    // --- row-level access control ---
 
     public function assignedUsers(): BelongsToMany
     {
@@ -158,8 +140,13 @@ class Property extends Model
         $this->addMediaCollection('hero_images');
         $this->addMediaCollection('gallery');
     }
-    public function children(): HasMany
+
+    public function getDisplayNameAttribute(): string
     {
-        return $this->hasMany(Property::class, 'parent_id');
+        $name = $this->name;
+        if (is_array($name)) {
+            return $name['en'] ?? $name['ar'] ?? '';
+        }
+        return $name ?? '';
     }
 }

@@ -32,7 +32,7 @@
                                 {{ $outlet['cuisine_type'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $outlet['opening_hours'] }} - {{ $outlet['closing_hours'] }}
+                                {{ $outlet['opening_hours'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;">
                                 @if($outlet['table_booking'])
@@ -90,7 +90,7 @@
         </div>
 
         {{-- Pagination --}}
-        <x-filament::section>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-white/10">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -128,7 +128,7 @@
                     </button>
                 </div>
             </div>
-        </x-filament::section>
+        </div>
 
     </div>
 </x-filament-panels::page>

@@ -22,10 +22,7 @@ class CreateHotel extends Page implements HasForms
         $this->form->fill();
     }
 
-    public function getSubNavigation(): array
-    {
-        return [];
-    }
+
 
     public function form($form)
     {

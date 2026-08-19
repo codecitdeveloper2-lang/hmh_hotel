@@ -2,6 +2,7 @@
 namespace App\Filament\Pages\Hotels\RoomTypes;
 
 use Filament\Pages\Page;
+use App\Filament\Pages\Hotels\Traits\HasHotelTabs;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Schemas\Components\Grid;
@@ -12,6 +13,7 @@ use Filament\Forms\Components\Repeater;
 
 class ManageRoomDetails extends Page implements HasForms
 {
+    use HasHotelTabs;
     use InteractsWithForms;
     protected string $view = 'filament.pages.generic-create-edit';
     protected static bool $shouldRegisterNavigation = false;
@@ -26,26 +28,25 @@ class ManageRoomDetails extends Page implements HasForms
 
     public function mount($record, $room_id): void
     {
+        $this->mountHasHotelTabs($record);
         $this->record = $record;
         $this->room_id = $room_id;
+        $room = \App\Models\RoomType::find($this->room_id);
         
-        $mockData = \App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getMockRoomTypes();
-        $roomData = $mockData[$this->room_id] ?? [];
-        
-        $this->form->fill([
-            'name' => $roomData['name'] ?? '',
-            'room_area' => $roomData['room_size'] ?? '',
-            'book_now_label' => 'BOOK NOW',
-            'book_now_link' => '',
-        ]);
-        
-        $this->form->fill($this->data);
+        if ($room) {
+            $this->form->fill([
+                'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
+                'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
+                'starting_price' => $room->starting_price ?? '',
+                'room_area' => $room->size_sqm ? $room->size_sqm . ' m²' : '',
+                'book_now_label' => $room->book_now_label ?? 'BOOK NOW',
+                'book_now_link' => $room->book_now_link ?? '',
+                'special_features' => $room->special_features ?? [['icon' => '', 'feature_name' => '']],
+            ]);
+        }
     }
 
-    public function getSubNavigation(): array
-    {
-        return [];
-    }
+
 
     public function form($form)
     {
@@ -106,11 +107,13 @@ class ManageRoomDetails extends Page implements HasForms
                 Grid::make(1)->schema([
                     Section::make('Media & Gallery')
                         ->schema([
-                            FileUpload::make('featured_image')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
+                                ->collection('featured_image')
                                 ->label('Featured Image (Primary Banner)')
                                 ->image()
                                 ->helperText('Pre-filled from Room Type by default.'),
-                            FileUpload::make('additional_gallery')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('additional_gallery')
+                                ->collection('additional_gallery')
                                 ->label('Additional Room Gallery')
                                 ->image()
                                 ->multiple()
@@ -119,11 +122,44 @@ class ManageRoomDetails extends Page implements HasForms
                         ]),
                 ])->columnSpan(1),
             ]),
-        ])->statePath('data');
+        ])->statePath('data')
+          ->model(\App\Models\RoomType::find($this->room_id));
     }
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        $room = \App\Models\RoomType::find($this->room_id);
+        
+        if ($room) {
+            $existingName = is_array($room->name) ? $room->name : ['en' => $room->name];
+            $existingName['en'] = $data['name'] ?? ($existingName['en'] ?? '');
+
+            $existingDesc = is_array($room->description) ? $room->description : ['en' => $room->description];
+            $existingDesc['en'] = $data['description'] ?? ($existingDesc['en'] ?? '');
+
+            // extract just the numbers from room_area string
+            $sizeSqm = null;
+            if (isset($data['room_area'])) {
+                preg_match('/(\d+)/', $data['room_area'], $matches);
+                if (isset($matches[1])) {
+                    $sizeSqm = (int) $matches[1];
+                }
+            }
+
+            $room->update([
+                'name' => $existingName,
+                'description' => $existingDesc,
+                'starting_price' => $data['starting_price'] ?? null,
+                'size_sqm' => $sizeSqm,
+                'book_now_label' => $data['book_now_label'] ?? null,
+                'book_now_link' => $data['book_now_link'] ?? null,
+                'special_features' => $data['special_features'] ?? null,
+            ]);
+            
+            $this->form->model($room)->saveRelationships();
+        }
+
         \Filament\Notifications\Notification::make()->title('Room Details Saved')->success()->send();
     }
 

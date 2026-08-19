@@ -7,7 +7,6 @@
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Attraction Image</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Attraction Name</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Hotel Name</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Distance from Hotel</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Category</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Status</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Last Updated</th>
@@ -27,9 +26,6 @@
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
                                 {{ $attraction['hotel'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $attraction['distance'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
                                 {{ $attraction['category'] }}
@@ -86,7 +82,7 @@
         </div>
 
         {{-- Pagination --}}
-        <x-filament::section>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-white/10">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -124,7 +120,7 @@
                     </button>
                 </div>
             </div>
-        </x-filament::section>
+        </div>
 
     </div>
 </x-filament-panels::page>
