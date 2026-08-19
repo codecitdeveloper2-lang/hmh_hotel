@@ -50,9 +50,7 @@ class CreateCmsPage extends Page implements HasForms
             'meta_title' => ['en' => $data['meta_title'] ?? ''],
             'meta_description' => ['en' => $data['meta_description'] ?? ''],
             'body' => ['en' => json_encode([
-                'show_in_main_nav' => $data['show_in_main_nav'] ?? true,
-                'show_in_footer' => $data['show_in_footer'] ?? false,
-                'allow_indexing' => $data['allow_indexing'] ?? true,
+
                 'display_order' => $data['display_order'] ?? null,
                 'banner_slides' => $data['banner_slides'] ?? [],
                 'content_title' => $data['content_title'] ?? '',
@@ -71,6 +69,7 @@ class CreateCmsPage extends Page implements HasForms
                 'our_values' => $data['our_values'] ?? '',
                 'our_culture' => $data['our_culture'] ?? '',
                 'our_promise' => $data['our_promise'] ?? '',
+                'responsibilities_list' => $data['responsibilities_list'] ?? [],
                 'meta_keywords' => $data['meta_keywords'] ?? '',
                 'canonical_url' => $data['canonical_url'] ?? '',
             ])],

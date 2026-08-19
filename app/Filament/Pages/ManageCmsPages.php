@@ -39,6 +39,11 @@ class ManageCmsPages extends Page
         if ($this->currentPage < $lastPage) $this->currentPage++;
     }
 
+    public function gotoPage(int $page): void
+    {
+        $this->currentPage = $page;
+    }
+
     protected function getViewData(): array
     {
         $query = \App\Models\Page::query();
@@ -141,9 +146,7 @@ class ManageCmsPages extends Page
                         'meta_title' => ['en' => $data['meta_title'] ?? ''],
                         'meta_description' => ['en' => $data['meta_description'] ?? ''],
                         'body' => ['en' => json_encode([
-                            'show_in_main_nav' => $data['show_in_main_nav'] ?? true,
-                            'show_in_footer' => $data['show_in_footer'] ?? false,
-                            'allow_indexing' => $data['allow_indexing'] ?? true,
+
                             'display_order' => $data['display_order'] ?? null,
                             'banner_slides' => $data['banner_slides'] ?? [],
                             'content_title' => $data['content_title'] ?? '',
@@ -162,6 +165,7 @@ class ManageCmsPages extends Page
                             'our_values' => $data['our_values'] ?? '',
                             'our_culture' => $data['our_culture'] ?? '',
                             'our_promise' => $data['our_promise'] ?? '',
+                            'responsibilities_list' => $data['responsibilities_list'] ?? [],
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -205,9 +209,7 @@ class ManageCmsPages extends Page
                     'status' => $page->is_active ? 'Published' : 'Draft',
                     'meta_title' => is_array($page->meta_title) ? ($page->meta_title['en'] ?? '') : $page->meta_title,
                     'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
-                    'show_in_main_nav' => $decodedBody['show_in_main_nav'] ?? true,
-                    'show_in_footer' => $decodedBody['show_in_footer'] ?? false,
-                    'allow_indexing' => $decodedBody['allow_indexing'] ?? true,
+
                     'display_order' => $decodedBody['display_order'] ?? null,
                     'banner_slides' => $decodedBody['banner_slides'] ?? [],
                     'content_title' => $decodedBody['content_title'] ?? '',
@@ -226,6 +228,7 @@ class ManageCmsPages extends Page
                     'our_values' => $decodedBody['our_values'] ?? '',
                     'our_culture' => $decodedBody['our_culture'] ?? '',
                     'our_promise' => $decodedBody['our_promise'] ?? '',
+                    'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -267,9 +270,7 @@ class ManageCmsPages extends Page
                     'status' => $page->is_active ? 'Published' : 'Draft',
                     'meta_title' => is_array($page->meta_title) ? ($page->meta_title['en'] ?? '') : $page->meta_title,
                     'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
-                    'show_in_main_nav' => $decodedBody['show_in_main_nav'] ?? true,
-                    'show_in_footer' => $decodedBody['show_in_footer'] ?? false,
-                    'allow_indexing' => $decodedBody['allow_indexing'] ?? true,
+
                     'display_order' => $decodedBody['display_order'] ?? null,
                     'banner_slides' => $decodedBody['banner_slides'] ?? [],
                     'content_title' => $decodedBody['content_title'] ?? '',
@@ -333,6 +334,7 @@ class ManageCmsPages extends Page
                             'our_values' => $data['our_values'] ?? '',
                             'our_culture' => $data['our_culture'] ?? '',
                             'our_promise' => $data['our_promise'] ?? '',
+                            'responsibilities_list' => $data['responsibilities_list'] ?? [],
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -409,34 +411,30 @@ class ManageCmsPages extends Page
                                             ->label('Background Image')
                                             ->image()
                                             ->required(),
+                                        TextInput::make('subtitle')
+                                            ->label('Subtitle')
+                                            ->placeholder('e.g. Welcome To'),
                                         TextInput::make('title')
-                                            ->label('Slide Title (Optional)'),
-                                        TextInput::make('button_text')
-                                            ->label('Button Text (Optional)'),
-                                        TextInput::make('button_link')
-                                            ->label('Button Link (Optional)')
-                                            ->url(),
+                                            ->label('Title'),
                                     ])
                                     ->defaultItems(1)
                                     ->collapsible()
                                     ->cloneable()
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Slide'),
                             ]),
-                            
-                        Section::make('Content')
+
+                        Section::make('Page Intro Description')
                             ->schema([
-                                TextInput::make('content_title')
-                                    ->label('Section Title (Optional)'),
+                                TextInput::make('intro_subtitle')
+                                    ->label('Subtitle')
+                                    ->placeholder('e.g. YOU ARE UNIQUE FOR US'),
+                                TextInput::make('intro_title')
+                                    ->label('Title')
+                                    ->placeholder('e.g. WELCOME TO OPERA GRAND HOTEL'),
                                 \App\Filament\Forms\Components\JoditEditor::make('content')
-                                    ->label('Rich Text Editor (Description)'),
-                                Grid::make(2)->schema([
-                                    TextInput::make('cta_text')
-                                        ->label('Button Text'),
-                                    TextInput::make('cta_link')
-                                        ->label('Button Link')
-                                        ->url(),
-                                ]),
+                                    ->label('Description'),
                             ]),
+
                             
                         \Filament\Schemas\Components\Group::make()
                             ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'about-us')
@@ -490,20 +488,34 @@ class ManageCmsPages extends Page
                                             ->rows(5),
                                     ])->columns(3),
                             ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'corporate-responsibility')
+                            ->schema([
+                                Section::make('Responsibilities')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('responsibilities_list')
+                                            ->label('Responsibilities')
+                                            ->schema([
+                                                TextInput::make('title')
+                                                    ->label('Title')
+                                                    ->required(),
+                                                FileUpload::make('image')
+                                                    ->label('Image')
+                                                    ->image(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')
+                                                    ->label('Description'),
+                                            ])
+                                            ->defaultItems(1)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Responsibility'),
+                                    ]),
+                            ]),
                     ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
-                    Section::make('Page Settings')
-                        ->schema([
-                            Toggle::make('show_in_main_nav')
-                                ->label('Show in Main Navigation'),
-                            Toggle::make('show_in_footer')
-                                ->label('Show in Footer'),
-                            Toggle::make('allow_indexing')
-                                ->label('Allow Indexing')
-                                ->default(true),
-                        ]),
-                        
+
                     Section::make('SEO')
                         ->schema([
                             TextInput::make('meta_title')

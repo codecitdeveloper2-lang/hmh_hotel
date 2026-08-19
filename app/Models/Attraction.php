@@ -20,6 +20,10 @@ class Attraction extends Model
         'distance_from_hotel', 'is_active', 'sort_order',
     ];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
     public function getSlugOptions(): SlugOptions
     {
         return SlugOptions::create()->generateSlugsFrom('name')->saveSlugsTo('slug');
@@ -28,30 +32,5 @@ class Attraction extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class); // hotel rows only
-use Illuminate\Database\Eloquent\Model;
-
-class Attraction extends Model
-{
-    protected $table = 'attractions';
-
-    protected $fillable = [
-        'property_id',
-        'name',
-        'description',
-        'slug',
-        'distance_from_hotel',
-        'is_active',
-        'sort_order',
-    ];
-
-    protected $casts = [
-        'name' => 'array',
-        'description' => 'array',
-        'is_active' => 'boolean',
-    ];
-
-    public function property()
-    {
-        return $this->belongsTo(Property::class);
     }
 }

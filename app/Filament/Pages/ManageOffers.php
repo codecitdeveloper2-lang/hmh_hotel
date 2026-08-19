@@ -156,8 +156,7 @@ class ManageOffers extends Page
                 ->modalWidth('7xl')
                 ->form($this->getOfferFormSchema())
 
-                ->url(\App\Filament\Pages\Offers\CreateOffer::getUrl())
-                ->action(function (array $data) {
+               
                 
             ->url(\App\Filament\Pages\Offers\CreateOffer::getUrl())
             ->action(function (array $data) {
@@ -197,7 +196,6 @@ class ManageOffers extends Page
 
             ->url(fn(array $arguments) => \App\Filament\Pages\Offers\EditOffer::getUrl(['record' => $arguments['id'] ?? 0]))
             ->action(function (array $data) {
-            ->fillForm(function (array $arguments) {
                 $offer = \App\Models\Offer::find($arguments['id']);
                 if (!$offer) return [];
                 return [
@@ -249,38 +247,6 @@ class ManageOffers extends Page
                         ->schema([
                             \Filament\Forms\Components\ToggleButtons::make('activeLocale')
                                 ->hiddenLabel()
-
-                    \Filament\Schemas\Components\Tabs::make('Tabs')
-                        ->tabs([
-                            \Filament\Schemas\Components\Tabs\Tab::make('General Information')
-                                ->schema([
-                            TextInput::make('title')
-                                ->label('Offer Title')
-                                ->required(),
-                            Select::make('hotel')
-                                ->label('Hotel')
-                                ->options([
-                                    'Coral Beach Resort Sharjah' => 'Coral Beach Resort Sharjah',
-                                    'Coral Dubai Deira Hotel' => 'Coral Dubai Deira Hotel',
-                                    'ECOS Dubai Hotel' => 'ECOS Dubai Hotel',
-                                    'EWA Hotel Apartments' => 'EWA Hotel Apartments',
-                                    'Opera Hotel' => 'Opera Hotel',
-                                ])
-                                ->required(),
-                            Select::make('offer_type')
-                                ->label('Offer Type')
-                                ->options([
-                                    'Seasonal' => 'Seasonal',
-                                    'Weekend' => 'Weekend',
-                                    'Family' => 'Family',
-                                    'Corporate' => 'Corporate',
-                                    'Honeymoon' => 'Honeymoon',
-                                    'Long Stay' => 'Long Stay',
-                                ])
-                                ->required(),
-
-                            Select::make('status')
-                                ->label('Status')
                                 ->options([
                                     'en' => 'EN',
                                     'ar' => 'عربي',
@@ -288,11 +254,10 @@ class ManageOffers extends Page
                                 ->default('en')
                                 ->grouped()
                                 ->live()
-                                ->disabled(false)
                                 ->extraFieldWrapperAttributes([
                                     'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'
                                 ]),
-                                
+
                             \Filament\Schemas\Components\Group::make()->schema([
                                 TextInput::make('title.en')
                                     ->label('Offer Title')
@@ -377,38 +342,8 @@ class ManageOffers extends Page
                                 ->directory('offer-banners')
                                 ->image()
                                 ->imageEditor()
-                                ->maxSize(5120)
+                                ->maxSize(5120),
                         ])->disabled(fn(\Livewire\Component $livewire) => $livewire instanceof \App\Filament\Pages\Offers\ViewOffer),
-                        
-                                ->default('Active')
-                                ->required(),
-                            TextInput::make('highlight_title')
-                                ->label('Offer Highlight Title')
-                                ->default('GREAT OFFERS ARE JUST A CLICK'),
-                            TextInput::make('highlight_subtitle')
-                                ->label('Offer Highlight Subtitle')
-                                ->default('Unbeatable packages for your holidays'),
-                            \App\Filament\Forms\Components\JoditEditor::make('highlight_description')
-                                ->label('Offer Highlight Description')
-                                ->default('Elevate your stay with exclusive offers designed to enhance every moment of your journey.'),
-                                ]),
-                            \Filament\Schemas\Components\Tabs\Tab::make('Banner')
-                                ->schema([
-                            TextInput::make('banner_title')
-                                ->label('Banner Title')
-                                ->default('VIEW OFFERS'),
-
-                            FileUpload::make('banner_image')
-                                ->label('Banner Image Upload')
-                                ->image(),
-                                ]),
-                        ]),
-
-
-
-                ])->columnSpan(2),
-                
-                Grid::make(1)->schema([
 
                     Section::make('SEO')
                         ->schema([
