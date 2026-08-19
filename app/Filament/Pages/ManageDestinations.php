@@ -283,7 +283,6 @@ class ManageDestinations extends Page
                                     'ar' => 'عربي',
                                 ])
                                 ->default('en')
-                                ->grouped()
                                 ->live()
                                 ->extraFieldWrapperAttributes([
                                     'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'

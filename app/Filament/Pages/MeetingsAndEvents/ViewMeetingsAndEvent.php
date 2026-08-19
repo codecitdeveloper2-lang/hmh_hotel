@@ -30,13 +30,31 @@ class ViewMeetingsAndEvent extends Page implements HasForms
             'rfp' => 'Corporate Meetings',
         ];
 
+        $rekeyRepeater = function ($array) {
+            if (!is_array($array)) return [];
+            $result = [];
+            foreach ($array as $item) {
+                $result[(string)\Illuminate\Support\Str::uuid()] = $item;
+            }
+            return $result;
+        };
+
         $this->form->fill([
             'title' => $page->title,
-            'hotel' => $page->property?->display_name,
+            'property_id' => $page->property_id,
             'event_type' => $reverseTypeMapping[$page->type] ?? 'Corporate Meetings',
-            'slug' => \Illuminate\Support\Str::slug($page->title ?? ''),
-            'status' => $page->is_active ? 'Published' : 'Draft',
+            'slug' => $page->slug ?? \Illuminate\Support\Str::slug($page->title ?? ''),
+            'status' => $page->status ?? ($page->is_active ? 'Published' : 'Draft'),
+            'highlight_subtitle' => $page->subtitle,
+            'highlight_title' => $page->title ?? '', // not strictly saved separately, fallback to title
             'highlight_description' => $page->description,
+            'rfp_url' => $page->rfp_url,
+            'event_cards' => $rekeyRepeater($page->event_cards),
+            'banner_slides' => $rekeyRepeater($page->banner_slides),
+            'gallery' => $page->gallery ?? [],
+            'meta_title' => $page->seoMetadata?->meta_title,
+            'meta_description' => $page->seoMetadata?->meta_description,
+            'meta_keywords' => $page->seoMetadata?->meta_keywords,
         ]);
     }
 

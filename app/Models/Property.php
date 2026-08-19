@@ -50,6 +50,13 @@ class Property extends Model implements HasMedia
     {
         return $this->belongsTo(Property::class, 'parent_id');
     }
+    /**
+     * Get the display name (English by default).
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->belongsTo(Property::class, 'parent_id');
+    }
 
     public function parent(): BelongsTo
     {

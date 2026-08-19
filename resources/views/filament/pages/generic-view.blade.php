@@ -1,21 +1,18 @@
 <x-filament-panels::page>
     <style>
-        /* Transform disabled form fields into clean read-only text displays */
+        /* Transform disabled form fields to match Jodit Editor bordered style */
         .read-only-form .fi-input-wrp, 
         .read-only-form .fi-select-wrp, 
         .read-only-form .fi-ta-wrp,
         .read-only-form .fi-color-picker-wrp {
-            box-shadow: none !important;
-            border: none !important;
-            background: transparent !important;
-            border-radius: 0 !important;
+            background-color: rgba(255, 255, 255, 0.03) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 0.5rem !important;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05) !important;
             padding: 0 !important;
-        }
-
-        .read-only-form .fi-input-wrp:focus-within, 
-        .read-only-form .fi-select-wrp:focus-within {
-            box-shadow: none !important;
-            ring: 0 !important;
+            min-height: 2.75rem !important;
+            display: flex;
+            align-items: center;
         }
 
         .read-only-form input:disabled, 
@@ -24,13 +21,14 @@
             background: transparent !important;
             box-shadow: none !important;
             border: none !important;
-            padding: 0 !important;
-            margin-top: 0.25rem !important;
+            padding: 0.5rem 0.75rem !important;
+            margin: 0 !important;
             color: #f3f4f6 !important;
             -webkit-text-fill-color: #f3f4f6 !important;
             opacity: 1 !important;
-            font-size: 1.05rem !important;
+            font-size: 1rem !important;
             font-weight: 500 !important;
+            width: 100%;
         }
 
         /* Hide select dropdown arrows and other decorative icons in disabled fields */

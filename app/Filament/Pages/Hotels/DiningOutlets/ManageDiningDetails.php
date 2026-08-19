@@ -2,12 +2,14 @@
 namespace App\Filament\Pages\Hotels\DiningOutlets;
 
 use Filament\Pages\Page;
+use App\Filament\Pages\Hotels\Traits\HasHotelTabs;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 
 class ManageDiningDetails extends Page implements HasForms
 {
+    use HasHotelTabs;
     use InteractsWithForms;
     protected string $view = 'filament.pages.manage-dining-details';
     protected static bool $shouldRegisterNavigation = false;
@@ -20,24 +22,23 @@ class ManageDiningDetails extends Page implements HasForms
 
     public function mount($record, $outlet_id): void
     {
+        $this->mountHasHotelTabs($record);
         $this->record = $record;
         $this->outlet_id = $outlet_id;
-        
-        $mockData = \App\Filament\Pages\Hotels\DiningOutlets\ListDiningOutlets::getMockDiningOutlets();
-        $outletData = $mockData[$this->outlet_id] ?? [];
-        
-        $this->form->fill([
-            'title' => $outletData['name'] ?? '',
-            'cuisine_type' => $outletData['cuisine_type'] ?? '',
-            'book_table_label' => 'BOOK A TABLE',
-        ]);
-        $this->form->fill($this->data);
+        $d = \App\Models\DiningOutlet::find($this->outlet_id);
+        if ($d) {
+            $this->form->fill([
+                'title' => is_array($d->name) ? ($d->name['en'] ?? '') : $d->name,
+                'description' => is_array($d->description) ? ($d->description['en'] ?? '') : $d->description,
+                'cuisine_type' => is_array($d->cuisine_type) ? ($d->cuisine_type['en'] ?? '') : $d->cuisine_type,
+                'contact_details' => $d->contact_details ?? [],
+                'book_table_label' => $d->book_table_label ?? 'BOOK A TABLE',
+                'book_table_link' => $d->book_table_link ?? '',
+            ]);
+        }
     }
 
-    public function getSubNavigation(): array
-    {
-        return [];
-    }
+
 
     public function form($form)
     {
@@ -84,7 +85,8 @@ class ManageDiningDetails extends Page implements HasForms
 
             \Filament\Schemas\Components\Section::make('Bottom Gallery')
                 ->schema([
-                    \Filament\Forms\Components\FileUpload::make('gallery')
+                    \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
+                        ->collection('dining_gallery')
                         ->label('Gallery Images')
                         ->multiple()
                         ->image()
@@ -92,12 +94,39 @@ class ManageDiningDetails extends Page implements HasForms
                         ->panelLayout('grid')
                         ->columnSpanFull(),
                 ]),
-        ])->statePath('data');
+        ])
+        ->statePath('data')
+        ->model(\App\Models\DiningOutlet::find($this->outlet_id));
     }
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        $d = \App\Models\DiningOutlet::find($this->outlet_id);
+        if ($d) {
+            $name = is_array($d->name) ? $d->name : ['en' => $d->name];
+            $name['en'] = $data['title'] ?? '';
+
+            $desc = is_array($d->description) ? $d->description : ['en' => $d->description];
+            $desc['en'] = $data['description'] ?? '';
+
+            $cuisine = is_array($d->cuisine_type) ? $d->cuisine_type : ['en' => $d->cuisine_type];
+            $cuisine['en'] = $data['cuisine_type'] ?? '';
+
+            $d->update([
+                'name' => $name,
+                'description' => $desc,
+                'cuisine_type' => $cuisine,
+                'contact_details' => $data['contact_details'] ?? null,
+                'book_table_label' => $data['book_table_label'] ?? null,
+                'book_table_link' => $data['book_table_link'] ?? null,
+            ]);
+            
+            $this->form->model($d)->saveRelationships();
+        }
+        
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
+        $this->redirect(\App\Filament\Pages\Hotels\DiningOutlets\EditDiningOutlet::getUrl(['record' => $this->record, 'outlet_id' => $this->outlet_id]));
     }
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\DiningOutlets\EditDiningOutlet::getUrl(['record' => $this->record, 'outlet_id' => $this->outlet_id]); }

@@ -39,7 +39,6 @@ class CreateMeetingsAndEvent extends Page implements HasForms
     public function save(): void
     {
         $data = $this->form->getState();
-        $property = \App\Models\Property::where('name', 'like', '%' . ($data['hotel'] ?? '') . '%')->first();
 
         $typeMapping = [
             'Corporate Meetings' => 'corporate',
@@ -51,13 +50,29 @@ class CreateMeetingsAndEvent extends Page implements HasForms
         ];
         $mappedType = $typeMapping[$data['event_type'] ?? ''] ?? 'corporate';
 
-        \App\Models\MeetingEventPage::create([
+        $page = \App\Models\MeetingEventPage::create([
             'title' => $data['title'] ?? 'Untitled',
             'type' => $mappedType,
             'description' => $data['highlight_description'] ?? '',
+            'subtitle' => $data['highlight_subtitle'] ?? null,
+            'rfp_url' => $data['rfp_url'] ?? null,
+            'event_cards' => $data['event_cards'] ?? [],
+            'banner_slides' => $data['banner_slides'] ?? [],
+            'gallery' => $data['gallery'] ?? [],
+            'slug' => $data['slug'] ?? \Illuminate\Support\Str::slug($data['title'] ?? 'Untitled'),
+            'status' => $data['status'] ?? 'Published',
             'is_active' => ($data['status'] ?? 'Published') === 'Published',
-            'property_id' => $property ? $property->id : 1,
+            'property_id' => $data['property_id'] ?? 1,
         ]);
+        
+        if (isset($data['meta_title']) || isset($data['meta_description']) || isset($data['meta_keywords'])) {
+            $page->seoMetadata()->create([
+                'meta_title' => $data['meta_title'] ?? null,
+                'meta_description' => $data['meta_description'] ?? null,
+                'meta_keywords' => $data['meta_keywords'] ?? null,
+            ]);
+        }
+
         
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageMeetingsAndEvents::getUrl());

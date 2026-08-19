@@ -9,7 +9,7 @@ class NewsletterSubscriber extends Model
 {
     use HasFactory;
 
-    public $timestamps = false;
+    #public $timestamps = false;
 
     protected $fillable = ['email', 'locale', 'is_active', 'subscribed_at'];
 

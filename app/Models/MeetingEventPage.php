@@ -11,12 +11,26 @@ class MeetingEventPage extends Model
 {
     use HasFactory, HasTranslations;
 
-    protected $translatable = ['title', 'description', 'capacity_details'];
+    protected $translatable = ['title', 'description', 'capacity_details', 'subtitle'];
 
-    protected $fillable = ['property_id', 'type', 'title', 'description', 'capacity_details', 'is_active'];
+    protected $fillable = [
+        'property_id', 'type', 'title', 'description', 'capacity_details', 'is_active',
+        'subtitle', 'rfp_url', 'banner_slides', 'event_cards', 'gallery', 'slug', 'status'
+    ];
+
+    protected $casts = [
+        'banner_slides' => 'array',
+        'event_cards' => 'array',
+        'gallery' => 'array',
+    ];
 
     public function property(): BelongsTo
     {
-        return $this->belongsTo(Property::class); // brand OR hotel
+        return $this->belongsTo(Property::class);
+    }
+
+    public function seoMetadata()
+    {
+        return $this->morphOne(\App\Models\SeoMetadata::class, 'seoable');
     }
 }

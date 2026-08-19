@@ -15,11 +15,21 @@ class DiningOutlet extends Model implements HasMedia
 {
     use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
 
-    protected $translatable = ['name', 'description'];
+    protected $table = 'dining_outlets';
+
+    protected $translatable = ['name', 'description', 'cuisine_type', 'opening_hours'];
 
     protected $fillable = [
         'property_id', 'name', 'description', 'slug', 'cuisine_type',
         'opening_hours', 'has_table_booking', 'is_active', 'sort_order',
+        'read_more_label', 'read_more_link',
+        'contact_details', 'book_table_label', 'book_table_link',
+    ];
+
+    protected $casts = [
+        'has_table_booking' => 'boolean',
+        'is_active' => 'boolean',
+        'contact_details' => 'array',
     ];
 
     protected $casts = [
@@ -34,6 +44,11 @@ class DiningOutlet extends Model implements HasMedia
 
     public function property(): BelongsTo
     {
-        return $this->belongsTo(Property::class); // brand OR hotel
+        return $this->belongsTo(Property::class);
+    }
+
+    public function seoMetadata()
+    {
+        return $this->morphOne(SeoMetadata::class, 'seoable');
     }
 }

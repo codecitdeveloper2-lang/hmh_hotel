@@ -17,7 +17,6 @@ class ContactSubmission extends Model
     protected $casts = [
         'created_at' => 'datetime',
     ];
-
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);

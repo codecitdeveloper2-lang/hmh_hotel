@@ -2,12 +2,14 @@
 namespace App\Filament\Pages\Hotels\Attractions;
 
 use Filament\Pages\Page;
+use App\Filament\Pages\Hotels\Traits\HasHotelTabs;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 
 class ManageAttractionDetails extends Page implements HasForms
 {
+    use HasHotelTabs;
     use InteractsWithForms;
     protected string $view = 'filament.pages.manage-attraction-details';
     protected static bool $shouldRegisterNavigation = false;
@@ -20,22 +22,21 @@ class ManageAttractionDetails extends Page implements HasForms
 
     public function mount($record, $attraction_id): void
     {
+        $this->mountHasHotelTabs($record);
         $this->record = $record;
         $this->attraction_id = $attraction_id;
-        
-        $mockData = \App\Filament\Pages\Hotels\Attractions\ListAttractions::getMockAttractions();
-        $attractionData = $mockData[$this->attraction_id] ?? [];
-        
-        $this->form->fill([
-            'title' => $attractionData['name'] ?? '',
-        ]);
-        $this->form->fill($this->data);
+        $a = \App\Models\Attraction::find($this->attraction_id);
+        if ($a) {
+            $this->form->fill([
+                'title' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                'address' => $a->address,
+                'google_maps' => $a->google_maps_url,
+            ]);
+        }
     }
 
-    public function getSubNavigation(): array
-    {
-        return [];
-    }
+
 
     public function form($form)
     {
@@ -64,7 +65,8 @@ class ManageAttractionDetails extends Page implements HasForms
 
             \Filament\Schemas\Components\Section::make('Media')
                 ->schema([
-                    \Filament\Forms\Components\FileUpload::make('images')
+                    \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('images')
+                        ->collection('attraction_gallery')
                         ->label('Images')
                         ->multiple()
                         ->image()
@@ -72,12 +74,34 @@ class ManageAttractionDetails extends Page implements HasForms
                         ->panelLayout('grid')
                         ->columnSpanFull(),
                 ]),
-        ])->statePath('data');
+        ])
+        ->statePath('data')
+        ->model(\App\Models\Attraction::find($this->attraction_id));
     }
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        $a = \App\Models\Attraction::find($this->attraction_id);
+        if ($a) {
+            $name = is_array($a->name) ? $a->name : ['en' => $a->name];
+            $name['en'] = $data['title'] ?? '';
+
+            $desc = is_array($a->description) ? $a->description : ['en' => $a->description];
+            $desc['en'] = $data['description'] ?? '';
+
+            $a->update([
+                'name' => $name,
+                'description' => $desc,
+                'address' => $data['address'] ?? null,
+                'google_maps_url' => $data['google_maps'] ?? null,
+            ]);
+            
+            $this->form->model($a)->saveRelationships();
+        }
+        
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
+        $this->redirect(\App\Filament\Pages\Hotels\Attractions\EditAttraction::getUrl(['record' => $this->record, 'attraction_id' => $this->attraction_id]));
     }
 
     public function getBackUrl(): string { return \App\Filament\Pages\Hotels\Attractions\EditAttraction::getUrl(['record' => $this->record, 'attraction_id' => $this->attraction_id]); }

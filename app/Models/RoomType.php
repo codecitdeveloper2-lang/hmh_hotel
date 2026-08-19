@@ -15,11 +15,21 @@ class RoomType extends Model implements HasMedia
 {
     use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
 
-    protected $translatable = ['name', 'description'];
+    protected $table = 'room_types';
+
+    protected $translatable = ['name', 'description', 'meta_title', 'meta_description'];
 
     protected $fillable = [
-        'property_id', 'name', 'description', 'slug', 'max_adults', 'max_children',
+        'property_id', 'name', 'description', 'slug',
         'size_sqm', 'bed_type', 'travelclick_roomtype_id', 'is_active', 'sort_order',
+        'meta_title', 'meta_description',
+        'read_more_label', 'read_more_link', 'book_now_label', 'book_now_link',
+        'starting_price', 'special_features',
+    ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+        'special_features' => 'array',
     ];
 
     protected $casts = [
@@ -34,5 +44,10 @@ class RoomType extends Model implements HasMedia
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    public function seoMetadata()
+    {
+        return $this->morphOne(\App\Models\SeoMetadata::class, 'seoable');
     }
 }

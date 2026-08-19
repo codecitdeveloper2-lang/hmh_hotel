@@ -2,12 +2,14 @@
 namespace App\Filament\Pages\Hotels\Amenities;
 
 use Filament\Pages\Page;
+use App\Filament\Pages\Hotels\Traits\HasHotelTabs;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 
 class ViewAmenity extends Page implements HasForms
 {
+    use HasHotelTabs;
     use InteractsWithForms;
     protected string $view = 'filament.pages.generic-view';
     protected static bool $shouldRegisterNavigation = false;
@@ -20,6 +22,7 @@ class ViewAmenity extends Page implements HasForms
 
     public function mount($record, $amenity_id): void
     {
+        $this->mountHasHotelTabs($record);
         $this->record = $record;
         $this->amenity_id = $amenity_id;
         
@@ -28,10 +31,7 @@ class ViewAmenity extends Page implements HasForms
         $this->form->fill($this->data);
     }
 
-    public function getSubNavigation(): array
-    {
-        return [];
-    }
+
 
     public function form($form)
     {

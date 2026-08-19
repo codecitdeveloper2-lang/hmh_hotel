@@ -67,7 +67,6 @@ class ListAttractions extends Page
                 'id' => $a->id,
                 'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
                 'hotel' => $propName,
-                'distance' => '5 km',
                 'category' => 'Local Attraction',
                 'status' => $a->is_active ? 'Active' : 'Inactive',
                 'last_updated' => $a->updated_at ? $a->updated_at->format('M d, Y') : 'Today',
@@ -234,11 +233,13 @@ class ListAttractions extends Page
                 Grid::make(1)->schema([
                     Section::make('Media')
                         ->schema([
-                            FileUpload::make('featured_image')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
+                                ->collection('featured_image')
                                 ->label('Featured Image Upload')
                                 ->image(),
-                            FileUpload::make('gallery')
-                                ->label('Gallery Upload (Placeholder)')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
+                                ->collection('gallery')
+                                ->label('Gallery Upload')
                                 ->image()
                                 ->multiple()
                                 ->panelLayout('grid'),
