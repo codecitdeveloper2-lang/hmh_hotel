@@ -31,6 +31,9 @@ class Property extends Model implements HasMedia
         'latitude' => 'decimal:7',
         'longitude' => 'decimal:7',
         'is_active' => 'boolean',
+        'star_rating' => 'integer',
+        'is_featured' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     // slug is unique across the WHOLE table (brand + hotel share one flat namespace)
@@ -52,11 +55,7 @@ class Property extends Model implements HasMedia
      */
     public function getDisplayNameAttribute(): string
     {
-        $name = $this->name;
-        if (is_array($name)) {
-            return $name['en'] ?? $name['ar'] ?? '';
-        }
-        return $name ?? '';
+        return $this->belongsTo(Property::class, 'parent_id');
     }
 
     public function parent(): BelongsTo
@@ -65,6 +64,11 @@ class Property extends Model implements HasMedia
     }
 
     public function hotels(): HasMany
+    {
+        return $this->hasMany(Property::class, 'parent_id');
+    }
+
+    public function children(): HasMany
     {
         return $this->hasMany(Property::class, 'parent_id');
     }
@@ -79,7 +83,7 @@ class Property extends Model implements HasMedia
         return $query->where('type', 'hotel');
     }
 
-    // --- child content (relation-manager tabs in the admin, per Section 15) ---
+    // --- child content ---
 
     public function roomTypes(): HasMany
     {
@@ -123,7 +127,7 @@ class Property extends Model implements HasMedia
             ->withTimestamps();
     }
 
-    // --- row-level access control (Section 16) ---
+    // --- row-level access control ---
 
     public function assignedUsers(): BelongsToMany
     {
@@ -136,8 +140,13 @@ class Property extends Model implements HasMedia
         $this->addMediaCollection('hero_images');
         $this->addMediaCollection('gallery');
     }
-    public function children(): HasMany
+
+    public function getDisplayNameAttribute(): string
     {
-        return $this->hasMany(Property::class, 'parent_id');
+        $name = $this->name;
+        if (is_array($name)) {
+            return $name['en'] ?? $name['ar'] ?? '';
+        }
+        return $name ?? '';
     }
 }

@@ -17,7 +17,4 @@ class NewsletterSubscriber extends Model
         'subscribed_at' => 'datetime',
         'is_active' => 'boolean',
     ];
-    protected $guarded = [];
-
-    public $timestamps = false;
 }

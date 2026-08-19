@@ -15,7 +15,6 @@ class Reservation extends Model
         'check_in', 'check_out', 'adults', 'children', 'rooms', 'rate_plan_id',
         'status', 'total_amount', 'currency', 'raw_payload',
     ];
-    protected $guarded = [];
 
     protected $casts = [
         'check_in' => 'date',

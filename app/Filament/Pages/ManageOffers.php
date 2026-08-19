@@ -283,11 +283,10 @@ class ManageOffers extends Page
                                 ])
                                 ->default('en')
                                 ->live()
-                                ->disabled(false)
                                 ->extraFieldWrapperAttributes([
                                     'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'
                                 ]),
-                                
+
                             \Filament\Schemas\Components\Group::make()->schema([
                                 TextInput::make('title.en')
                                     ->label('Offer Title')
@@ -372,7 +371,7 @@ class ManageOffers extends Page
                                 ->directory('offer-banners')
                                 ->image()
                                 ->imageEditor()
-                                ->maxSize(5120)
+                                ->maxSize(5120),
                         ])->disabled(fn(\Livewire\Component $livewire) => $livewire instanceof \App\Filament\Pages\Offers\ViewOffer),
                             \Filament\Forms\Components\Select::make('status')
                                 ->options([

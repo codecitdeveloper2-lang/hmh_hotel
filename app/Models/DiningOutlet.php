@@ -32,6 +32,11 @@ class DiningOutlet extends Model implements HasMedia
         'contact_details' => 'array',
     ];
 
+    protected $casts = [
+        'has_table_booking' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+
     public function getSlugOptions(): SlugOptions
     {
         return SlugOptions::create()->generateSlugsFrom('name')->saveSlugsTo('slug');
