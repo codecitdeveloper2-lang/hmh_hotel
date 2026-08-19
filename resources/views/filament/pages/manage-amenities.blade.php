@@ -76,7 +76,7 @@
         </div>
 
         @php
-            $hotelName = \App\Filament\Pages\ManageHotels::getMockHotels()[$this->record]['name'] ?? '';
+            $hotelName = \App\Models\Property::find($this->record)?->display_name ?? '';
             $allAmenities = collect($this->getMockAmenities())
                 ->filter(fn($item) => $item['hotel'] === $hotelName)
                 ->when($searchQuery, fn($collection) => $collection->filter(fn($item) => stripos($item['title'], $searchQuery) !== false))
@@ -228,7 +228,7 @@
         @endif
 
         {{-- Pagination --}}
-        <x-filament::section>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-white/10">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -266,7 +266,7 @@
                     </button>
                 </div>
             </div>
-        </x-filament::section>
+        </div>
 
     </div>
 </x-filament-panels::page>

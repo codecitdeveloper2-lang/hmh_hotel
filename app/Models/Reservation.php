@@ -34,16 +34,5 @@ class Reservation extends Model
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
-        'total_amount' => 'decimal:2',
-    ];
-
-    public function property(): BelongsTo
-    {
-        return $this->belongsTo(Property::class);
-    }
-
-    public function member(): BelongsTo
-    {
-        return $this->belongsTo(Member::class);
     }
 }

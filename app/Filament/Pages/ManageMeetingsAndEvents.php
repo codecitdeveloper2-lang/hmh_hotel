@@ -9,6 +9,7 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use Filament\Notifications\Notification;
@@ -30,32 +31,64 @@ class ManageMeetingsAndEvents extends Page
     public int $perPage = 10;
     public int $currentPage = 1;
 
-    public function updatedSearchQuery(): void { $this->currentPage = 1; }
-    public function updatedFilterHotel(): void { $this->currentPage = 1; }
-    public function updatedFilterEventType(): void { $this->currentPage = 1; }
-    public function updatedFilterStatus(): void { $this->currentPage = 1; }
-    public function updatedPerPage(): void { $this->currentPage = 1; }
+    public function updatedSearchQuery(): void
+    {
+        $this->currentPage = 1;
+    }
+    public function updatedFilterHotel(): void
+    {
+        $this->currentPage = 1;
+    }
+    public function updatedFilterEventType(): void
+    {
+        $this->currentPage = 1;
+    }
+    public function updatedFilterStatus(): void
+    {
+        $this->currentPage = 1;
+    }
+    public function updatedPerPage(): void
+    {
+        $this->currentPage = 1;
+    }
 
     protected function getViewData(): array
     {
-        $query = \App\Models\MeetingEventPage::query();
+        $query = \App\Models\MeetingEventPage::query()->with('property');
 
         if ($this->searchQuery) {
             $query->where('title', 'like', "%{$this->searchQuery}%");
+        }
+
+        if ($this->filterHotel) {
+            $query->where('property_id', $this->filterHotel);
         }
 
         if ($this->filterEventType) {
             $query->where('type', $this->filterEventType);
         }
 
-        $totalItems  = $query->count();
-        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        if ($this->filterStatus) {
+            if ($this->filterStatus === 'Published') {
+                $query->where('is_active', 1);
+            } elseif ($this->filterStatus === 'Draft') {
+                $query->where('is_active', 0);
+            }
+        }
+
+        $totalItems = $query->count();
+        $lastPage = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
 
         $eventPages = $query->skip(($currentPage - 1) * $this->perPage)
             ->take($this->perPage)
             ->get()
             ->map(function ($page) {
+                $cards = $page->event_cards ?? [];
+                $firstCard = is_array($cards) && count($cards) > 0 ? array_values($cards)[0] : null;
+                $img = $firstCard['image'] ?? null;
+                $featuredImage = is_array($img) ? (count($img) > 0 ? array_values($img)[0] : null) : $img;
+                
                 return [
                     'id' => $page->id,
                     'title' => $page->title,
@@ -65,16 +98,19 @@ class ManageMeetingsAndEvents extends Page
                     'last_updated' => $page->updated_at?->format('Y-m-d') ?? '',
                     'venue_capacity' => $page->capacity_details ?? 'N/A',
                     'cta_text' => 'Book Now',
+                    'featured_image' => $featuredImage,
                 ];
             });
 
         $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
-        $to   = min($currentPage * $this->perPage, $totalItems);
+        $to = min($currentPage * $this->perPage, $totalItems);
 
-        return compact('totalItems', 'lastPage', 'currentPage', 'eventPages', 'from', 'to');
+        $properties = \App\Models\Property::pluck('name', 'id')->toArray();
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'eventPages', 'from', 'to', 'properties');
     }
 
-        public static function getNavigationGroup(): ?string
+    public static function getNavigationGroup(): ?string
     {
         return 'Content Management';
     }
@@ -84,7 +120,7 @@ class ManageMeetingsAndEvents extends Page
         return 3;
     }
 
-    public static function getNavigationIcon(): string | BackedEnum | Htmlable | null
+    public static function getNavigationIcon(): string|BackedEnum|Htmlable|null
     {
         return 'heroicon-o-sparkles';
     }
@@ -99,17 +135,17 @@ class ManageMeetingsAndEvents extends Page
         return 'Meetings & Events Pages';
     }
 
-    public function getTitle(): string | Htmlable
+    public function getTitle(): string|Htmlable
     {
         return 'Meetings & Events Pages';
     }
 
-    public function getHeading(): string | Htmlable | null
+    public function getHeading(): string|Htmlable|null
     {
         return 'Meetings & Events Pages';
     }
 
-    public function getSubheading(): string | Htmlable | null
+    public function getSubheading(): string|Htmlable|null
     {
         return 'Manage all Meetings & Events pages displayed across the HMH Hotel Group website.';
     }
@@ -122,9 +158,9 @@ class ManageMeetingsAndEvents extends Page
                 ->icon('heroicon-o-plus')
                 ->modalWidth('7xl')
                 ->form($this->getEventFormSchema())
-                
-            ->url(\App\Filament\Pages\MeetingsAndEvents\CreateMeetingsAndEvent::getUrl())
-            ->action(function (array $data) {
+
+                ->url(\App\Filament\Pages\MeetingsAndEvents\CreateMeetingsAndEvent::getUrl())
+                ->action(function (array $data) {
                     Notification::make()
                         ->title('Meetings & Events page saved successfully.')
                         ->success()
@@ -141,7 +177,8 @@ class ManageMeetingsAndEvents extends Page
             ->form($this->getEventFormSchema())
             ->fillForm(function (array $arguments) {
                 $page = \App\Models\MeetingEventPage::find($arguments['id']);
-                if (!$page) return [];
+                if (!$page)
+                    return [];
                 return [
                     'title' => $page->title,
                     'event_type' => ucfirst(str_replace('_', ' ', $page->type)),
@@ -150,9 +187,9 @@ class ManageMeetingsAndEvents extends Page
                 ];
             })
             ->disabledForm()
-            
-            ->url(fn (array $arguments) => \App\Filament\Pages\MeetingsAndEvents\ViewMeetingsAndEvent::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(fn () => null);
+
+            ->url(fn(array $arguments) => \App\Filament\Pages\MeetingsAndEvents\ViewMeetingsAndEvent::getUrl(['record' => $arguments['id'] ?? 0]))
+            ->action(fn() => null);
     }
 
     public function editEventPageAction(): Action
@@ -163,7 +200,8 @@ class ManageMeetingsAndEvents extends Page
             ->form($this->getEventFormSchema())
             ->fillForm(function (array $arguments) {
                 $page = \App\Models\MeetingEventPage::find($arguments['id']);
-                if (!$page) return [];
+                if (!$page)
+                    return [];
                 return [
                     'title' => $page->title,
                     'event_type' => ucfirst(str_replace('_', ' ', $page->type)),
@@ -171,8 +209,8 @@ class ManageMeetingsAndEvents extends Page
                     'highlight_description' => $page->description,
                 ];
             })
-            
-            ->url(fn (array $arguments) => \App\Filament\Pages\MeetingsAndEvents\EditMeetingsAndEvent::getUrl(['record' => $arguments['id'] ?? 0]))
+
+            ->url(fn(array $arguments) => \App\Filament\Pages\MeetingsAndEvents\EditMeetingsAndEvent::getUrl(['record' => $arguments['id'] ?? 0]))
             ->action(function (array $data, array $arguments) {
                 $page = \App\Models\MeetingEventPage::find($arguments['id']);
                 if ($page) {
@@ -212,68 +250,90 @@ class ManageMeetingsAndEvents extends Page
                         ->tabs([
                             \Filament\Schemas\Components\Tabs\Tab::make('General Information')
                                 ->schema([
-                            TextInput::make('title')
-                                ->label('Page Title')
-                                ->required()
-                                ->live(onBlur: true)
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
-                            Select::make('hotel')
-                                ->label('Associated Hotel')
-                                ->options([
-                                    'Coral Beach Resort Sharjah' => 'Coral Beach Resort Sharjah',
-                                    'Coral Dubai Deira Hotel' => 'Coral Dubai Deira Hotel',
-                                    'ECOS Dubai Hotel' => 'ECOS Dubai Hotel',
-                                    'EWA Hotel Apartments' => 'EWA Hotel Apartments',
-                                    'Opera Hotel' => 'Opera Hotel',
-                                ])
-                                ->required(),
-                            Select::make('event_type')
-                                ->label('Event Type')
-                                ->options([
-                                    'Corporate Meetings' => 'Corporate Meetings',
-                                    'Weddings' => 'Weddings',
-                                    'Conference Facilities' => 'Conference Facilities',
-                                    'Banquet Halls' => 'Banquet Halls',
-                                    'Private Events' => 'Private Events',
-                                    'Outdoor Venues' => 'Outdoor Venues',
-                                ])
-                                ->required(),
-                            TextInput::make('slug')
-                                ->label('Slug')
-                                ->required(),
-                            Select::make('status')
-                                ->label('Status')
-                                ->options([
-                                    'Published' => 'Published',
-                                    'Draft' => 'Draft',
-                                ])
-                                ->default('Published')
-                                ->required(),
-                            TextInput::make('highlight_subtitle')
-                                ->label('Meetings Subtitle'),
-                            TextInput::make('highlight_title')
-                                ->label('Meetings Title'),
-                            \App\Filament\Forms\Components\JoditEditor::make('highlight_description')
-                                ->label('Meetings Description'),
+                                    TextInput::make('title')
+                                        ->label('Page Title')
+                                        ->required()
+                                        ->live(onBlur: true)
+                                        ->afterStateUpdated(fn(string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
+                                    Select::make('property_id')
+                                        ->label('Associated Hotel')
+                                        ->options(function () {
+                                            return \App\Models\Property::pluck('name', 'id')->toArray();
+                                        })
+                                        ->required(),
+                                    Select::make('event_type')
+                                        ->label('Event Type')
+                                        ->options([
+                                            'Corporate Meetings' => 'Corporate Meetings',
+                                            'Weddings' => 'Weddings',
+                                            'Conference Facilities' => 'Conference Facilities',
+                                            'Banquet Halls' => 'Banquet Halls',
+                                            'Private Events' => 'Private Events',
+                                            'Outdoor Venues' => 'Outdoor Venues',
+                                        ])
+                                        ->required(),
+                                    TextInput::make('slug')
+                                        ->label('Slug')
+                                        ->required(),
+                                    Select::make('status')
+                                        ->label('Status')
+                                        ->options([
+                                            'Published' => 'Published',
+                                            'Draft' => 'Draft',
+                                        ])
+                                        ->default('Published')
+                                        ->required(),
+                                    TextInput::make('highlight_subtitle')
+                                        ->label('Meetings Subtitle'),
+                                    TextInput::make('highlight_title')
+                                        ->label('Meetings Title'),
+                                    \App\Filament\Forms\Components\JoditEditor::make('highlight_description')
+                                        ->label('Meetings Description'),
+                                    TextInput::make('rfp_url')
+                                        ->label('Request for Proposal URL')
+                                        ->url(),
                                 ]),
-                            \Filament\Schemas\Components\Tabs\Tab::make('Banner')
+                            \Filament\Schemas\Components\Tabs\Tab::make('Event Cards')
                                 ->schema([
-                            TextInput::make('banner_title')
-                                ->label('Banner Title'),
-                            Section::make('Media')
-                                ->schema([
-                                    FileUpload::make('banner_image')
-                                        ->label('Banner Image')
-                                        ->image(),
-                                    FileUpload::make('gallery')
-                                        ->label('Gallery Images')
-                                        ->image()
-                                        ->multiple(),
+                                    Repeater::make('event_cards')
+                                        ->label('Event Cards')
+                                        ->schema([
+                                            TextInput::make('title')->label('Card Title')->required(),
+                                            FileUpload::make('image')->label('Card Image')->image()->required(),
+                                            \App\Filament\Forms\Components\JoditEditor::make('description')->label('Short Description'),
+                                            TextInput::make('read_more_url')->label('Read More URL')->url(),
+                                            TextInput::make('display_order')->label('Display Order')->numeric()->default(0),
+                                            Select::make('status')->label('Status')->options(['Published' => 'Published', 'Draft' => 'Draft'])->default('Published'),
+                                        ])
+                                        ->reorderableWithButtons()
+                                        ->collapsible()
+                                        ->itemLabel(fn(array $state): ?string => $state['title'] ?? null),
                                 ]),
+                            \Filament\Schemas\Components\Tabs\Tab::make('Banner & Gallery')
+                                ->schema([
+                                    Repeater::make('banner_slides')
+                                        ->label('Banner Slides')
+                                        ->schema([
+                                            TextInput::make('banner_title')->label('Banner Title'),
+                                            TextInput::make('banner_subtitle')->label('Banner Subtitle'),
+                                            FileUpload::make('banner_image')->label('Banner Image')->image()->required(),
+                                            TextInput::make('display_order')->label('Display Order')->numeric()->default(0),
+                                            Select::make('status')->label('Status')->options(['Published' => 'Published', 'Draft' => 'Draft'])->default('Published'),
+                                        ])
+                                        ->reorderableWithButtons()
+                                        ->collapsible()
+                                        ->itemLabel(fn(array $state): ?string => $state['banner_title'] ?? null),
+                                    Section::make('Media')
+                                        ->schema([
+                                            FileUpload::make('gallery')
+                                                ->label('Gallery Images')
+                                                ->image()
+                                                ->multiple(),
+                                        ]),
                                 ]),
                         ]),
                 ])->columnSpan(2),
-                
+
                 Grid::make(1)->schema([
 
                     Section::make('SEO')

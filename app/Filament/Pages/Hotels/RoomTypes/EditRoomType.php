@@ -2,12 +2,14 @@
 namespace App\Filament\Pages\Hotels\RoomTypes;
 
 use Filament\Pages\Page;
+use App\Filament\Pages\Hotels\Traits\HasHotelTabs;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
 
 class EditRoomType extends Page implements HasForms
 {
+    use HasHotelTabs;
     use InteractsWithForms;
     protected string $view = 'filament.pages.generic-create-edit';
     protected static bool $shouldRegisterNavigation = false;
@@ -20,6 +22,7 @@ class EditRoomType extends Page implements HasForms
 
     public function mount($record, $room_id = null): void
     {
+        $this->mountHasHotelTabs($record);
         $this->record = $record;
         $this->room_id = $room_id;
         $room = \App\Models\RoomType::find($room_id);
@@ -30,20 +33,25 @@ class EditRoomType extends Page implements HasForms
                 'slug' => $room->slug,
                 'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
                 'status' => $room->is_active ? 'active' : 'inactive',
-                'meta_title' => is_array($room->meta_title) ? ($room->meta_title['en'] ?? '') : $room->meta_title,
-                'meta_description' => is_array($room->meta_description) ? ($room->meta_description['en'] ?? '') : $room->meta_description,
+                'read_more_label' => $room->read_more_label,
+                'read_more_link' => $room->read_more_link,
+                'book_now_label' => $room->book_now_label,
+                'book_now_link' => $room->book_now_link,
+                'meta_title' => $room->seoMetadata->meta_title ?? '',
+                'meta_description' => $room->seoMetadata->meta_description ?? '',
             ]);
         }
     }
 
-    public function getSubNavigation(): array
-    {
-        return [];
-    }
+
 
     public function form($form)
     {
-        return $form->schema(\App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getRoomTypeFormSchema())->statePath('data');
+        $roomId = $this->room_id ?? request()->route('room_id');
+        return $form
+            ->schema(\App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getRoomTypeFormSchema())
+            ->statePath('data')
+            ->model(\App\Models\RoomType::find($roomId));
     }
 
     public function save(): void
@@ -64,7 +72,21 @@ class EditRoomType extends Page implements HasForms
                 'slug' => $data['slug'] ?? $room->slug,
                 'description' => $desc,
                 'is_active' => ($data['status'] ?? 'active') === 'active',
+                'read_more_label' => $data['read_more_label'] ?? null,
+                'read_more_link' => $data['read_more_link'] ?? null,
+                'book_now_label' => $data['book_now_label'] ?? null,
+                'book_now_link' => $data['book_now_link'] ?? null,
             ]);
+            
+            $room->seoMetadata()->updateOrCreate(
+                [],
+                [
+                    'meta_title' => $data['meta_title'] ?? null,
+                    'meta_description' => $data['meta_description'] ?? null,
+                ]
+            );
+            
+            $this->form->model($room)->saveRelationships();
         }
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\RoomTypes\ListRoomTypes::getUrl(['record' => $this->record]));

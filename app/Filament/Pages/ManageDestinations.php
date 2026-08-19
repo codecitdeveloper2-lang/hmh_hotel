@@ -283,7 +283,6 @@ class ManageDestinations extends Page
                                     'ar' => 'عربي',
                                 ])
                                 ->default('en')
-                                ->grouped()
                                 ->live()
                                 ->extraFieldWrapperAttributes([
                                     'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'
@@ -302,7 +301,7 @@ class ManageDestinations extends Page
                                 ->required(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar')
                                 ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
                                 ->dehydratedWhenHidden()
-                                ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;']),
+                                ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;'])
                                 ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             TextInput::make('slug')
                                 ->label('Slug')

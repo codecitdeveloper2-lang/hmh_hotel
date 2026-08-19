@@ -45,7 +45,7 @@
                                 {{ $brand['last_updated'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem; text-align: right;">
-                                <x-filament::dropdown placement="bottom-end">
+                                <x-filament::dropdown placement="bottom-end" teleport>
                                     <x-slot name="trigger">
                                         <x-filament::icon-button
                                             icon="heroicon-m-ellipsis-vertical"
@@ -54,7 +54,7 @@
                                         />
                                     </x-slot>
 
-                                    <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
+                                    <x-filament::dropdown.list>
                                         <x-filament::dropdown.list.item
                                             icon="heroicon-m-eye"
                                             tag="a" href="{{ \App\Filament\Pages\Brands\ViewBrand::getUrl(['record' => $brand['id']]) }}"
@@ -86,7 +86,7 @@
         </div>
 
         {{-- Pagination --}}
-        <x-filament::section>
+        <div class="px-4 py-3 border-t border-gray-200 dark:border-white/10">
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -124,7 +124,7 @@
                     </button>
                 </div>
             </div>
-        </x-filament::section>
+        </div>
 
     </div>
 </x-filament-panels::page>

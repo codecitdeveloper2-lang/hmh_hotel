@@ -68,8 +68,6 @@ class ListRoomTypes extends Page
                 'name' => is_array($r->name) ? ($r->name['en'] ?? '') : $r->name,
                 'hotel' => $propName,
                 'room_type_id' => 'RT-' . str_pad($r->id, 4, '0', STR_PAD_LEFT),
-                'max_adults' => 2,
-                'max_children' => 1,
                 'room_size' => '30 sqm',
                 'bed_type' => 'King',
                 'status' => $r->is_active ? 'Active' : 'Inactive',
@@ -239,7 +237,8 @@ class ListRoomTypes extends Page
                 Grid::make(1)->schema([
                     Section::make('Media')
                         ->schema([
-                            FileUpload::make('gallery')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
+                                ->collection('gallery')
                                 ->label('Room Images')
                                 ->image()
                                 ->multiple()
