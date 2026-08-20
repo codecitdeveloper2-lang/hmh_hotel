@@ -22,8 +22,6 @@ class EditOffer extends Page implements HasForms
         $this->record = $record;
         $dbData = collect(\App\Filament\Pages\ManageOffers::getDatabaseOffers())->firstWhere('id', $this->record) ?: [];
         $this->form->fill($dbData);
-        $mockData = \App\Filament\Pages\ManageOffers::getMockOffers();
-        $this->form->fill($mockData[$this->record] ?? []);
     }
 
     protected function getHeaderActions(): array

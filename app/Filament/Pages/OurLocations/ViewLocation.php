@@ -5,6 +5,7 @@ use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
+use App\Models\OurLocation;
 
 class ViewLocation extends Page implements HasForms
 {
@@ -17,8 +18,10 @@ class ViewLocation extends Page implements HasForms
 
     public function mount($record): void
     {
-        $mockData = \App\Filament\Pages\ManageOurLocations::getMockOurLocations();
-        $this->form->fill($mockData[$record] ?? []);
+        $location = OurLocation::find((int)$record);
+        if ($location) {
+            $this->form->fill($location->toArray());
+        }
     }
 
     public function form($form)

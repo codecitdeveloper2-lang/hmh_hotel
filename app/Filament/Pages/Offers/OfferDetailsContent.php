@@ -20,10 +20,10 @@ class OfferDetailsContent extends Page implements HasForms
     {
         $this->record = $record;
         
-        $mockData = \App\Filament\Pages\ManageOffers::getMockOffers();
-        // Fallback to empty array if record doesn't exist
-        $this->form->fill($mockData[$this->record] ?? []);
-        $this->form->fill($this->data);
+        $offer = \App\Models\Offer::find($record);
+        if ($offer) {
+            $this->form->fill($offer->toArray());
+        }
     }
 
     public function getSubNavigation(): array
@@ -36,9 +36,10 @@ class OfferDetailsContent extends Page implements HasForms
         return $form->schema([
             \Filament\Schemas\Components\Section::make('General')
                 ->schema([
-                    \Filament\Forms\Components\TextInput::make('title')
-                        ->label('Title'),
-                    \App\Filament\Forms\Components\JoditEditor::make('description')
+                    \Filament\Forms\Components\TextInput::make('name.en')
+                        ->label('Title')
+                        ->required(),
+                    \App\Filament\Forms\Components\JoditEditor::make('details_content.en')
                         ->label('Description'),
                 ]),
 
@@ -46,46 +47,25 @@ class OfferDetailsContent extends Page implements HasForms
                 ->schema([
                     \Filament\Forms\Components\FileUpload::make('images')
                         ->label('Images')
+                        ->disk('uploads')
+                        ->directory('offer-details')
                         ->image()
                         ->multiple()
                         ->reorderable()
                         ->columnSpanFull(),
                 ]),
 
-            \Filament\Schemas\Components\Section::make('Offer Valid')
-                ->schema([
-                    \Filament\Schemas\Components\Grid::make(2)->schema([
-                        \Filament\Forms\Components\DatePicker::make('valid_from')
-                            ->label('Valid From'),
-                        \Filament\Forms\Components\DatePicker::make('valid_until')
-                            ->label('Valid Until'),
-                    ]),
-                    \Filament\Forms\Components\TextInput::make('booking_period')
-                        ->label('Booking Period (e.g., Book by 30th Nov)'),
-                ]),
 
-            \Filament\Schemas\Components\Section::make('Pricing')
-                ->schema([
-                    \Filament\Schemas\Components\Grid::make(2)->schema([
-                        \Filament\Forms\Components\Select::make('discount_type')
-                            ->label('Discount Type')
-                            ->options([
-                                'Percentage' => 'Percentage',
-                                'Fixed Amount' => 'Fixed Amount',
-                            ]),
-                        \Filament\Forms\Components\TextInput::make('discount_value')
-                            ->label('Discount Value')
-                            ->numeric(),
-                    ]),
-                    \Filament\Forms\Components\TextInput::make('promo_code')
-                        ->label('Promo Code'),
-                ]),
+
 
         ])->statePath('data');
     }
 
     public function save(): void
     {
+        $offer = \App\Models\Offer::findOrFail($this->record);
+        $offer->update($this->form->getState());
+        
         \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
     }
 

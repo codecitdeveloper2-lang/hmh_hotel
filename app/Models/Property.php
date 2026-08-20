@@ -24,7 +24,10 @@ class Property extends Model implements HasMedia
         'address', 'city', 'country', 'latitude', 'longitude', 'phone', 'email',
         'travelclick_hotel_id', 'attractions_page_slug', 'status',
         'check_in_time', 'check_out_time', 'meta_title', 'meta_description',
-        'is_active', 'sort_order',
+        'is_active', 'sort_order', 'logo', 'intro_text', 'banner_title', 
+        'banner_images', 'intro_subtitle', 'intro_title', 'cover_image', 
+        'website', 'tagline', 'google_location', 'location_title', 
+        'contact_button_text', 'contact_button_url', 'star_segment'
     ];
 
     protected $casts = [
@@ -34,6 +37,7 @@ class Property extends Model implements HasMedia
         'star_rating' => 'integer',
         'is_featured' => 'boolean',
         'sort_order' => 'integer',
+        'banner_slides' => 'array',
     ];
 
     // slug is unique across the WHOLE table (brand + hotel share one flat namespace)
@@ -47,13 +51,6 @@ class Property extends Model implements HasMedia
     // --- self-referencing brand/hotel relationship ---
 
     public function brand(): BelongsTo
-    {
-        return $this->belongsTo(Property::class, 'parent_id');
-    }
-    /**
-     * Get the display name (English by default).
-     */
-    public function getDisplayNameAttribute(): string
     {
         return $this->belongsTo(Property::class, 'parent_id');
     }
@@ -150,3 +147,4 @@ class Property extends Model implements HasMedia
         return $name ?? '';
     }
 }
+

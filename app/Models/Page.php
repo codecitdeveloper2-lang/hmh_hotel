@@ -33,4 +33,22 @@ class Page extends Model
     {
         return $this->belongsTo(Property::class); // nullable = group-level page
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($page) {
+            \Illuminate\Support\Facades\Cache::forget('pages:index:en');
+            \Illuminate\Support\Facades\Cache::forget('pages:index:ar');
+            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:en");
+            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:ar");
+        });
+
+        static::deleted(function ($page) {
+            \Illuminate\Support\Facades\Cache::forget('pages:index:en');
+            \Illuminate\Support\Facades\Cache::forget('pages:index:ar');
+            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:en");
+            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:ar");
+        });
+    }
 }
+

@@ -5,6 +5,8 @@ use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
+use App\Models\OurLocation;
+use Filament\Notifications\Notification;
 
 class CreateLocation extends Page implements HasForms
 {
@@ -17,6 +19,7 @@ class CreateLocation extends Page implements HasForms
 
     public function mount(): void
     {
+        $this->form->fill();
     }
 
     public function form($form)
@@ -26,7 +29,10 @@ class CreateLocation extends Page implements HasForms
 
     public function save(): void
     {
-        \Filament\Notifications\Notification::make()->title('Created successfully (Mock)')->success()->send();
+        $data = $this->form->getState();
+        OurLocation::create($data);
+
+        Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageOurLocations::getUrl());
     }
 

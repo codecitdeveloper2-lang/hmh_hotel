@@ -14,6 +14,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 use BackedEnum;
+use App\Models\OurLocation;
 
 class ManageOurLocations extends Page
 {
@@ -84,6 +85,40 @@ class ManageOurLocations extends Page
         return 'Manage Our Location entries for HMH Hotel Group.';
     }
 
+    protected function getViewData(): array
+    {
+        $query = OurLocation::query();
+        
+        if (!empty($this->searchQuery)) {
+            $query->where('city_name', 'like', '%' . $this->searchQuery . '%');
+        }
+        
+        $totalItems  = $query->count();
+        $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
+        $currentPage = max(1, min($this->currentPage, $lastPage));
+        
+        $locations = $query->orderBy('display_order', 'asc')
+            ->skip(($currentPage - 1) * $this->perPage)
+            ->take($this->perPage)
+            ->get()
+            ->map(function ($location) {
+                return [
+                    'id' => $location->id,
+                    'city_name' => $location->city_name,
+                    'destination_id' => $location->destination_id,
+                    'home_image' => $location->home_image,
+                    'featured_on_home' => $location->featured_on_home,
+                    'display_order' => $location->display_order,
+                    'last_updated' => $location->updated_at?->format('Y-m-d') ?? '',
+                ];
+            });
+            
+        $from = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
+        $to   = min($currentPage * $this->perPage, $totalItems);
+
+        return compact('totalItems', 'lastPage', 'currentPage', 'locations', 'from', 'to');
+    }
+
     protected function getHeaderActions(): array
     {
         return [
@@ -92,8 +127,8 @@ class ManageOurLocations extends Page
                 ->icon('heroicon-o-plus')
                 ->modalWidth('7xl')
                 ->form($this->getLocationFormSchema())
-                ->url(\App\Filament\Pages\OurLocations\CreateLocation::getUrl())
                 ->action(function (array $data) {
+                    OurLocation::create($data);
                     Notification::make()
                         ->title('Location saved successfully.')
                         ->success()
@@ -108,10 +143,10 @@ class ManageOurLocations extends Page
             ->modalHeading('View Location')
             ->modalWidth('7xl')
             ->form($this->getLocationFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockOurLocations()[$arguments['id']] ?? [])
+            ->fillForm(fn (array $arguments) => OurLocation::find($arguments['id'])?->toArray() ?? [])
             ->disabledForm()
-            ->url(fn (array $arguments) => \App\Filament\Pages\OurLocations\ViewLocation::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(fn () => null);
+            ->modalSubmitAction(false)
+            ->modalCancelActionLabel('Close');
     }
 
     public function editLocationAction(): Action
@@ -120,11 +155,11 @@ class ManageOurLocations extends Page
             ->modalHeading('Edit Location')
             ->modalWidth('7xl')
             ->form($this->getLocationFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockOurLocations()[$arguments['id']] ?? [])
-            ->url(fn (array $arguments) => \App\Filament\Pages\OurLocations\EditLocation::getUrl(['record' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
+            ->fillForm(fn (array $arguments) => OurLocation::find($arguments['id'])?->toArray() ?? [])
+            ->action(function (array $data, array $arguments) {
+                OurLocation::find($arguments['id'])?->update($data);
                 Notification::make()
-                    ->title('Location saved successfully.')
+                    ->title('Location updated successfully.')
                     ->success()
                     ->send();
             });
@@ -136,9 +171,10 @@ class ManageOurLocations extends Page
             ->icon('heroicon-m-trash')
             ->color('danger')
             ->requiresConfirmation()
-            ->action(function () {
+            ->action(function (array $arguments) {
+                OurLocation::find($arguments['id'])?->delete();
                 Notification::make()
-                    ->title('Location deleted successfully (Mock).')
+                    ->title('Location deleted successfully.')
                     ->success()
                     ->send();
             });
@@ -146,9 +182,7 @@ class ManageOurLocations extends Page
 
     public static function getLocationFormSchema(): array
     {
-        $destinations = collect(\App\Filament\Pages\ManageDestinations::getMockDestinations())
-            ->pluck('name', 'id')
-            ->toArray();
+        $destinations = \App\Models\Destination::pluck('name', 'id')->toArray();
 
         return [
             Grid::make(3)->schema([
@@ -161,7 +195,7 @@ class ManageOurLocations extends Page
                             Select::make('destination_id')
                                 ->label('Destination')
                                 ->options($destinations)
-                                ->required(),
+                                ->nullable(),
                             Textarea::make('home_teaser')
                                 ->label('Home Teaser')
                                 ->rows(4),
@@ -182,19 +216,12 @@ class ManageOurLocations extends Page
                         ->schema([
                             FileUpload::make('home_image')
                                 ->label('Home Image Upload')
+                                ->disk('uploads')
                                 ->image(),
                         ]),
                 ])->columnSpan(1),
             ]),
         ];
     }
-
-    public static function getMockOurLocations(): array
-    {
-        return [
-            1 => ['id' => 1, 'city_name' => 'Dubai', 'destination_id' => 1, 'home_teaser' => 'Experience the magic of Dubai.', 'featured_on_home' => true, 'display_order' => 1, 'home_image' => null],
-            2 => ['id' => 2, 'city_name' => 'Riyadh', 'destination_id' => 2, 'home_teaser' => 'Discover the heart of Saudi Arabia.', 'featured_on_home' => false, 'display_order' => 2, 'home_image' => null],
-            3 => ['id' => 3, 'city_name' => 'Manama', 'destination_id' => 3, 'home_teaser' => 'Explore the beauty of Bahrain.', 'featured_on_home' => true, 'display_order' => 3, 'home_image' => null],
-        ];
-    }
 }
+

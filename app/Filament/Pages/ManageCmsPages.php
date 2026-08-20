@@ -409,8 +409,7 @@ class ManageCmsPages extends Page
                                     ->schema([
                                         FileUpload::make('image')
                                             ->label('Background Image')
-                                            ->image()
-                                            ->required(),
+                                            ->image()->disk('uploads'),
                                         TextInput::make('subtitle')
                                             ->label('Subtitle')
                                             ->placeholder('e.g. Welcome To'),
@@ -453,7 +452,7 @@ class ManageCmsPages extends Page
                                     ->schema([
                                         FileUpload::make('expansion_image')
                                             ->label('Side Image')
-                                            ->image(),
+                                            ->image()->disk('uploads'),
                                         \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
                                             ->label('Expansion Text'),
                                     ]),
@@ -464,7 +463,7 @@ class ManageCmsPages extends Page
                                             ->rows(4),
                                         FileUpload::make('our_vision_image')
                                             ->label('Vision Image')
-                                            ->image(),
+                                            ->image()->disk('uploads'),
                                     ]),
                                 Section::make('Our Mission')
                                     ->schema([
@@ -473,7 +472,7 @@ class ManageCmsPages extends Page
                                             ->rows(4),
                                         FileUpload::make('our_mission_image')
                                             ->label('Mission Image')
-                                            ->image(),
+                                            ->image()->disk('uploads'),
                                     ]),
                                 Section::make('Values & Culture')
                                     ->schema([
@@ -502,7 +501,7 @@ class ManageCmsPages extends Page
                                                     ->required(),
                                                 FileUpload::make('image')
                                                     ->label('Image')
-                                                    ->image(),
+                                                    ->image()->disk('uploads'),
                                                 \App\Filament\Forms\Components\JoditEditor::make('description')
                                                     ->label('Description'),
                                             ])
@@ -536,3 +535,5 @@ class ManageCmsPages extends Page
 
     // Mock Data removed
 }
+
+

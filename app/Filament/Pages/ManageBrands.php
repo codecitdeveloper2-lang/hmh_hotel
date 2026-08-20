@@ -205,7 +205,7 @@ class ManageBrands extends Page
                                     ])
                                     ->required()
                                     ->label('Star Segment'),
-                                FileUpload::make('logo')->label('Brand Logo (Placeholder)')->image(),
+                                FileUpload::make('logo')->label('Brand Logo (Placeholder)')->image()->disk('uploads'),
                             ]),
                             Section::make('Brand Intro')->schema([
                                 TextInput::make('intro_subtitle')->label('Intro Subtitle (e.g. Urban Comfort)'),
@@ -216,7 +216,7 @@ class ManageBrands extends Page
                         \Filament\Schemas\Components\Tabs\Tab::make('Banner')->schema([
                             Section::make('Banner')->schema([
                                 TextInput::make('banner_title')->label('Banner Title'),
-                                FileUpload::make('banner_images')->label('Banner Images')->image()->multiple()->columnSpanFull(),
+                                FileUpload::make('banner_images')->label('Banner Images')->image()->multiple()->disk('uploads')->columnSpanFull(),
                             ]),
                         ]),
                     ]),
@@ -237,3 +237,5 @@ class ManageBrands extends Page
     }
     // Mock Data removed
 }
+
+
