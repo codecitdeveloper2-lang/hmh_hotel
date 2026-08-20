@@ -15,18 +15,19 @@ class Offer extends Model implements HasMedia
 {
     use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
 
-    protected $translatable = ['name', 'description', 'terms_conditions'];
+    protected $translatable = ['name', 'description', 'terms_conditions', 'details_content'];
 
     protected $fillable = [
         'name', 'description', 'terms_conditions', 'slug', 'identifier_code',
         'valid_from', 'valid_to', 'is_active', 'sort_order',
-        'hotel', 'offer_type', 'status', 'booking_period', 'banner_image',
+        'hotel', 'offer_type', 'status', 'booking_period', 'banner_image', 'images', 'details_content',
         'meta_title', 'meta_description', 'meta_keywords'
     ];
 
     protected $casts = [
         'valid_from' => 'date',
         'valid_to' => 'date',
+        'images' => 'array',
     ];
 
     public function getSlugOptions(): SlugOptions

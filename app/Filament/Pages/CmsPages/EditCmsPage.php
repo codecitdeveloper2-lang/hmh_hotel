@@ -73,7 +73,9 @@ class EditCmsPage extends Page implements HasForms
 
     public function form($form)
     {
-        return $form->schema(\App\Filament\Pages\ManageCmsPages::getPageFormSchema())->statePath('data');
+        return $form->schema(\App\Filament\Pages\ManageCmsPages::getPageFormSchema())
+            ->statePath('data')
+            ->model(\App\Models\Page::class);
     }
 
     public function save(): void

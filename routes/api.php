@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DestinationApiController;
 use App\Http\Controllers\Api\PageApiController;
+use App\Http\Controllers\Api\OfferApiController;
 
 /*
 |--------------------------------------------------------------------------
@@ -34,3 +35,17 @@ Route::prefix('pages')->group(function () {
     Route::get('/', [PageApiController::class, 'index']);
     Route::get('/{slug}', [PageApiController::class, 'show']);
 });
+
+/*
+|--------------------------------------------------------------------------
+| Offers API (Public — no auth required)
+|--------------------------------------------------------------------------
+*/
+Route::prefix('offers')->group(function () {
+    Route::get('/', [OfferApiController::class, 'index']);
+    Route::get('/{slug}', [OfferApiController::class, 'show']);
+});
+
+use App\Http\Controllers\Api\OurLocationController;
+Route::get('/our-locations', [OurLocationController::class, 'index']);
+

@@ -5,6 +5,8 @@ use Filament\Pages\Page;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
+use App\Models\OurLocation;
+use Filament\Notifications\Notification;
 
 class EditLocation extends Page implements HasForms
 {
@@ -14,11 +16,15 @@ class EditLocation extends Page implements HasForms
     protected static ?string $slug = 'manage-our-locations/{record}/edit';
 
     public ?array $data = [];
+    public ?int $recordId = null;
 
     public function mount($record): void
     {
-        $mockData = \App\Filament\Pages\ManageOurLocations::getMockOurLocations();
-        $this->form->fill($mockData[$record] ?? []);
+        $this->recordId = (int)$record;
+        $location = OurLocation::find($this->recordId);
+        if ($location) {
+            $this->form->fill($location->toArray());
+        }
     }
 
     public function form($form)
@@ -28,7 +34,13 @@ class EditLocation extends Page implements HasForms
 
     public function save(): void
     {
-        \Filament\Notifications\Notification::make()->title('Updated successfully (Mock)')->success()->send();
+        $data = $this->form->getState();
+        $location = OurLocation::find($this->recordId);
+        if ($location) {
+            $location->update($data);
+        }
+
+        Notification::make()->title('Updated successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageOurLocations::getUrl());
     }
 

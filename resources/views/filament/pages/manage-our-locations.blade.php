@@ -10,7 +10,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Total Locations</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">3</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ $totalItems }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -22,7 +22,7 @@
                     </div>
                     <div>
                         <p style="font-size: 0.875rem; font-weight: 500; opacity: 0.7; margin: 0;">Featured Locations</p>
-                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">2</h3>
+                        <h3 style="font-size: 1.5rem; font-weight: 700; margin: 0;">{{ \App\Models\OurLocation::where('featured_on_home', true)->count() }}</h3>
                     </div>
                 </div>
             </x-filament::section>
@@ -40,32 +40,11 @@
                         />
                     </x-filament::input.wrapper>
                 </div>
-                
-                <div style="flex: 1 1 200px;">
-                    <x-filament::input.wrapper>
-                        <x-filament::input.select wire:model.live="filterDestination">
-                            <option value="">All Destinations</option>
-                            @foreach(\App\Filament\Pages\ManageDestinations::getMockDestinations() as $id => $dest)
-                                <option value="{{ $id }}">{{ $dest['name'] }}</option>
-                            @endforeach
-                        </x-filament::input.select>
-                    </x-filament::input.wrapper>
-                </div>
             </div>
         </x-filament::section>
 
         @php
-            $destinationsMap = collect(\App\Filament\Pages\ManageDestinations::getMockDestinations())->keyBy('id');
-            $allLocations = collect($this->getMockOurLocations())
-                ->when($searchQuery, fn($collection) => $collection->filter(fn($item) => stripos($item['city_name'], $searchQuery) !== false))
-                ->when($filterDestination, fn($collection) => $collection->where('destination_id', (int)$filterDestination));
-
-            $totalItems  = $allLocations->count();
-            $lastPage    = max(1, (int) ceil($totalItems / $perPage));
-            $currentPage = max(1, min($currentPage, $lastPage));
-            $locations   = $allLocations->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
+            $destinationsMap = \App\Models\Destination::pluck('name', 'id')->toArray();
         @endphp
 
         <!-- Table -->
@@ -86,15 +65,19 @@
                         @forelse($locations as $location)
                             <tr style="border-bottom: 1px solid rgba(128,128,128,0.1); transition: background-color 0.15s ease-in-out;">
                                 <td style="padding: 1rem;">
-                                    <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                        <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
-                                    </div>
+                                    @if(!empty($location['home_image']))
+                                        <img src="{{ url('/uploads/' . $location['home_image']) }}" alt="{{ $location['city_name'] }}" style="height: 3rem; width: 5rem; object-fit: cover; border-radius: 0.5rem;" />
+                                    @else
+                                        <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                                            <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
+                                        </div>
+                                    @endif
                                 </td>
                                 <td style="padding: 1rem; font-weight: 500;">
                                     {{ $location['city_name'] }}
                                 </td>
                                 <td style="padding: 1rem; opacity: 0.8;">
-                                    {{ $destinationsMap[$location['destination_id']]['name'] ?? 'Unknown' }}
+                                    {{ isset($location['destination_id']) ? ($destinationsMap[$location['destination_id']] ?? 'N/A') : 'N/A' }}
                                 </td>
                                 <td style="padding: 1rem; text-align: center;">
                                     @if($location['featured_on_home'])
@@ -117,14 +100,8 @@
                                         </x-slot>
                                         <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                             <x-filament::dropdown.list.item
-                                                icon="heroicon-m-eye"
-                                                tag="a" href="{{ \App\Filament\Pages\OurLocations\ViewLocation::getUrl(['record' => $location['id']]) }}"
-                                            >
-                                                View
-                                            </x-filament::dropdown.list.item>
-                                            <x-filament::dropdown.list.item
                                                 icon="heroicon-m-pencil-square"
-                                                tag="a" href="{{ \App\Filament\Pages\OurLocations\EditLocation::getUrl(['record' => $location['id']]) }}"
+                                                wire:click="mountAction('editLocation', { id: {{ $location['id'] }} })"
                                             >
                                                 Edit
                                             </x-filament::dropdown.list.item>
