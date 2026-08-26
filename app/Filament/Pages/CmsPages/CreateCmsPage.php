@@ -72,6 +72,7 @@ class CreateCmsPage extends Page implements HasForms
                 'our_culture' => $data['our_culture'] ?? '',
                 'our_promise' => $data['our_promise'] ?? '',
                 'responsibilities_list' => $data['responsibilities_list'] ?? [],
+                'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
                 'meta_keywords' => $data['meta_keywords'] ?? '',
                 'canonical_url' => $data['canonical_url'] ?? '',
             ])],

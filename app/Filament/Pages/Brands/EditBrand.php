@@ -53,6 +53,7 @@ class EditBrand extends Page implements HasForms
             'tagline', 'google_location', 'location_title', 'contact_button_text',
             'contact_button_url', 'star_segment', 'logo', 'intro_text',
             'banner_title', 'banner_images', 'intro_subtitle', 'intro_title',
+            'brand_content',
         ];
         $data = array_intersect_key($data, array_flip($validColumns));
 

@@ -163,13 +163,15 @@
                         @forelse($offers as $offer)
                             <tr style="border-bottom: 1px solid rgba(128,128,128,0.1); transition: background-color 0.15s ease-in-out;">
                                 <td style="padding: 1rem;">
-                                    <div style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                                        @if(!empty($offer['banner_image']))
-                                            <img src="{{ asset('storage/' . $offer['banner_image']) }}" alt="Banner" style="width: 100%; height: 100%; object-fit: cover;" />
-                                        @else
-                                            <x-filament::icon icon="heroicon-o-photo" style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />
-                                        @endif
-                                    </div>
+                                    @if(!empty($offer['image_url']))
+                                        <div class="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800" style="width: 100px; height: 64px; min-width: 100px;">
+                                            <img src="{{ $offer['image_url'] }}" alt="{{ is_array($offer['title']) ? ($offer['title']['en'] ?? 'Offer Banner') : $offer['title'] }}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                        </div>
+                                    @else
+                                        <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500" style="width: 100px; height: 64px; min-width: 100px;">
+                                            <x-filament::icon icon="heroicon-o-photo" class="h-6 w-6" />
+                                        </div>
+                                    @endif
                                 </td>
                                 <td style="padding: 1rem; font-weight: 500;">
                                     {{ is_array($offer['title']) ? ($offer['title']['en'] ?? '') : $offer['title'] }}

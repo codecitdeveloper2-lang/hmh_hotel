@@ -2,9 +2,13 @@
     :component="$getFieldWrapperView()"
     :field="$field"
 >
+    @php
+        $state = $getState();
+        $stateString = is_array($state) ? json_encode($state) : $state;
+    @endphp
     @if ($isDisabled())
         <div style="padding: 1rem; border-radius: 0.5rem; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); color: inherit; min-height: 4rem;">
-            {!! $getState() !!}
+            {!! $stateString !!}
         </div>
     @else
         <div
@@ -56,7 +60,7 @@
                 }
             }"
         >
-            <textarea x-ref="editor" wire:model="{{ $getStatePath() }}">{!! $getState() !!}</textarea>
+            <textarea x-ref="editor" wire:model="{{ $getStatePath() }}">{!! $stateString !!}</textarea>
         </div>
     @endif
 </x-dynamic-component>

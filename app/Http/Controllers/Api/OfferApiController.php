@@ -14,17 +14,28 @@ class OfferApiController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Get active offers ordered by sort_order
-        $offers = Offer::where('is_active', 1)
-            ->where('status', 'Published') // Assuming status is 'Published'
-            ->orderBy('sort_order', 'asc')
-            ->get();
+        $query = Offer::orderBy('sort_order', 'asc');
+
+        if (!$request->has('all') || $request->query('all') !== 'true') {
+            // Get strictly active offers
+            $query->where('is_active', 1)->where('status', 'Active');
+        }
+
+        $offers = $query->get();
 
         // Transform the offers to include full image URLs and hotel slug
         $transformed = $offers->map(function ($offer) {
             $data = $offer->toArray();
             if (!empty($data['banner_image'])) {
-                $data['banner_image'] = url('/uploads/' . $data['banner_image']);
+                $data['banner_image'] = str_starts_with($data['banner_image'], 'http') 
+                    ? $data['banner_image'] 
+                    : url('/uploads/' . ltrim($data['banner_image'], '/'));
+            } else {
+                // Fallback to Spatie Media if needed
+                $mediaUrl = $offer->getFirstMediaUrl('banner_image');
+                if ($mediaUrl) {
+                    $data['banner_image'] = $mediaUrl;
+                }
             }
             
             // Get the hotel slug for frontend routing
@@ -60,12 +71,19 @@ class OfferApiController extends Controller
 
         $data = $offer->toArray();
         if (!empty($data['banner_image'])) {
-            $data['banner_image'] = url('/uploads/' . $data['banner_image']);
+            $data['banner_image'] = str_starts_with($data['banner_image'], 'http') 
+                ? $data['banner_image'] 
+                : url('/uploads/' . ltrim($data['banner_image'], '/'));
+        } else {
+            $mediaUrl = $offer->getFirstMediaUrl('banner_image');
+            if ($mediaUrl) {
+                $data['banner_image'] = $mediaUrl;
+            }
         }
         
         if (!empty($data['images']) && is_array($data['images'])) {
             $data['images'] = array_map(function ($img) {
-                return url('/uploads/' . $img);
+                return str_starts_with($img, 'http') ? $img : url('/uploads/' . ltrim($img, '/'));
             }, $data['images']);
         }
         

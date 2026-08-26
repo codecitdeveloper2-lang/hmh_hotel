@@ -64,7 +64,7 @@ class EditHotel extends Page implements HasForms
             'status', 'check_in_time', 'check_out_time',
             'meta_title', 'meta_description', 'is_active', 'sort_order',
             'is_featured', 'intro_subtitle', 'intro_title', 'banner_slides',
-            'cover_image', 'website',
+            'cover_image', 'banner_images', 'logo', 'website',
         ];
         $data = array_intersect_key($data, array_flip($validColumns));
 
