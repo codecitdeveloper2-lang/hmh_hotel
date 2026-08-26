@@ -68,8 +68,10 @@ class ListAttractions extends Page
                 'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
                 'hotel' => $propName,
                 'category' => 'Local Attraction',
+                'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
                 'status' => $a->is_active ? 'Active' : 'Inactive',
                 'last_updated' => $a->updated_at ? $a->updated_at->format('M d, Y') : 'Today',
+                'image' => $a->getFirstMediaUrl('featured_image'),
             ];
         });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;

@@ -64,6 +64,7 @@ class EditCmsPage extends Page implements HasForms
                 'our_culture' => $decodedBody['our_culture'] ?? '',
                 'our_promise' => $decodedBody['our_promise'] ?? '',
                 'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
+                'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
                 'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                 'canonical_url' => $decodedBody['canonical_url'] ?? '',
             ];
@@ -124,6 +125,7 @@ class EditCmsPage extends Page implements HasForms
                     'our_culture' => $data['our_culture'] ?? '',
                     'our_promise' => $data['our_promise'] ?? '',
                     'responsibilities_list' => $data['responsibilities_list'] ?? [],
+                    'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
                     'meta_keywords' => $data['meta_keywords'] ?? '',
                     'canonical_url' => $data['canonical_url'] ?? '',
                 ])],

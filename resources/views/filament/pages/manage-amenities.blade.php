@@ -76,19 +76,41 @@
         </div>
 
         @php
-            $hotelName = \App\Models\Property::find($this->record)?->display_name ?? '';
-            $allAmenities = collect($this->getMockAmenities())
-                ->filter(fn($item) => $item['hotel'] === $hotelName)
-                ->when($searchQuery, fn($collection) => $collection->filter(fn($item) => stripos($item['title'], $searchQuery) !== false))
-                ->when($filterCategory, fn($collection) => $collection->where('category', $filterCategory))
-                ->when($filterStatus, fn($collection) => $collection->where('status', $filterStatus));
-
-            $totalItems  = $allAmenities->count();
+            $query = \App\Models\Amenity::where('property_id', $this->record);
+            
+            if ($searchQuery) {
+                $query->where('title->en', 'like', '%' . $searchQuery . '%');
+            }
+            if ($filterCategory) {
+                $query->where('category', $filterCategory);
+            }
+            if ($filterStatus) {
+                if ($filterStatus === 'Active') $query->where('is_active', 1);
+                else $query->where('is_active', 0);
+            }
+            
+            $query->orderBy('display_order');
+            $totalItems  = $query->count();
             $lastPage    = max(1, (int) ceil($totalItems / $perPage));
             $currentPage = max(1, min($currentPage, $lastPage));
-            $amenities    = $allAmenities->forPage($currentPage, $perPage);
-            $from        = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
-            $to          = min($currentPage * $perPage, $totalItems);
+            
+            $dbAmenities = $query->forPage($currentPage, $perPage)->get();
+            
+            $amenities = $dbAmenities->map(function($a) {
+                $propName = $a->property ? (is_array($a->property->name) ? ($a->property->name['en'] ?? '') : $a->property->name) : '';
+                return [
+                    'id' => $a->id,
+                    'title' => is_array($a->title) ? ($a->title['en'] ?? '') : $a->title,
+                    'hotel' => $propName,
+                    'category' => $a->category,
+                    'display_order' => $a->display_order,
+                    'status' => $a->is_active ? 'Active' : 'Inactive',
+                    'last_updated' => $a->updated_at ? $a->updated_at->format('Y-m-d H:i:s') : 'Today',
+                    'image' => $a->getFirstMediaUrl('featured_image'),
+                ];
+            });
+            $from = $totalItems > 0 ? ($currentPage - 1) * $perPage + 1 : 0;
+            $to = min($currentPage * $perPage, $totalItems);
         @endphp
 
         @if($viewType === 'table')
@@ -111,9 +133,13 @@
                             @forelse($amenities as $amenity)
                                 <tr class="transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                                     <td style="padding: 1rem 1.5rem;">
-                                        <div class="h-12 w-16 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500 overflow-hidden">
-                                            <x-filament::icon icon="heroicon-o-sparkles" class="h-6 w-6" />
-                                        </div>
+                                <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500 overflow-hidden" style="width: 80px; height: 50px; flex-shrink: 0;">
+                                    @if(isset($amenity['image']) && $amenity['image'])
+                                        <img src="{{ $amenity['image'] }}" class="object-cover" style="width: 100%; height: 100%;" alt="{{ $amenity['title'] }}" />
+                                    @else
+                                        <x-filament::icon icon="heroicon-o-sparkles" class="h-5 w-5" />
+                                    @endif
+                                </div>
                                     </td>
                                     <td style="padding: 1rem 1.5rem;" class="text-sm font-medium text-gray-950 dark:text-white">
                                         {{ $amenity['title'] }}
@@ -185,8 +211,12 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 @forelse($amenities as $amenity)
                     <div class="bg-white rounded-xl shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10 overflow-hidden flex flex-col">
-                        <div class="h-40 bg-gray-200 dark:bg-gray-800 flex items-center justify-center relative group">
-                            <x-filament::icon icon="heroicon-o-sparkles" class="h-12 w-12 text-gray-400 dark:text-gray-500" />
+                        <div class="h-40 bg-gray-200 dark:bg-gray-800 flex items-center justify-center relative group overflow-hidden">
+                            @if(isset($amenity['image']) && $amenity['image'])
+                                <img src="{{ $amenity['image'] }}" class="h-full w-full object-cover" alt="{{ $amenity['title'] }}" />
+                            @else
+                                <x-filament::icon icon="heroicon-o-sparkles" class="h-12 w-12 text-gray-400 dark:text-gray-500" />
+                            @endif
                             <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                                 <x-filament::icon-button
                                     icon="heroicon-m-eye"

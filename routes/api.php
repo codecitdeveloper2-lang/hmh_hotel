@@ -38,6 +38,17 @@ Route::prefix('pages')->group(function () {
 
 /*
 |--------------------------------------------------------------------------
+| Properties API (Public — no auth required)
+|--------------------------------------------------------------------------
+*/
+use App\Http\Controllers\Api\PropertyApiController;
+Route::prefix('properties')->group(function () {
+    Route::get('/brands', [PropertyApiController::class, 'getBrandsAndHotels']);
+    Route::get('/{slug}', [PropertyApiController::class, 'show']);
+});
+
+/*
+|--------------------------------------------------------------------------
 | Offers API (Public — no auth required)
 |--------------------------------------------------------------------------
 */
@@ -49,3 +60,5 @@ Route::prefix('offers')->group(function () {
 use App\Http\Controllers\Api\OurLocationController;
 Route::get('/our-locations', [OurLocationController::class, 'index']);
 
+use App\Http\Controllers\Api\ComingSoonApiController;
+Route::get('/coming-soon', [ComingSoonApiController::class, 'index']);

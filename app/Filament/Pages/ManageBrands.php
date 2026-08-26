@@ -61,6 +61,7 @@ class ManageBrands extends Page
                                 'status' => $brand->is_active,
                                 'sort_order' => $brand->sort_order,
                                 'last_updated' => $brand->updated_at?->format('Y-m-d') ?? '',
+                                'logo' => $brand->logo,
                             ];
                         });
                         
@@ -173,23 +174,16 @@ class ManageBrands extends Page
     {
         return [
             Grid::make(3)->schema([
-                \Filament\Schemas\Components\View::make('filament.components.locale-toggle')->columnSpanFull(),
                 Grid::make(1)->schema([
                     \Filament\Schemas\Components\Tabs::make('Brand Tabs')->tabs([
                         \Filament\Schemas\Components\Tabs\Tab::make('General Details')->schema([
                             Section::make('General')->schema([
                                 TextInput::make('name.en')
-                                    ->required(fn ($livewire) => ($livewire->activeLocale ?? 'en') === 'en')
-                                    ->hidden(fn ($livewire) => ($livewire->activeLocale ?? 'en') !== 'en')
+                                    ->required()
                                     ->dehydrated()
                                     ->label('Brand Name')
                                     ->live(onBlur: true)
                                     ->afterStateUpdated(fn (?string $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state ?? ''))),
-                                TextInput::make('name.ar')
-                                    ->required(fn ($livewire) => ($livewire->activeLocale ?? 'en') === 'ar')
-                                    ->hidden(fn ($livewire) => ($livewire->activeLocale ?? 'en') !== 'ar')
-                                    ->dehydrated()
-                                    ->label('Brand Name (عربي)'),
                                 TextInput::make('slug')->required()->label('Slug'),
                                 TextInput::make('tagline')->label('Tagline'),
                                 TextInput::make('google_location')->label('Google Location URL')->url(),
@@ -208,15 +202,103 @@ class ManageBrands extends Page
                                 FileUpload::make('logo')->label('Brand Logo (Placeholder)')->image()->disk('uploads'),
                             ]),
                             Section::make('Brand Intro')->schema([
-                                TextInput::make('intro_subtitle')->label('Intro Subtitle (e.g. Urban Comfort)'),
-                                TextInput::make('intro_title')->label('Intro Title (e.g. Welcome to Corp Hotels)'),
-                                \App\Filament\Forms\Components\JoditEditor::make('intro_text')->label('Intro Text')->columnSpanFull(),
+                                TextInput::make('intro_subtitle.en')
+                                    ->label('Intro Subtitle (e.g. Urban Comfort)')
+                                    ->dehydrated(),
+                                TextInput::make('intro_title.en')
+                                    ->label('Intro Title (e.g. Welcome to Corp Hotels)')
+                                    ->dehydrated(),
+                                \App\Filament\Forms\Components\JoditEditor::make('intro_text.en')
+                                    ->label('Intro Text')
+                                    ->dehydrated()
+                                    ->columnSpanFull(),
                             ]),
                         ]),
                         \Filament\Schemas\Components\Tabs\Tab::make('Banner')->schema([
                             Section::make('Banner')->schema([
                                 TextInput::make('banner_title')->label('Banner Title'),
                                 FileUpload::make('banner_images')->label('Banner Images')->image()->multiple()->disk('uploads')->columnSpanFull(),
+                            ]),
+                        ]),
+                        \Filament\Schemas\Components\Tabs\Tab::make('Content Sections')->schema([
+                            Section::make('Experience / Offers Section')->schema([
+                                TextInput::make('brand_content.experience_section_title')
+                                    ->label('Section Title (e.g. EXPERIENCE BAHI HOTELS)')
+                                    ->placeholder('EXPERIENCE [BRAND NAME]'),
+                                // Offer cards are pulled automatically from linked Offers
+                            ]),
+                            Section::make('Our Hotels Section')->schema([
+                                TextInput::make('brand_content.our_hotels_section_title')
+                                    ->label('Section Title (e.g. OUR HOTELS)')
+                                    ->placeholder('OUR HOTELS'),
+                                TextInput::make('brand_content.our_hotels_cta_link')
+                                    ->label('Discover More Link URL (optional)')
+                                    ->url()
+                                    ->placeholder('https://...'),
+                                // Hotel cards are pulled automatically from child Hotels
+                            ]),
+                            Section::make('Destinations / Map Section')->schema([
+                                TextInput::make('brand_content.destinations_section_title')
+                                    ->label('Section Title (e.g. BAHI HOTELS LOCATIONS)')
+                                    ->placeholder('[BRAND NAME] LOCATIONS'),
+                                TextInput::make('brand_content.destinations_cta_link')
+                                    ->label('Discover Destinations Link URL (optional)')
+                                    ->url()
+                                    ->placeholder('https://...'),
+                            ]),
+                            Section::make('Our Brands Section')->schema([
+                                TextInput::make('brand_content.our_brands_section_title')->label('Section Title (e.g. Our Brands)'),
+                                \Filament\Forms\Components\Repeater::make('brand_content.brands_list')
+                                    ->label('Brands List')
+                                    ->schema([
+                                        FileUpload::make('brand_logo')->label('Brand Logo')->image()->disk('uploads'),
+                                        TextInput::make('brand_link')->label('Brand URL')->url(),
+                                    ])
+                                    ->grid(2)->columnSpanFull()
+                            ]),
+                        ]),
+                        \Filament\Schemas\Components\Tabs\Tab::make('Footer')->schema([
+                            Section::make('Footer Logos')->schema([
+                                FileUpload::make('brand_content.footer_company_logo')->label('Company Logo')->image()->disk('uploads'),
+                                FileUpload::make('brand_content.footer_brand_logo')->label('Brand Logo')->image()->disk('uploads'),
+                            ])->columns(2),
+                            Section::make('Value Proposition')->schema([
+                                TextInput::make('brand_content.footer_value_prop_title')->label('Title'),
+                                TextInput::make('brand_content.footer_value_prop_subtitle')->label('Subtitle'),
+                                TextInput::make('brand_content.footer_value_prop_phone')->label('Phone Number'),
+                            ])->columns(3),
+                            Section::make('Newsletter & Socials')->schema([
+                                TextInput::make('brand_content.footer_newsletter_title')->label('Newsletter Title'),
+                                TextInput::make('brand_content.footer_social_title')->label('Social Title'),
+                                \Filament\Forms\Components\Repeater::make('brand_content.footer_social_links')
+                                    ->label('Social Links')
+                                    ->schema([
+                                        Select::make('platform')->options([
+                                            'facebook' => 'Facebook',
+                                            'instagram' => 'Instagram',
+                                            'twitter' => 'Twitter/X',
+                                            'linkedin' => 'LinkedIn',
+                                            'youtube' => 'YouTube',
+                                            'threads' => 'Threads',
+                                        ])->required(),
+                                        TextInput::make('url')->url()->required(),
+                                    ])->columns(2)->columnSpanFull()
+                            ])->columns(2),
+                            Section::make('Footer Navigation')->schema([
+                                \Filament\Forms\Components\Repeater::make('brand_content.footer_columns')
+                                    ->label('Footer Columns')
+                                    ->schema([
+                                        TextInput::make('column_title')->label('Column Title')->required(),
+                                        \Filament\Forms\Components\Repeater::make('links')
+                                            ->label('Links')
+                                            ->schema([
+                                                TextInput::make('label')->required(),
+                                                TextInput::make('url')->url()->required(),
+                                            ])->columns(2)
+                                    ])->columnSpanFull()
+                            ]),
+                            Section::make('Copyright')->schema([
+                                Textarea::make('brand_content.footer_copyright_text')->label('Copyright Text')->columnSpanFull(),
                             ]),
                         ]),
                     ]),

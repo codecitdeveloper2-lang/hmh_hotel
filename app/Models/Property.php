@@ -17,7 +17,7 @@ class Property extends Model implements HasMedia
 {
     use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
 
-    protected $translatable = ['name', 'description', 'meta_title', 'meta_description'];
+    protected $translatable = ['name', 'description', 'meta_title', 'meta_description', 'intro_subtitle', 'intro_title', 'intro_text'];
 
     protected $fillable = [
         'parent_id', 'type', 'name', 'description', 'slug', 'star_rating',
@@ -27,7 +27,8 @@ class Property extends Model implements HasMedia
         'is_active', 'sort_order', 'logo', 'intro_text', 'banner_title', 
         'banner_images', 'intro_subtitle', 'intro_title', 'cover_image', 
         'website', 'tagline', 'google_location', 'location_title', 
-        'contact_button_text', 'contact_button_url', 'star_segment'
+        'contact_button_text', 'contact_button_url', 'star_segment',
+        'brand_content'
     ];
 
     protected $casts = [
@@ -38,6 +39,8 @@ class Property extends Model implements HasMedia
         'is_featured' => 'boolean',
         'sort_order' => 'integer',
         'banner_slides' => 'array',
+        'banner_images' => 'array',
+        'brand_content' => 'array',
     ];
 
     // slug is unique across the WHOLE table (brand + hotel share one flat namespace)
@@ -95,6 +98,11 @@ class Property extends Model implements HasMedia
     public function attractions(): HasMany
     {
         return $this->hasMany(Attraction::class); // hotel rows only
+    }
+
+    public function amenities(): HasMany
+    {
+        return $this->hasMany(Amenity::class);
     }
 
     public function faqItems(): HasMany

@@ -32,9 +32,6 @@ class RoomType extends Model implements HasMedia
         'special_features' => 'array',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
 
     public function getSlugOptions(): SlugOptions
     {

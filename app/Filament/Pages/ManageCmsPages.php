@@ -166,6 +166,7 @@ class ManageCmsPages extends Page
                             'our_culture' => $data['our_culture'] ?? '',
                             'our_promise' => $data['our_promise'] ?? '',
                             'responsibilities_list' => $data['responsibilities_list'] ?? [],
+                            'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -229,6 +230,7 @@ class ManageCmsPages extends Page
                     'our_culture' => $decodedBody['our_culture'] ?? '',
                     'our_promise' => $decodedBody['our_promise'] ?? '',
                     'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
+                    'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -289,6 +291,8 @@ class ManageCmsPages extends Page
                     'our_values' => $decodedBody['our_values'] ?? '',
                     'our_culture' => $decodedBody['our_culture'] ?? '',
                     'our_promise' => $decodedBody['our_promise'] ?? '',
+                    'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
+                    'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -335,6 +339,7 @@ class ManageCmsPages extends Page
                             'our_culture' => $data['our_culture'] ?? '',
                             'our_promise' => $data['our_promise'] ?? '',
                             'responsibilities_list' => $data['responsibilities_list'] ?? [],
+                            'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -510,6 +515,30 @@ class ManageCmsPages extends Page
                                             ->cloneable()
                                             ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Responsibility'),
                                     ]),
+                            ]),
+                            
+                        Section::make('Coming Soon Section')
+                            ->schema([
+                                \Filament\Forms\Components\Repeater::make('coming_soon_sections')
+                                    ->label('Coming Soon Items')
+                                    ->schema([
+                                        TextInput::make('title')
+                                            ->label('Section Title')
+                                            ->default('Coming Soon'),
+                                        TextInput::make('hotel_name')
+                                            ->label('Hotel Name')
+                                            ->required(),
+                                        Textarea::make('description')
+                                            ->label('Description')
+                                            ->rows(3),
+                                        FileUpload::make('image')
+                                            ->label('Image')
+                                            ->image()->disk('uploads'),
+                                    ])
+                                    ->defaultItems(0)
+                                    ->collapsible()
+                                    ->cloneable()
+                                    ->itemLabel(fn (array $state): ?string => $state['hotel_name'] ?? 'Coming Soon Item'),
                             ]),
                     ])->columnSpan(2),
                 

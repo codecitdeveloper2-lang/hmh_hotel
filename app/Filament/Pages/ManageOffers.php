@@ -129,15 +129,29 @@ class ManageOffers extends Page
                         ->take($this->perPage)
                         ->get()
                         ->map(function ($offer) {
+                            // Safely extract translation or fallback
+                            $title = is_array($offer->name) ? ($offer->name['en'] ?? '') : $offer->name;
+                            
+                            // Image logic
+                            $imageUrl = null;
+                            if ($offer->banner_image) {
+                                $imageUrl = str_starts_with($offer->banner_image, 'http') 
+                                    ? $offer->banner_image 
+                                    : url('uploads/' . ltrim($offer->banner_image, '/'));
+                            } else {
+                                $imageUrl = $offer->getFirstMediaUrl('banner_image') ?: null;
+                            }
+
                             return [
                                 'id' => $offer->id,
-                                'title' => $offer->name,
-                                'hotel' => 'All Hotels',
-                                'offer_type' => 'Seasonal',
-                                'status' => $offer->is_active ? 'Active' : 'Inactive',
+                                'title' => $title,
+                                'hotel' => $offer->hotel ?: 'All Hotels',
+                                'offer_type' => $offer->offer_type ?: 'Seasonal',
+                                'status' => $offer->status ?: ($offer->is_active ? 'Active' : 'Inactive'),
                                 'last_updated' => $offer->updated_at?->format('Y-m-d H:i') ?? '',
                                 'valid_from' => $offer->valid_from,
                                 'valid_until' => $offer->valid_to,
+                                'image_url' => $imageUrl,
                             ];
                         });
                         
@@ -361,22 +375,32 @@ class ManageOffers extends Page
                     $description = ['en' => $offer->description ?: '', 'ar' => ''];
                 }
 
+                $imageUrl = null;
+                if ($offer->banner_image) {
+                    $imageUrl = str_starts_with($offer->banner_image, 'http') 
+                        ? $offer->banner_image 
+                        : url('uploads/' . ltrim($offer->banner_image, '/'));
+                } else {
+                    $imageUrl = $offer->getFirstMediaUrl('banner_image') ?: null;
+                }
+
                 return [
                     'id' => $offer->id,
                     'activeLocale' => 'en',
                     'title' => $title,
-                    'hotel' => $offer->hotel ?: 'N/A',
-                    'offer_type' => $offer->offer_type ?: 'N/A',
-                    'valid_from' => $offer->valid_from ? $offer->valid_from->format('Y-m-d') : 'N/A',
-                    'valid_until' => $offer->valid_to ? $offer->valid_to->format('Y-m-d') : null,
+                    'hotel' => $offer->hotel ?: 'All Hotels',
+                    'offer_type' => $offer->offer_type ?: 'Seasonal',
+                    'valid_from' => $offer->valid_from ? $offer->valid_from->format('Y-m-d H:i:s') : null,
+                    'valid_until' => $offer->valid_to ? $offer->valid_to->format('Y-m-d H:i:s') : null,
                     'booking_period' => $offer->booking_period,
                     'promo_code' => $offer->identifier_code ?: 'N/A',
                     'status' => $offer->status ?: ($offer->is_active ? 'Active' : 'Inactive'),
-                    'last_updated' => $offer->updated_at ? $offer->updated_at->format('Y-m-d') : 'N/A',
+                    'last_updated' => $offer->updated_at ? $offer->updated_at->format('Y-m-d H:i') : 'N/A',
                     'discount_type' => 'N/A',
                     'discount_value' => 'N/A',
                     'short_description' => $description,
                     'banner_image' => $offer->banner_image,
+                    'image_url' => $imageUrl,
                     'meta_title' => $offer->meta_title,
                     'meta_description' => $offer->meta_description,
                     'meta_keywords' => $offer->meta_keywords,

@@ -179,16 +179,13 @@ class ListAmenities extends Page
     public static function getMockAmenities(): array
     {
         return [
-            1 => ['id' => 1, 'title' => 'Main Entrance', 'hotel' => 'Coral Beach Resort Sharjah', 'category' => 'Hotel Exterior', 'display_order' => 1, 'status' => 'Active', 'last_updated' => '2023-10-01 10:00:00'],
-            2 => ['id' => 2, 'title' => 'Grand Lobby', 'hotel' => 'Coral Dubai Deira Hotel', 'category' => 'Lobby', 'display_order' => 1, 'status' => 'Active', 'last_updated' => '2023-10-02 11:30:00'],
-            3 => ['id' => 3, 'title' => 'Deluxe Sea View', 'hotel' => 'ECOS Dubai Hotel', 'category' => 'Guest Rooms', 'display_order' => 2, 'status' => 'Active', 'last_updated' => '2023-10-05 09:15:00'],
-            4 => ['id' => 4, 'title' => 'Royal Suite Bedroom', 'hotel' => 'EWA Hotel Apartments', 'category' => 'Suites', 'display_order' => 1, 'status' => 'Active', 'last_updated' => '2023-10-06 14:20:00'],
-            5 => ['id' => 5, 'title' => 'Ocean Grill Restaurant', 'hotel' => 'Opera Hotel', 'category' => 'Restaurant', 'display_order' => 3, 'status' => 'Active', 'last_updated' => '2023-10-10 16:45:00'],
-            6 => ['id' => 6, 'title' => 'Infinity Pool View', 'hotel' => 'Coral Beach Resort Sharjah', 'category' => 'Swimming Pool', 'display_order' => 1, 'status' => 'Inactive', 'last_updated' => '2023-10-12 08:30:00'],
-            7 => ['id' => 7, 'title' => 'Fitness Center', 'hotel' => 'Coral Dubai Deira Hotel', 'category' => 'Gym', 'display_order' => 2, 'status' => 'Active', 'last_updated' => '2023-10-15 12:00:00'],
-            8 => ['id' => 8, 'title' => 'Ayurvedic Massage Room', 'hotel' => 'ECOS Dubai Hotel', 'category' => 'Spa', 'display_order' => 1, 'status' => 'Active', 'last_updated' => '2023-10-18 10:10:00'],
-            9 => ['id' => 9, 'title' => 'Majestic Ballroom', 'hotel' => 'EWA Hotel Apartments', 'category' => 'Conference Hall', 'display_order' => 1, 'status' => 'Active', 'last_updated' => '2023-10-20 15:55:00'],
-            10 => ['id' => 10, 'title' => 'Wedding Setup', 'hotel' => 'Opera Hotel', 'category' => 'Events', 'display_order' => 4, 'status' => 'Active', 'last_updated' => '2023-10-25 09:40:00'],
+            1 => ['id' => 1, 'title' => 'Spa', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Spa', 'image' => 'https://image-tc.galaxy.tf/wisvg-f62nu2f0nr7onprvogd18wnn/spa_logo.svg', 'display_order' => 1, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+            2 => ['id' => 2, 'title' => 'Fitness Centre', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Gym', 'image' => 'https://image-tc.galaxy.tf/wisvg-8frobb5iq8j189we29jvxkd6e/fitness-centre_logo.svg', 'display_order' => 2, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+            3 => ['id' => 3, 'title' => 'Swimming Pool', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Swimming Pool', 'image' => 'https://image-tc.galaxy.tf/wisvg-uq7n4u2813p78ld7hsvq0fj5/swimming-pool_logo.svg', 'display_order' => 3, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+            4 => ['id' => 4, 'title' => 'Health Club Membership', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Gym', 'display_order' => 4, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+            5 => ['id' => 5, 'title' => 'Day Beach Access', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Hotel Exterior', 'display_order' => 5, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+            6 => ['id' => 6, 'title' => 'Swimming Lessons', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Swimming Pool', 'display_order' => 6, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+            7 => ['id' => 7, 'title' => 'Kids Club', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Events', 'display_order' => 7, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
         ];
     }
 }

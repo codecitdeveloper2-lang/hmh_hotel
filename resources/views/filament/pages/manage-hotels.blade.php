@@ -19,9 +19,15 @@
                     @foreach($hotels as $hotel)
                         <tr class="transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                             <td style="padding: 1rem 1.5rem;">
-                                <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-                                    <x-filament::icon icon="heroicon-o-photo" class="h-5 w-5" />
-                                </div>
+                                @if($hotel['image_url'])
+                                    <div class="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800" style="width: 100px; height: 64px; min-width: 100px;">
+                                        <img src="{{ $hotel['image_url'] }}" alt="{{ $hotel['name'] }}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                    </div>
+                                @else
+                                    <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500" style="width: 100px; height: 64px; min-width: 100px;">
+                                        <x-filament::icon icon="heroicon-o-photo" class="h-6 w-6" />
+                                    </div>
+                                @endif
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm font-medium text-gray-950 dark:text-white">
                                 {{ $hotel['name'] }}

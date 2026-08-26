@@ -68,9 +68,10 @@ class ListRoomTypes extends Page
                 'name' => is_array($r->name) ? ($r->name['en'] ?? '') : $r->name,
                 'hotel' => $propName,
                 'room_type_id' => 'RT-' . str_pad($r->id, 4, '0', STR_PAD_LEFT),
-                'room_size' => '30 sqm',
-                'bed_type' => 'King',
+                'room_size' => $r->size_sqm ? $r->size_sqm . ' sqm' : '30 sqm',
+                'bed_type' => $r->bed_type ? $r->bed_type : 'King',
                 'status' => $r->is_active ? 'Active' : 'Inactive',
+                'image' => $r->getFirstMediaUrl('gallery'),
             ];
         });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;

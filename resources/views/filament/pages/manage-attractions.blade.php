@@ -17,8 +17,12 @@
                     @foreach($attractions as $attraction)
                         <tr class="transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                             <td style="padding: 1rem 1.5rem;">
-                                <div class="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500">
-                                    <x-filament::icon icon="heroicon-o-photo" class="h-5 w-5" />
+                                <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500 overflow-hidden" style="width: 80px; height: 50px; flex-shrink: 0;">
+                                    @if(isset($attraction['image']) && $attraction['image'])
+                                        <img src="{{ $attraction['image'] }}" class="object-cover" style="width: 100%; height: 100%;" alt="{{ $attraction['name'] }}" />
+                                    @else
+                                        <x-filament::icon icon="heroicon-o-photo" class="h-5 w-5" />
+                                    @endif
                                 </div>
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm font-medium text-gray-950 dark:text-white">

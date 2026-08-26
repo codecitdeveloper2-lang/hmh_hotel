@@ -30,9 +30,6 @@ class Attraction extends Model implements HasMedia
         'is_active' => 'boolean',
     ];
 
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
 
     public function getSlugOptions(): SlugOptions
     {

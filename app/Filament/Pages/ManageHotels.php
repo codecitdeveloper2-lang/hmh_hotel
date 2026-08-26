@@ -65,6 +65,14 @@ class ManageHotels extends Page
                                 'coming_soon' => 'Coming Soon',
                                 'closed' => 'Closed',
                             ];
+                            $firstBanner = is_array($hotel->banner_images) 
+                                ? ($hotel->banner_images[array_key_first($hotel->banner_images)] ?? null) 
+                                : (is_string($hotel->banner_images) ? (json_decode($hotel->banner_images, true)[0] ?? null) : null);
+                            
+                            $imageUrl = $firstBanner 
+                                ? (str_starts_with($firstBanner, 'http') ? $firstBanner : url('uploads/' . ltrim($firstBanner, '/')))
+                                : null;
+
                             return [
                                 'id' => $hotel->id,
                                 'name' => $hotel->display_name,
@@ -74,6 +82,7 @@ class ManageHotels extends Page
                                 'star_rating' => $hotel->star_rating ? $hotel->star_rating . ' Star' : 'N/A',
                                 'status' => $statusMap[$hotel->status] ?? 'Live',
                                 'last_updated' => $hotel->updated_at?->format('Y-m-d') ?? '',
+                                'image_url' => $imageUrl,
                             ];
                         });
                         
@@ -185,7 +194,6 @@ class ManageHotels extends Page
     {
         return [
             Grid::make(3)->schema([
-                \Filament\Schemas\Components\View::make('filament.components.locale-toggle')->columnSpan(2),
                 \Filament\Schemas\Components\Tabs::make('Main Tabs')
                     ->tabs([
                         \Filament\Schemas\Components\Tabs\Tab::make('General Information')
@@ -194,18 +202,10 @@ class ManageHotels extends Page
                                     ->schema([
                                         TextInput::make('name.en')
                                             ->label('Hotel Name')
-                                            ->required(fn ($livewire) => $livewire->activeLocale === 'en')
-                                            ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Pages\Hotels\EditHotel)
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
+                                            ->required()
                                             ->dehydrated()
                                             ->live(onBlur: true)
                                             ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state ?? ''))),
-                                        TextInput::make('name.ar')
-                                            ->label('Hotel Name (عربي)')
-                                            ->required(fn ($livewire) => $livewire->activeLocale === 'ar')
-                                            ->disabled(fn ($livewire) => $livewire instanceof \App\Filament\Pages\Hotels\EditHotel)
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
-                                            ->dehydrated(),
                                         Select::make('parent_id')
                                             ->label('Brand')
                                             ->options(fn () => \App\Models\Property::where('type', 'brand')->get()->mapWithKeys(fn ($b) => [$b->id => $b->display_name])->toArray())
@@ -241,27 +241,12 @@ class ManageHotels extends Page
                                     ->schema([
                                         TextInput::make('intro_subtitle.en')
                                             ->label('Intro Subtitle (e.g. IMPECCABLY PLUSH)')
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
-                                            ->dehydrated(),
-                                        TextInput::make('intro_subtitle.ar')
-                                            ->label('Intro Subtitle (عربي)')
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
                                             ->dehydrated(),
                                         TextInput::make('intro_title.en')
                                             ->label('Intro Title (e.g. WELCOME TO BAHI AJMAN PALACE HOTEL)')
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
-                                            ->dehydrated(),
-                                        TextInput::make('intro_title.ar')
-                                            ->label('Intro Title (عربي)')
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
                                             ->dehydrated(),
                                         \App\Filament\Forms\Components\JoditEditor::make('description.en')
                                             ->label('Description (Intro Text)')
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
-                                            ->dehydrated(),
-                                        \App\Filament\Forms\Components\JoditEditor::make('description.ar')
-                                            ->label('Description (عربي)')
-                                            ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
                                             ->dehydrated(),
                                     ]),
                                     
@@ -292,11 +277,19 @@ class ManageHotels extends Page
                             ->schema([
                                 Section::make('Banner Section')
                                     ->schema([
+                                        FileUpload::make('banner_images')
+                                            ->label('Banner Images')
+                                            ->disk('uploads')
+                                            ->directory('')
+                                            ->multiple()
+                                            ->image(),
                                         \Filament\Forms\Components\Repeater::make('banner_slides')
-                                            ->label('Banner Slides')
+                                            ->label('Banner Slides (With Text/Buttons)')
                                             ->schema([
                                                 FileUpload::make('image')
                                                     ->label('Background Image')
+                                                    ->disk('uploads')
+                                                    ->directory('')
                                                     ->image()
                                                     ->required(),
                                                 TextInput::make('title')
@@ -307,7 +300,7 @@ class ManageHotels extends Page
                                                     ->label('Button Link (Optional)')
                                                     ->url(),
                                             ])
-                                            ->defaultItems(1)
+                                            ->defaultItems(0)
                                             ->collapsible()
                                             ->cloneable()
                                             ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Slide'),
@@ -320,6 +313,8 @@ class ManageHotels extends Page
                         ->schema([
                             FileUpload::make('cover_image')
                                 ->label('Cover Image Upload')
+                                ->disk('uploads')
+                                ->directory('')
                                 ->image(),
                         ]),
                         
@@ -356,21 +351,10 @@ class ManageHotels extends Page
                         ->schema([
                             TextInput::make('meta_title.en')
                                 ->label('Meta Title')
-                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
-                                ->dehydrated(),
-                            TextInput::make('meta_title.ar')
-                                ->label('Meta Title (عربي)')
-                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
                                 ->dehydrated(),
                             Textarea::make('meta_description.en')
                                 ->label('Meta Description')
                                 ->rows(3)
-                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'en')
-                                ->dehydrated(),
-                            Textarea::make('meta_description.ar')
-                                ->label('Meta Description (عربي)')
-                                ->rows(3)
-                                ->hidden(fn ($livewire) => $livewire->activeLocale !== 'ar')
                                 ->dehydrated(),
                         ]),
                 ])->columnSpan(1),
