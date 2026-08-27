@@ -66,6 +66,7 @@ class ManageAttractionDetails extends Page implements HasForms
             \Filament\Schemas\Components\Section::make('Media')
                 ->schema([
                     \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('images')
+                        ->disk('uploads')
                         ->collection('attraction_gallery')
                         ->label('Images')
                         ->multiple()

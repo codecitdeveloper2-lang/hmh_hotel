@@ -75,17 +75,7 @@ class ManageRoomDetails extends Page implements HasForms
                             ]),
                         ]),
 
-                    Section::make('Call to Action')
-                        ->schema([
-                            Grid::make(2)->schema([
-                                TextInput::make('book_now_label')
-                                    ->label('Book Now Label')
-                                    ->default('BOOK NOW'),
-                                TextInput::make('book_now_link')
-                                    ->label('Book Now Link (URL)'),
-                            ]),
-                        ]),
-                        
+
                     Section::make('Special Features')
                         ->schema([
                             Repeater::make('special_features')
@@ -108,11 +98,13 @@ class ManageRoomDetails extends Page implements HasForms
                     Section::make('Media & Gallery')
                         ->schema([
                             \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
+                                ->disk('uploads')
                                 ->collection('featured_image')
                                 ->label('Featured Image (Primary Banner)')
                                 ->image()
                                 ->helperText('Pre-filled from Room Type by default.'),
                             \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('additional_gallery')
+                                ->disk('uploads')
                                 ->collection('additional_gallery')
                                 ->label('Additional Room Gallery')
                                 ->image()

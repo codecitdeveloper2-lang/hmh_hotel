@@ -236,10 +236,12 @@ class ListAttractions extends Page
                     Section::make('Media')
                         ->schema([
                             \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
+                                ->disk('uploads')
                                 ->collection('featured_image')
                                 ->label('Featured Image Upload')
                                 ->image(),
                             \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
+                                ->disk('uploads')
                                 ->collection('gallery')
                                 ->label('Gallery Upload')
                                 ->image()
@@ -247,14 +249,6 @@ class ListAttractions extends Page
                                 ->panelLayout('grid'),
                         ]),
                         
-                    Section::make('SEO')
-                        ->schema([
-                            TextInput::make('meta_title')
-                                ->label('Meta Title'),
-                            Textarea::make('meta_description')
-                                ->label('Meta Description')
-                                ->rows(3),
-                        ]),
                 ])->columnSpan(1),
             ]),
         ];
