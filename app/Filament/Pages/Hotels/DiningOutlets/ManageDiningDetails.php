@@ -86,6 +86,7 @@ class ManageDiningDetails extends Page implements HasForms
             \Filament\Schemas\Components\Section::make('Bottom Gallery')
                 ->schema([
                     \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
+                        ->disk('uploads')
                         ->collection('dining_gallery')
                         ->label('Gallery Images')
                         ->multiple()

@@ -71,7 +71,7 @@ class ListRoomTypes extends Page
                 'room_size' => $r->size_sqm ? $r->size_sqm . ' sqm' : '30 sqm',
                 'bed_type' => $r->bed_type ? $r->bed_type : 'King',
                 'status' => $r->is_active ? 'Active' : 'Inactive',
-                'image' => $r->getFirstMediaUrl('gallery'),
+                'image' => $r->getFirstMediaUrl('featured_image') ?: $r->getFirstMediaUrl('additional_gallery'),
             ];
         });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;
@@ -223,14 +223,6 @@ class ListRoomTypes extends Page
                                 TextInput::make('read_more_link')
                                     ->label('Read More Link (Optional)'),
                             ]),
-                            Grid::make(2)->schema([
-                                TextInput::make('book_now_label')
-                                    ->label('Book Now Label')
-                                    ->default('BOOK NOW'),
-                                TextInput::make('book_now_link')
-                                    ->label('Book Now Link (Optional)')
-                                    ->url(),
-                            ]),
                         ]),
                         
                 ])->columnSpan(2),
@@ -238,22 +230,13 @@ class ListRoomTypes extends Page
                 Grid::make(1)->schema([
                     Section::make('Media')
                         ->schema([
-                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
-                                ->collection('gallery')
-                                ->label('Room Images')
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
+                                ->disk('uploads')
+                                ->collection('featured_image')
+                                ->label('Room Featured Image')
                                 ->image()
                                 ->multiple()
                                 ->panelLayout('grid'),
-                        ]),
-                        
-
-                    Section::make('SEO')
-                        ->schema([
-                            TextInput::make('meta_title')
-                                ->label('Meta Title'),
-                            Textarea::make('meta_description')
-                                ->label('Meta Description')
-                                ->rows(3),
                         ]),
                 ])->columnSpan(1),
             ]),
