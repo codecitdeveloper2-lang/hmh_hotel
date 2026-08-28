@@ -33,6 +33,9 @@ class EditAttraction extends Page implements HasForms
                 'slug' => $a->slug,
                 'category' => $a->category,
                 'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                'address' => $a->address,
+                'latitude' => $a->latitude,
+                'longitude' => $a->longitude,
                 'status' => $a->is_active ? 'active' : 'inactive',
                 'read_more_label' => $a->read_more_label,
                 'read_more_link' => $a->read_more_link,
@@ -66,6 +69,9 @@ class EditAttraction extends Page implements HasForms
                 'slug' => $data['slug'] ?? $a->slug,
                 'category' => $data['category'] ?? null,
                 'description' => $desc,
+                'address' => $data['address'] ?? null,
+                'latitude' => $data['latitude'] ?? null,
+                'longitude' => $data['longitude'] ?? null,
                 'read_more_label' => $data['read_more_label'] ?? null,
                 'read_more_link' => $data['read_more_link'] ?? null,
                 'is_active' => ($data['status'] ?? 'active') === 'active',
@@ -89,13 +95,7 @@ class EditAttraction extends Page implements HasForms
 
     protected function getHeaderActions(): array
     {
-        return [
-            \Filament\Actions\Action::make('manage_attraction_details')
-                ->label('Manage Attraction Details')
-                ->url(fn () => \App\Filament\Pages\Hotels\Attractions\ManageAttractionDetails::getUrl(['record' => $this->record, 'attraction_id' => $this->attraction_id]))
-                ->color('primary')
-                ->icon('heroicon-m-document-text'),
-        ];
+        return [];
     }
 
     public function getMaxContentWidth(): ?string

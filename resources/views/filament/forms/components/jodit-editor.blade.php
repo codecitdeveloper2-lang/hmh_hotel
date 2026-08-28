@@ -14,6 +14,7 @@
         <div
             wire:ignore
             x-data="{
+                state: $wire.entangle('{{ $getStatePath() }}'),
                 init() {
                     // Ensure Jodit CSS is loaded
                     if (!document.getElementById('jodit-css')) {
@@ -54,13 +55,12 @@
                     });
                     
                     editor.events.on('change', () => {
-                        this.$refs.editor.value = editor.value;
-                        this.$refs.editor.dispatchEvent(new Event('input', { bubbles: true }));
+                        this.state = editor.value;
                     });
                 }
             }"
         >
-            <textarea x-ref="editor" wire:model="{{ $getStatePath() }}">{!! $stateString !!}</textarea>
+            <textarea x-ref="editor">{!! $stateString !!}</textarea>
         </div>
     @endif
 </x-dynamic-component>

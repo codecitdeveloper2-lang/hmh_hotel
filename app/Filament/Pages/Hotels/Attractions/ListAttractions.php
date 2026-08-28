@@ -197,18 +197,10 @@ class ListAttractions extends Page
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),
-                            Select::make('category')
-                                ->label('Category')
-                                ->options([
-                                    'shopping' => 'Shopping',
-                                    'landmark' => 'Landmark',
-                                    'beach' => 'Beach',
-                                    'museum' => 'Museum & Culture',
-                                    'family' => 'Family & Theme Park',
-                                ])
-                                ->required(),
                             \App\Filament\Forms\Components\JoditEditor::make('description')
                                 ->label('Description'),
+                            TextInput::make('address')
+                                ->label('Address'),
                             Select::make('status')
                                 ->label('Status')
                                 ->options([
@@ -228,6 +220,17 @@ class ListAttractions extends Page
                                 TextInput::make('read_more_link')
                                     ->label('Read More Link')
                                     ->url(),
+                            ]),
+                        ]),
+                    Section::make('Map Location')
+                        ->schema([
+                            Grid::make(2)->schema([
+                                TextInput::make('latitude')
+                                    ->label('Latitude')
+                                    ->numeric(),
+                                TextInput::make('longitude')
+                                    ->label('Longitude')
+                                    ->numeric(),
                             ]),
                         ]),
                 ])->columnSpan(2),

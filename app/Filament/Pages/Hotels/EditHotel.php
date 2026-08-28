@@ -73,7 +73,7 @@ class EditHotel extends Page implements HasForms
             $translatableFields = ['name', 'description', 'meta_title', 'meta_description', 'intro_subtitle', 'intro_title', 'intro_text'];
             foreach ($translatableFields as $field) {
                 if (isset($data[$field]) && is_array($data[$field])) {
-                    $existing = $property->{$field} ?? [];
+                    $existing = method_exists($property, 'getTranslations') ? $property->getTranslations($field) : [];
                     if (is_array($existing)) {
                         $data[$field] = array_merge($existing, $data[$field]);
                     }

@@ -16,47 +16,66 @@ use Illuminate\Contracts\Support\Htmlable;
 use BackedEnum;
 use App\Filament\Pages\Hotels\Traits\HasHotelTabs;
 
-class ListAmenities extends Page
+class ListAmenities extends Page implements \Filament\Forms\Contracts\HasForms
 {
     use HasHotelTabs;
+    use \Filament\Forms\Concerns\InteractsWithForms;
 
-    protected string $view = 'filament.pages.manage-amenities';
+    protected string $view = 'filament.pages.generic-create-edit';
 
     protected static ?string $cluster = \App\Filament\Clusters\HotelManagement\HotelManagementCluster::class;
     protected static ?string $slug = 'manage-hotels/{record}/amenities';
     protected static bool $shouldRegisterNavigation = false;
 
+    public $record;
+    public ?array $data = [];
+
     public function mount($record): void
     {
         $this->mountHasHotelTabs($record);
+        $this->record = $record;
+
+        $a = \App\Models\Amenity::firstOrCreate(
+            ['property_id' => $record],
+            [
+                'title' => ['en' => 'Amenities'],
+                'is_active' => 1,
+                'display_order' => 0
+            ]
+        );
+
+        $this->form->fill([
+            'title' => is_array($a->title) ? ($a->title['en'] ?? '') : $a->title,
+            'description' => $a->description,
+            'read_more_label' => $a->read_more_label,
+            'read_more_link' => $a->read_more_link,
+            'call_us_no' => $a->call_us_no,
+            'amenities_list' => is_string($a->amenities_list) ? json_decode($a->amenities_list, true) : ($a->amenities_list ?? []),
+            'gallery' => is_string($a->gallery) ? json_decode($a->gallery, true) : ($a->gallery ?? []),
+        ]);
     }
 
-    public $viewType = 'table';
-    public $searchQuery = '';
-    public $filterCategory = '';
-    public $filterStatus = '';
-
-    public int $perPage = 10;
-    public int $currentPage = 1;
-
-    public function updatedSearchQuery(): void { $this->currentPage = 1; }
-    public function updatedFilterCategory(): void { $this->currentPage = 1; }
-    public function updatedFilterStatus(): void { $this->currentPage = 1; }
-    public function updatedPerPage(): void { $this->currentPage = 1; }
-
-    public function nextPage(int $lastPage): void
+    public function form($form)
     {
-        if ($this->currentPage < $lastPage) $this->currentPage++;
+        return $form->schema(self::getAmenityFormSchema())->statePath('data');
     }
 
-    public function previousPage(): void
+    public function save(): void
     {
-        if ($this->currentPage > 1) $this->currentPage--;
-    }
-
-    public function gotoPage(int $page): void
-    {
-        $this->currentPage = $page;
+        $data = $this->form->getState();
+        $a = \App\Models\Amenity::where('property_id', $this->record)->first();
+        if ($a) {
+            $a->update([
+                'title' => ['en' => $data['title']],
+                'description' => $data['description'] ?? null,
+                'read_more_label' => $data['read_more_label'] ?? null,
+                'read_more_link' => $data['read_more_link'] ?? null,
+                'call_us_no' => $data['call_us_no'] ?? null,
+                'amenities_list' => $data['amenities_list'] ?? [],
+                'gallery' => $data['gallery'] ?? [],
+            ]);
+            \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
+        }
     }
 
     public function getTitle(): string | Htmlable
@@ -71,121 +90,62 @@ class ListAmenities extends Page
 
     public function getSubheading(): string | Htmlable | null
     {
-        return 'Manage hotel amenities displayed on the website.';
+        return 'Manage the amenities and facilities section for this property.';
     }
 
     protected function getHeaderActions(): array
     {
-        return [
-            Action::make('addAmenity')
-                ->label('Add Amenity')
-                ->icon('heroicon-o-plus')
-                ->url(fn () => \App\Filament\Pages\Hotels\Amenities\CreateAmenity::getUrl(['record' => $this->record])),
-        ];
+        return [];
     }
 
-    public function viewAmenityAction(): Action
+    public function getBackUrl(): string
     {
-        return Action::make('viewAmenity')
-            ->modalHeading('View Amenity')
-            ->modalWidth('7xl')
-            ->form($this->getAmenityFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockAmenities()[$arguments['id']] ?? [])
-            ->disabledForm()
-            ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\Amenities\ViewAmenity::getUrl(['record' => $this->record, 'amenity_id' => $arguments['id'] ?? 0]))
-            ->action(fn () => null);
-    }
-
-    public function editAmenityAction(): Action
-    {
-        return Action::make('editAmenity')
-            ->modalHeading('Edit Amenity')
-            ->modalWidth('7xl')
-            ->form($this->getAmenityFormSchema())
-            ->fillForm(fn (array $arguments) => $this->getMockAmenities()[$arguments['id']] ?? [])
-            
-            ->url(fn (array $arguments) => \App\Filament\Pages\Hotels\Amenities\EditAmenity::getUrl(['record' => $this->record, 'amenity_id' => $arguments['id'] ?? 0]))
-            ->action(function (array $data) {
-                Notification::make()
-                    ->title('Amenity Updated')
-                    ->body('The amenity details have been updated successfully (Mock).')
-                    ->success()
-                    ->send();
-            });
-    }
-
-    public function deleteAmenityAction(): Action
-    {
-        return Action::make('deleteAmenity')
-            ->icon('heroicon-m-trash')
-            ->color('danger')
-            ->requiresConfirmation()
-            ->action(function () {
-                Notification::make()
-                    ->title('Amenity Deleted')
-                    ->body('The amenity has been deleted successfully (Mock).')
-                    ->success()
-                    ->send();
-            });
+        return \App\Filament\Pages\Hotels\EditHotel::getUrl(['record' => $this->record]);
     }
 
     public static function getAmenityFormSchema(): array
     {
         return [
-            Grid::make(3)->schema([
-                Grid::make(1)->schema([
-                    Section::make('Basic Information')
+            Section::make('General Content')
+                ->schema([
+                    TextInput::make('title')
+                        ->label('Title')
+                        ->required(),
+                    Textarea::make('description')
+                        ->label('Description')
+                        ->rows(4),
+                    TextInput::make('read_more_label')
+                        ->label('Read More Label'),
+                    TextInput::make('read_more_link')
+                        ->label('Read More Link'),
+                    TextInput::make('call_us_no')
+                        ->label('Call Us No'),
+                ])->columns(2),
+            
+            Section::make('Amenities List')
+                ->schema([
+                    \Filament\Forms\Components\Repeater::make('amenities_list')
+                        ->label('Amenities Items')
                         ->schema([
-                            TextInput::make('title')
-                                ->label('Title')
-                                ->required(),
-                            TextInput::make('subtitle')
-                                ->label('Subtitle'),
-                            TextInput::make('button_label')
-                                ->label('Button Label'),
-                            TextInput::make('button_link')
-                                ->label('Button Link')
-                                ->url(),
-                            TextInput::make('display_order')
-                                ->label('Display Order')
-                                ->numeric()
-                                ->default(0),
-                            Select::make('status')
-                                ->label('Status')
-                                ->options([
-                                    'Active' => 'Active',
-                                    'Inactive' => 'Inactive',
-                                ])
-                                ->default('Active')
-                                ->required(),
-                        ]),
-                ])->columnSpan(2),
-                
-                Grid::make(1)->schema([
-                    Section::make('Media')
-                        ->schema([
-                            FileUpload::make('images')
-                                ->label('Multiple Image Upload')
+                            \Filament\Forms\Components\FileUpload::make('icon')
+                                ->label('Icon / Image Upload')
+                                ->disk('uploads')
+                                ->directory('')
                                 ->image()
-                                ->multiple()
-                                ->panelLayout('grid')
                                 ->required(),
-                        ]),
-                ])->columnSpan(1),
-            ]),
-        ];
-    }
-
-    public static function getMockAmenities(): array
-    {
-        return [
-            1 => ['id' => 1, 'title' => 'Spa', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Spa', 'image' => 'https://image-tc.galaxy.tf/wisvg-f62nu2f0nr7onprvogd18wnn/spa_logo.svg', 'display_order' => 1, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
-            2 => ['id' => 2, 'title' => 'Fitness Centre', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Gym', 'image' => 'https://image-tc.galaxy.tf/wisvg-8frobb5iq8j189we29jvxkd6e/fitness-centre_logo.svg', 'display_order' => 2, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
-            3 => ['id' => 3, 'title' => 'Swimming Pool', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Swimming Pool', 'image' => 'https://image-tc.galaxy.tf/wisvg-uq7n4u2813p78ld7hsvq0fj5/swimming-pool_logo.svg', 'display_order' => 3, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
-            4 => ['id' => 4, 'title' => 'Health Club Membership', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Gym', 'display_order' => 4, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
-            5 => ['id' => 5, 'title' => 'Day Beach Access', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Hotel Exterior', 'display_order' => 5, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
-            6 => ['id' => 6, 'title' => 'Swimming Lessons', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Swimming Pool', 'display_order' => 6, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
-            7 => ['id' => 7, 'title' => 'Kids Club', 'hotel' => 'Bahi Ajman Palace Hotel', 'category' => 'Events', 'display_order' => 7, 'status' => 'Active', 'last_updated' => now()->format('Y-m-d H:i:s')],
+                            TextInput::make('name')
+                                ->label('Amenity Name')
+                                ->required(),
+                            Textarea::make('description')
+                                ->label('Amenity Description')
+                                ->rows(3),
+                        ])
+                        ->columns(1)
+                        ->collapsible()
+                        ->reorderable()
+                        ->defaultItems(1),
+                ]),
         ];
     }
 }
+

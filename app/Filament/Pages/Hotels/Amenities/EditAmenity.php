@@ -26,9 +26,17 @@ class EditAmenity extends Page implements HasForms
         $this->record = $record;
         $this->amenity_id = $amenity_id;
         
-        $mockData = \App\Filament\Pages\Hotels\Amenities\ListAmenities::getMockAmenities();
-        $this->form->fill($mockData[$this->amenity_id] ?? []);
-        $this->form->fill($this->data);
+        $a = \App\Models\Amenity::find($amenity_id);
+        if ($a) {
+            $this->form->fill([
+                'title' => is_array($a->title) ? ($a->title['en'] ?? '') : $a->title,
+                'description' => $a->description,
+                'read_more_label' => $a->read_more_label,
+                'read_more_link' => $a->read_more_link,
+                'call_us_no' => $a->call_us_no,
+                'amenities_list' => is_string($a->amenities_list) ? json_decode($a->amenities_list, true) : ($a->amenities_list ?? []),
+            ]);
+        }
     }
 
 
@@ -40,7 +48,19 @@ class EditAmenity extends Page implements HasForms
 
     public function save(): void
     {
-        \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
+        $data = $this->form->getState();
+        $a = \App\Models\Amenity::find($this->amenity_id);
+        if ($a) {
+            $a->update([
+                'title' => ['en' => $data['title']],
+                'description' => $data['description'] ?? null,
+                'read_more_label' => $data['read_more_label'] ?? null,
+                'read_more_link' => $data['read_more_link'] ?? null,
+                'call_us_no' => $data['call_us_no'] ?? null,
+                'amenities_list' => $data['amenities_list'] ?? [],
+            ]);
+            \Filament\Notifications\Notification::make()->title('Updated successfully')->success()->send();
+        }
         $this->redirect(\App\Filament\Pages\Hotels\Amenities\ListAmenities::getUrl(['record' => $this->record]));
     }
 
