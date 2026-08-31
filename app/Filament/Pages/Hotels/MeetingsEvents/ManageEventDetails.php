@@ -193,7 +193,7 @@ class ManageEventDetails extends Page implements HasForms
 
     public function getBackUrl(): string
     {
-        return url('/hotel-management/manage-hotels/' . $this->record . '/meetings-events');
+        return ListMeetingsEvents::getUrl(['record' => $this->record]);
     }
 
     public function getMaxContentWidth(): ?string
