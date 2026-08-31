@@ -83,7 +83,7 @@
 
                                         <x-filament::dropdown.list.item
                                             icon="heroicon-m-calendar-days"
-                                            tag="a" href="{{ url('/hotel-management/manage-hotels/' . $hotel['id'] . '/meetings-events') }}"
+                                            tag="a" href="{{ \App\Filament\Pages\Hotels\MeetingsEvents\ListMeetingsEvents::getUrl(['record' => $hotel['id']]) }}"
                                         >
                                             Meetings & Events
                                         </x-filament::dropdown.list.item>

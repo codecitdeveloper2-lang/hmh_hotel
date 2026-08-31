@@ -25,6 +25,7 @@ use App\Filament\Pages\Hotels\FAQs\CreateFaq;
 use App\Filament\Pages\Hotels\FAQs\EditFaq;
 use App\Filament\Pages\Hotels\FAQs\ViewFaq;
 use App\Filament\Pages\Hotels\MeetingsEvents\ListMeetingsEvents;
+use App\Filament\Pages\Hotels\MeetingsEvents\ManageEventDetails;
 
 trait HasHotelTabs
 {
@@ -45,8 +46,11 @@ trait HasHotelTabs
 
             NavigationItem::make('Meetings & Events')
                 ->icon('heroicon-o-calendar-days')
-                ->url(url('/hotel-management/manage-hotels/' . $this->record . '/meetings-events'))
-                ->isActiveWhen(fn () => request()->is('hotel-management/manage-hotels/*/meetings-events*')),
+                ->url(ListMeetingsEvents::getUrl(['record' => $this->record]))
+                ->isActiveWhen(fn () => request()->routeIs(
+                    ListMeetingsEvents::getRouteName(),
+                    ManageEventDetails::getRouteName()
+                )),
 
             NavigationItem::make('Room Types')
                 ->icon('heroicon-o-home-modern')

@@ -49,7 +49,7 @@
                                     <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                         <x-filament::dropdown.list.item
                                             icon="heroicon-m-document-text"
-                                            tag="a" href="{{ url('/hotel-management/manage-hotels/' . $this->record . '/meetings-events/' . $event['id'] . '/details') }}"
+                                            tag="a" href="{{ \App\Filament\Pages\Hotels\MeetingsEvents\ManageEventDetails::getUrl(['record' => $this->record, 'event_id' => $event['id']]) }}"
                                         >
                                             Event Details Page
                                         </x-filament::dropdown.list.item>
