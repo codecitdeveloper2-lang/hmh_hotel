@@ -11,17 +11,24 @@ class MeetingEventPage extends Model
 {
     use HasFactory, HasTranslations;
 
-    protected $translatable = ['title', 'description', 'capacity_details', 'subtitle'];
+    protected $translatable = ['title', 'description', 'capacity_details', 'subtitle', 'details_content'];
 
     protected $fillable = [
         'property_id', 'type', 'title', 'description', 'capacity_details', 'is_active',
-        'subtitle', 'rfp_url', 'banner_slides', 'event_cards', 'gallery', 'slug', 'status'
+        'subtitle', 'rfp_url', 'banner_slides', 'event_cards', 'gallery', 'slug', 'status',
+        'details_content', 'capacity_table', 'contact_details', 'image',
+        'area_sqft', 'area_sqm', 'ceiling_height', 'highlights', 'capacities'
     ];
 
     protected $casts = [
         'banner_slides' => 'array',
         'event_cards' => 'array',
         'gallery' => 'array',
+        'capacity_table' => 'array',
+        'contact_details' => 'array',
+        'highlights' => 'array',
+        'capacities' => 'array',
+        'is_active' => 'boolean',
     ];
 
     public function property(): BelongsTo

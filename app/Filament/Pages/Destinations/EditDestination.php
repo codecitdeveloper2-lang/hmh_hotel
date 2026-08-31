@@ -58,8 +58,6 @@ class EditDestination extends Page implements HasForms
 
         // Fill the form — Spatie media upload loads automatically via the record binding
         $this->form->fill($formData);
-        $mockData = \App\Filament\Pages\ManageDestinations::getMockDestinations();
-        $this->form->fill($mockData[$this->record] ?? []);
     }
 
     public function form($form)
@@ -129,7 +127,7 @@ class EditDestination extends Page implements HasForms
                 'name'        => $cityNameTranslations,
                 'description' => $cityDescriptionTranslations,
                 'slug'        => Str::slug($cityNameTranslations['en'] ?? $cityNameTranslations['ar'] ?? 'city'),
-                'city_image'  => (is_string($cityData['city_image'] ?? null) && str_starts_with($cityData['city_image'], 'livewire-file:')) ? null : ($cityData['city_image'] ?? null),
+                'city_image'  => (!empty($cityData['city_image']) && !str_starts_with((string)$cityData['city_image'], 'livewire-file:')) ? $cityData['city_image'] : ($city?->city_image ?? null),
                 'city_link'   => $cityData['city_link'] ?? null,
                 'layout_type' => $cityData['layout_type'] ?? null,
                 'sort_order'  => $cityData['sort_order'] ?? 0,

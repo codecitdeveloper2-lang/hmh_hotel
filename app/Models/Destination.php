@@ -37,7 +37,7 @@ class Destination extends Model implements HasMedia
     public function registerMediaCollections(): void
     {
         $this->addMediaCollection('banner_images')
-            ->useDisk('public');
+            ->useDisk('uploads');
     }
 
     public function seoMetadata(): \Illuminate\Database\Eloquent\Relations\MorphOne

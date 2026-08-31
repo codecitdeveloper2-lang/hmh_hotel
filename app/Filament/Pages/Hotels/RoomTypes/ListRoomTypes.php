@@ -71,7 +71,7 @@ class ListRoomTypes extends Page
                 'room_size' => $r->size_sqm ? $r->size_sqm . ' sqm' : '30 sqm',
                 'bed_type' => $r->bed_type ? $r->bed_type : 'King',
                 'status' => $r->is_active ? 'Active' : 'Inactive',
-                'image' => $r->getFirstMediaUrl('featured_image') ?: $r->getFirstMediaUrl('additional_gallery'),
+                'image' => ($u = $r->getFirstMediaUrl('featured_image') ?: $r->getFirstMediaUrl('additional_gallery')) ? parse_url($u, PHP_URL_PATH) : '',
             ];
         });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;

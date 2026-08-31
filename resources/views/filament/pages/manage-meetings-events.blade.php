@@ -4,57 +4,37 @@
             <table style="width: 100%; min-width: 100%; display: table;" class="fi-ta-table text-start divide-y divide-gray-200 dark:divide-white/5">
                 <thead class="bg-gray-50 dark:bg-white/5">
                     <tr>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Hotel Image</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Hotel Name</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Brand</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Country</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">City</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Star Rating</th>
+                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Event Image</th>
+                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Event Title</th>
+                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Subtitle / Category</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Status</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Last Updated</th>
                         <th style="padding: 1rem 1.5rem; text-align: right;" class="text-sm font-semibold text-gray-950 dark:text-white">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 whitespace-nowrap dark:divide-white/5">
-                    @foreach($hotels as $hotel)
+                    @forelse($events as $event)
                         <tr class="transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                             <td style="padding: 1rem 1.5rem;">
-                                @if($hotel['image_url'])
-                                    <div class="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800" style="width: 100px; height: 64px; min-width: 100px;">
-                                        <img src="{{ $hotel['image_url'] }}" alt="{{ $hotel['name'] }}" style="width: 100%; height: 100%; object-fit: cover;" />
-                                    </div>
-                                @else
-                                    <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500" style="width: 100px; height: 64px; min-width: 100px;">
-                                        <x-filament::icon icon="heroicon-o-photo" class="h-6 w-6" />
-                                    </div>
-                                @endif
+                                <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500 overflow-hidden" style="width: 80px; height: 50px; flex-shrink: 0;">
+                                    @if(isset($event['image_url']) && $event['image_url'])
+                                        <img src="{{ $event['image_url'] }}" class="object-cover" style="width: 100%; height: 100%;" alt="{{ $event['title'] }}" />
+                                    @else
+                                        <x-filament::icon icon="heroicon-o-photo" class="h-5 w-5" />
+                                    @endif
+                                </div>
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm font-medium text-gray-950 dark:text-white">
-                                {{ $hotel['name'] }}
+                                {{ $event['title'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['brand'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['country'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['city'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['star_rating'] }}
+                                {{ $event['subtitle'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;">
-                                @if($hotel['status'] === 'Live')
-                                    <x-filament::badge color="success">Live</x-filament::badge>
-                                @elseif($hotel['status'] === 'Coming Soon')
-                                    <x-filament::badge color="warning">Coming Soon</x-filament::badge>
+                                @if($event['status'] === 'Active')
+                                    <x-filament::badge color="success">Active</x-filament::badge>
                                 @else
-                                    <x-filament::badge color="danger">Closed</x-filament::badge>
+                                    <x-filament::badge color="danger">Inactive</x-filament::badge>
                                 @endif
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['last_updated'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem; text-align: right;">
                                 <x-filament::dropdown placement="bottom-end" teleport>
@@ -68,30 +48,23 @@
 
                                     <x-filament::dropdown.list class="bg-white dark:bg-gray-800 shadow-xl border border-gray-200 dark:border-gray-700 rounded-lg" style="background-color: #1f2937;">
                                         <x-filament::dropdown.list.item
-                                            icon="heroicon-m-eye"
-                                            tag="a" href="{{ \App\Filament\Pages\Hotels\Overview::getUrl(['record' => $hotel['id']]) }}"
+                                            icon="heroicon-m-document-text"
+                                            tag="a" href="{{ url('/hotel-management/manage-hotels/' . $this->record . '/meetings-events/' . $event['id'] . '/details') }}"
                                         >
-                                            View
-                                        </x-filament::dropdown.list.item>
-                                        
-                                        <x-filament::dropdown.list.item
-                                            icon="heroicon-m-pencil-square"
-                                            tag="a" href="{{ \App\Filament\Pages\Hotels\EditHotel::getUrl(['record' => $hotel['id']]) }}"
-                                        >
-                                            Edit
+                                            Event Details Page
                                         </x-filament::dropdown.list.item>
 
                                         <x-filament::dropdown.list.item
-                                            icon="heroicon-m-calendar-days"
-                                            tag="a" href="{{ url('/hotel-management/manage-hotels/' . $hotel['id'] . '/meetings-events') }}"
+                                            icon="heroicon-m-pencil-square"
+                                            wire:click="mountAction('editEvent', { id: {{ $event['id'] }} })"
                                         >
-                                            Meetings & Events
+                                            Edit Basic Info
                                         </x-filament::dropdown.list.item>
                                         
                                         <x-filament::dropdown.list.item
                                             icon="heroicon-m-trash"
                                             color="danger"
-                                            wire:click="mountAction('deleteHotel', { id: {{ $hotel['id'] }} })"
+                                            wire:click="mountAction('deleteEvent', { id: {{ $event['id'] }} })"
                                         >
                                             Delete
                                         </x-filament::dropdown.list.item>
@@ -99,7 +72,13 @@
                                 </x-filament::dropdown>
                             </td>
                         </tr>
-                    @endforeach
+                    @empty
+                        <tr>
+                            <td colspan="5" style="padding: 2rem; text-align: center;" class="text-sm text-gray-500">
+                                No meetings or events found for this hotel. Click "Add Event" to create one.
+                            </td>
+                        </tr>
+                    @endforelse
                 </tbody>
             </table>
         </div>
@@ -144,6 +123,5 @@
                 </div>
             </div>
         </div>
-
     </div>
 </x-filament-panels::page>

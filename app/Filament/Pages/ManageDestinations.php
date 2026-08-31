@@ -314,6 +314,8 @@ class ManageDestinations extends Page
                                     'Bahrain' => 'Bahrain',
                                     'Oman' => 'Oman',
                                     'Qatar' => 'Qatar',
+                                    'Jordan' => 'Jordan',
+                                    'Sudan' => 'Sudan',
                                 ])
                                 ->required(),
                             \App\Filament\Forms\Components\JoditEditor::make('description.en')
@@ -376,7 +378,7 @@ class ManageDestinations extends Page
                                     FileUpload::make('city_image')
                                         ->label('City Image')
                                         ->image()
-                                        ->disk('public')
+                                        ->disk('uploads')
                                         ->directory('city-images'),
                                     // TextInput::make('city_link')
                                     //     ->label('City Link')
