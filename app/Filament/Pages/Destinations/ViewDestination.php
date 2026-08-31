@@ -31,9 +31,6 @@ class ViewDestination extends Page implements HasForms
     public function switchLocale(string $locale): void
     {
         $this->activeLocale = $locale;
-        $this->record = $record;
-        $mockData = \App\Filament\Pages\ManageDestinations::getMockDestinations();
-        $this->form->fill($mockData[$this->record] ?? []);
     }
 
     public function getBackUrl(): string

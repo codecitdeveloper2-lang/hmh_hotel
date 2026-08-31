@@ -19,6 +19,8 @@ class Amenity extends Model implements HasMedia
         'title' => 'array',
         'subtitle' => 'array',
         'is_active' => 'boolean',
+        'amenities_list' => 'array',
+        'gallery' => 'array',
     ];
 
     public function property(): BelongsTo

@@ -80,6 +80,13 @@
                                         >
                                             Edit
                                         </x-filament::dropdown.list.item>
+
+                                        <x-filament::dropdown.list.item
+                                            icon="heroicon-m-calendar-days"
+                                            tag="a" href="{{ url('/hotel-management/manage-hotels/' . $hotel['id'] . '/meetings-events') }}"
+                                        >
+                                            Meetings & Events
+                                        </x-filament::dropdown.list.item>
                                         
                                         <x-filament::dropdown.list.item
                                             icon="heroicon-m-trash"

@@ -73,7 +73,7 @@ class ListDiningOutlets extends Page
                 'opening_hours' => is_array($o->opening_hours) ? ($o->opening_hours['en'] ?? '') : $o->opening_hours,
                 'table_booking' => $o->has_table_booking,
                 'status' => $o->is_active ? 'Active' : 'Inactive',
-                'image' => $o->getFirstMediaUrl('featured_image'),
+                'image' => ($u = $o->getFirstMediaUrl('featured_image')) ? parse_url($u, PHP_URL_PATH) : '',
             ];
         });
         $from        = $totalItems > 0 ? ($currentPage - 1) * $this->perPage + 1 : 0;

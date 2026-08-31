@@ -36,6 +36,20 @@ class CreateAmenity extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+        
+        $a = \App\Models\Amenity::create([
+            'property_id' => $this->record,
+            'title' => ['en' => $data['title']],
+            'description' => $data['description'] ?? null,
+            'read_more_label' => $data['read_more_label'] ?? null,
+            'read_more_link' => $data['read_more_link'] ?? null,
+            'call_us_no' => $data['call_us_no'] ?? null,
+            'amenities_list' => $data['amenities_list'] ?? [],
+            'is_active' => 1,
+            'display_order' => 0,
+        ]);
+
         \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\Hotels\Amenities\ListAmenities::getUrl(['record' => $this->record]));
     }
