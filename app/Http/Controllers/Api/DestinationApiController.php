@@ -58,7 +58,11 @@ class DestinationApiController extends Controller
                     },
                     'seoMetadata'
                 ])
-                    ->where('slug', $slug)
+                    ->where(function($query) use ($slug) {
+                        $query->where('slug', $slug)
+                              ->orWhere('slug', '/destinations/' . $slug)
+                              ->orWhere('slug', ltrim($slug, '/'));
+                    })
                     ->where('is_active', true)
                     ->firstOrFail();
 

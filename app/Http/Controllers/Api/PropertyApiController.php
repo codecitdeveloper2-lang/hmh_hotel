@@ -57,17 +57,26 @@ class PropertyApiController extends Controller
         $data = $brands->map(function ($brand) {
             $name = is_array($brand->name) ? ($brand->name['en'] ?? '') : $brand->name;
             $logo = $brand->getFirstMediaUrl('logo') ?: ($brand->logo ? url('uploads/' . ltrim($brand->logo, '/')) : null);
+            $brandContent = is_array($brand->brand_content) ? $brand->brand_content : [];
+            $footerLogoRaw = $brandContent['footer_brand_logo'] ?? null;
+            $footerLogo = $footerLogoRaw ? (str_starts_with($footerLogoRaw, 'http') ? $footerLogoRaw : url('uploads/' . ltrim($footerLogoRaw, '/'))) : null;
+
             return [
                 'id' => $brand->id,
                 'name' => $name,
                 'slug' => $brand->slug,
                 'logo' => $logo,
+                'footer_logo' => $footerLogo,
                 'hotels' => $brand->hotels->map(function ($hotel) {
                     $hName = is_array($hotel->name) ? ($hotel->name['en'] ?? '') : $hotel->name;
+                    $hBrandContent = is_array($hotel->brand_content) ? $hotel->brand_content : [];
+                    $hFooterLogoRaw = $hBrandContent['footer_brand_logo'] ?? null;
+                    $hFooterLogo = $hFooterLogoRaw ? (str_starts_with($hFooterLogoRaw, 'http') ? $hFooterLogoRaw : url('uploads/' . ltrim($hFooterLogoRaw, '/'))) : null;
                     return [
                         'id' => $hotel->id,
                         'name' => $hName,
                         'slug' => $hotel->slug,
+                        'footer_logo' => $hFooterLogo,
                     ];
                 })->toArray(),
             ];
@@ -130,6 +139,17 @@ class PropertyApiController extends Controller
         // Resolve brand_content (section config stored as JSON)
         $brandContent = is_array($property->brand_content) ? $property->brand_content : [];
 
+        // Resolve footer_logo (from own brand_content or parent brand's brand_content if this is a hotel)
+        $footerLogoRaw = $brandContent['footer_brand_logo'] ?? null;
+        if (!$footerLogoRaw && $property->type === 'hotel' && $property->brand) {
+            $parentBrandContent = is_array($property->brand->brand_content) ? $property->brand->brand_content : [];
+            $footerLogoRaw = $parentBrandContent['footer_brand_logo'] ?? null;
+        }
+        $footerLogo = null;
+        if ($footerLogoRaw) {
+            $footerLogo = str_starts_with($footerLogoRaw, 'http') ? $footerLogoRaw : url('uploads/' . ltrim($footerLogoRaw, '/'));
+        }
+
         return [
             'id' => $property->id,
             'name' => $name,
@@ -144,6 +164,7 @@ class PropertyApiController extends Controller
             'intro_text' => $this->parseTranslation($property->intro_text),
             'description' => $description,
             'logo' => $ownLogo,
+            'footer_logo' => $footerLogo,
             'cover_image' => $property->getFirstMediaUrl('cover_image') ?: null,
             'banner_images' => $this->resolveBannerImages($property),
             'banner_title' => $property->banner_title,
