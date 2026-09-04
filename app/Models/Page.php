@@ -37,17 +37,11 @@ class Page extends Model
     protected static function booted()
     {
         static::saved(function ($page) {
-            \Illuminate\Support\Facades\Cache::forget('pages:index:en');
-            \Illuminate\Support\Facades\Cache::forget('pages:index:ar');
-            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:en");
-            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:ar");
+            \Illuminate\Support\Facades\Cache::flush();
         });
 
         static::deleted(function ($page) {
-            \Illuminate\Support\Facades\Cache::forget('pages:index:en');
-            \Illuminate\Support\Facades\Cache::forget('pages:index:ar');
-            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:en");
-            \Illuminate\Support\Facades\Cache::forget("pages:show:{$page->slug}:ar");
+            \Illuminate\Support\Facades\Cache::flush();
         });
     }
 }

@@ -42,16 +42,29 @@ class CreateRoomType extends Page implements HasForms
     public function save(): void
     {
         $data = $this->form->getState();
+        $sizeSqm = null;
+        if (isset($data['room_area'])) {
+            preg_match('/(\d+)/', $data['room_area'], $matches);
+            if (isset($matches[1])) {
+                $sizeSqm = (int) $matches[1];
+            }
+        }
+
         $room = \App\Models\RoomType::create([
             'property_id' => $this->record,
             'name' => ['en' => $data['name'] ?? ''],
             'slug' => $data['slug'] ?? \Illuminate\Support\Str::slug($data['name'] ?? ''),
+            'short_description' => ['en' => $data['short_description'] ?? ''],
             'description' => ['en' => $data['description'] ?? ''],
             'is_active' => ($data['status'] ?? 'active') === 'active',
             'read_more_label' => $data['read_more_label'] ?? null,
             'read_more_link' => $data['read_more_link'] ?? null,
             'book_now_label' => $data['book_now_label'] ?? null,
             'book_now_link' => $data['book_now_link'] ?? null,
+            'starting_price' => $data['starting_price'] ?? null,
+            'size_sqm' => $sizeSqm,
+            'bed_type' => $data['bed_type'] ?? null,
+            'special_features' => $data['special_features'] ?? null,
             'sort_order' => 0,
         ]);
         

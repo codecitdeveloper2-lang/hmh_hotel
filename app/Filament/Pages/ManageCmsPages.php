@@ -166,6 +166,9 @@ class ManageCmsPages extends Page
                             'our_culture' => $data['our_culture'] ?? '',
                             'our_promise' => $data['our_promise'] ?? '',
                             'responsibilities_list' => $data['responsibilities_list'] ?? [],
+                            'partners_list' => $data['partners_list'] ?? [],
+                            'team_members_list' => $data['team_members_list'] ?? [],
+                            'history_timeline' => $data['history_timeline'] ?? [],
                             'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
@@ -212,6 +215,7 @@ class ManageCmsPages extends Page
                     'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
 
                     'display_order' => $decodedBody['display_order'] ?? null,
+                    'banner_images' => $decodedBody['banner_images'] ?? [],
                     'banner_slides' => $decodedBody['banner_slides'] ?? [],
                     'content_title' => $decodedBody['content_title'] ?? '',
                     'content' => $decodedBody['content'] ?? '',
@@ -230,7 +234,30 @@ class ManageCmsPages extends Page
                     'our_culture' => $decodedBody['our_culture'] ?? '',
                     'our_promise' => $decodedBody['our_promise'] ?? '',
                     'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
+                    'partners_list' => $decodedBody['partners_list'] ?? [],
+                    'team_members_list' => $decodedBody['team_members_list'] ?? [],
+                    'history_timeline' => $decodedBody['history_timeline'] ?? [],
                     'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
+                    'categories' => $decodedBody['categories'] ?? [],
+                    'corp_amman_images' => $decodedBody['corp_amman_images'] ?? [],
+                    'coral_beach_sharjah_images' => $decodedBody['coral_beach_sharjah_images'] ?? [],
+                    'bahi_ajman_palace_images' => $decodedBody['bahi_ajman_palace_images'] ?? [],
+                    'ecos_dubai_images' => $decodedBody['ecos_dubai_images'] ?? [],
+                    'coral_dubai_deira_images' => $decodedBody['coral_dubai_deira_images'] ?? [],
+                    'coral_jubail_images' => $decodedBody['coral_jubail_images'] ?? [],
+                    'gallery_items' => $decodedBody['gallery_items'] ?? [],
+                    'future_slider_images' => $decodedBody['future_slider_images'] ?? [],
+                    'value_proposition_title' => $decodedBody['value_proposition_title'] ?? '',
+                    'value_proposition_text' => $decodedBody['value_proposition_text'] ?? '',
+                    'brands_list' => $decodedBody['brands_list'] ?? [],
+                    'services_title' => $decodedBody['services_title'] ?? '',
+                    'services_intro' => $decodedBody['services_intro'] ?? '',
+                    'services_list' => $decodedBody['services_list'] ?? [],
+                    'terms_accordion' => $decodedBody['terms_accordion'] ?? [],
+                    'privacy_accordion' => $decodedBody['privacy_accordion'] ?? [],
+                    'privacy_slider_images' => $decodedBody['privacy_slider_images'] ?? [],
+                    'terms_slider_images' => $decodedBody['terms_slider_images'] ?? [],
+                    'press_releases_list' => $decodedBody['press_releases_list'] ?? [],
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -274,6 +301,7 @@ class ManageCmsPages extends Page
                     'meta_description' => is_array($page->meta_description) ? ($page->meta_description['en'] ?? '') : $page->meta_description,
 
                     'display_order' => $decodedBody['display_order'] ?? null,
+                    'banner_images' => $decodedBody['banner_images'] ?? [],
                     'banner_slides' => $decodedBody['banner_slides'] ?? [],
                     'content_title' => $decodedBody['content_title'] ?? '',
                     'content' => $decodedBody['content'] ?? '',
@@ -292,7 +320,30 @@ class ManageCmsPages extends Page
                     'our_culture' => $decodedBody['our_culture'] ?? '',
                     'our_promise' => $decodedBody['our_promise'] ?? '',
                     'responsibilities_list' => $decodedBody['responsibilities_list'] ?? [],
+                    'partners_list' => $decodedBody['partners_list'] ?? [],
+                    'team_members_list' => $decodedBody['team_members_list'] ?? [],
+                    'history_timeline' => $decodedBody['history_timeline'] ?? [],
                     'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
+                    'categories' => $decodedBody['categories'] ?? [],
+                    'corp_amman_images' => $decodedBody['corp_amman_images'] ?? [],
+                    'coral_beach_sharjah_images' => $decodedBody['coral_beach_sharjah_images'] ?? [],
+                    'bahi_ajman_palace_images' => $decodedBody['bahi_ajman_palace_images'] ?? [],
+                    'ecos_dubai_images' => $decodedBody['ecos_dubai_images'] ?? [],
+                    'coral_dubai_deira_images' => $decodedBody['coral_dubai_deira_images'] ?? [],
+                    'coral_jubail_images' => $decodedBody['coral_jubail_images'] ?? [],
+                    'gallery_items' => $decodedBody['gallery_items'] ?? [],
+                    'future_slider_images' => $decodedBody['future_slider_images'] ?? [],
+                    'value_proposition_title' => $decodedBody['value_proposition_title'] ?? '',
+                    'value_proposition_text' => $decodedBody['value_proposition_text'] ?? '',
+                    'brands_list' => $decodedBody['brands_list'] ?? [],
+                    'services_title' => $decodedBody['services_title'] ?? '',
+                    'services_intro' => $decodedBody['services_intro'] ?? '',
+                    'services_list' => $decodedBody['services_list'] ?? [],
+                    'terms_accordion' => $decodedBody['terms_accordion'] ?? [],
+                    'privacy_accordion' => $decodedBody['privacy_accordion'] ?? [],
+                    'privacy_slider_images' => $decodedBody['privacy_slider_images'] ?? [],
+                    'terms_slider_images' => $decodedBody['terms_slider_images'] ?? [],
+                    'press_releases_list' => $decodedBody['press_releases_list'] ?? [],
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -315,6 +366,9 @@ class ManageCmsPages extends Page
                     if ($slug === 'terms-and-conditions') $pageType = 'terms-conditions';
                     if ($slug === 'about-us') $pageType = 'about';
 
+                    $existingBody = is_array($page->body) ? ($page->body['en'] ?? '') : $page->body;
+                    $decodedBody = json_decode((string)$existingBody, true) ?? [];
+
                     $page->update([
                         'title' => ['en' => $data['title'] ?? ''],
                         'page_type' => $pageType,
@@ -323,6 +377,10 @@ class ManageCmsPages extends Page
                         'meta_title' => ['en' => $data['meta_title'] ?? ''],
                         'meta_description' => ['en' => $data['meta_description'] ?? ''],
                         'body' => ['en' => json_encode([
+                            'display_order' => $data['display_order'] ?? null,
+                            'banner_images' => $data['banner_images'] ?? ($decodedBody['banner_images'] ?? []),
+                            'banner_slides' => $data['banner_slides'] ?? [],
+                            'content_title' => $data['content_title'] ?? '',
                             'content' => $data['content'] ?? '',
                             'cta_text' => $data['cta_text'] ?? '',
                             'cta_link' => $data['cta_link'] ?? '',
@@ -339,7 +397,30 @@ class ManageCmsPages extends Page
                             'our_culture' => $data['our_culture'] ?? '',
                             'our_promise' => $data['our_promise'] ?? '',
                             'responsibilities_list' => $data['responsibilities_list'] ?? [],
+                            'partners_list' => $data['partners_list'] ?? [],
+                            'team_members_list' => $data['team_members_list'] ?? [],
+                            'history_timeline' => $data['history_timeline'] ?? [],
                             'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
+                            'categories' => $data['categories'] ?? ($decodedBody['categories'] ?? []),
+                            'corp_amman_images' => $data['corp_amman_images'] ?? ($decodedBody['corp_amman_images'] ?? []),
+                            'coral_beach_sharjah_images' => $data['coral_beach_sharjah_images'] ?? ($decodedBody['coral_beach_sharjah_images'] ?? []),
+                            'bahi_ajman_palace_images' => $data['bahi_ajman_palace_images'] ?? ($decodedBody['bahi_ajman_palace_images'] ?? []),
+                            'ecos_dubai_images' => $data['ecos_dubai_images'] ?? ($decodedBody['ecos_dubai_images'] ?? []),
+                            'coral_dubai_deira_images' => $data['coral_dubai_deira_images'] ?? ($decodedBody['coral_dubai_deira_images'] ?? []),
+                            'coral_jubail_images' => $data['coral_jubail_images'] ?? ($decodedBody['coral_jubail_images'] ?? []),
+                            'gallery_items' => $data['gallery_items'] ?? ($decodedBody['gallery_items'] ?? []),
+                            'future_slider_images' => $data['future_slider_images'] ?? ($decodedBody['future_slider_images'] ?? []),
+                            'value_proposition_title' => $data['value_proposition_title'] ?? ($decodedBody['value_proposition_title'] ?? ''),
+                            'value_proposition_text' => $data['value_proposition_text'] ?? ($decodedBody['value_proposition_text'] ?? ''),
+                            'brands_list' => $data['brands_list'] ?? ($decodedBody['brands_list'] ?? []),
+                            'services_title' => $data['services_title'] ?? ($decodedBody['services_title'] ?? ''),
+                            'services_intro' => $data['services_intro'] ?? ($decodedBody['services_intro'] ?? ''),
+                            'services_list' => $data['services_list'] ?? ($decodedBody['services_list'] ?? []),
+                            'terms_accordion' => $data['terms_accordion'] ?? ($decodedBody['terms_accordion'] ?? []),
+                            'privacy_accordion' => $data['privacy_accordion'] ?? ($decodedBody['privacy_accordion'] ?? []),
+                            'privacy_slider_images' => $data['privacy_slider_images'] ?? ($decodedBody['privacy_slider_images'] ?? []),
+                            'terms_slider_images' => $data['terms_slider_images'] ?? ($decodedBody['terms_slider_images'] ?? []),
+                            'press_releases_list' => $data['press_releases_list'] ?? ($decodedBody['press_releases_list'] ?? []),
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -409,8 +490,15 @@ class ManageCmsPages extends Page
 
                         Section::make('Banner Section')
                             ->schema([
+                                FileUpload::make('banner_images')
+                                    ->label('Banner Images')
+                                    ->image()
+                                    ->multiple()
+                                    ->reorderable()
+                                    ->disk('uploads')
+                                    ->helperText('Upload or manage banner images in this single input box.'),
                                 \Filament\Forms\Components\Repeater::make('banner_slides')
-                                    ->label('Banner Slides')
+                                    ->label('Banner Slides (with Titles & Subtitles)')
                                     ->schema([
                                         FileUpload::make('image')
                                             ->label('Background Image')
@@ -421,8 +509,8 @@ class ManageCmsPages extends Page
                                         TextInput::make('title')
                                             ->label('Title'),
                                     ])
-                                    ->defaultItems(1)
                                     ->collapsible()
+                                    ->collapsed()
                                     ->cloneable()
                                     ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Slide'),
                             ]),
@@ -514,6 +602,328 @@ class ManageCmsPages extends Page
                                             ->collapsible()
                                             ->cloneable()
                                             ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Responsibility'),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'our-partners')
+                            ->schema([
+                                Section::make('Partners')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('partners_list')
+                                            ->label('Partners List')
+                                            ->schema([
+                                                TextInput::make('name')
+                                                    ->label('Partner Name')
+                                                    ->required(),
+                                                FileUpload::make('image')
+                                                    ->label('Partner Logo')
+                                                    ->image()->disk('uploads'),
+                                                FileUpload::make('banner_image')
+                                                    ->label('Partner Banner Image')
+                                                    ->image()->disk('uploads'),
+                                                TextInput::make('link')
+                                                    ->label('Partner Link / Website'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')
+                                                    ->label('Description'),
+                                            ])
+                                            ->defaultItems(1)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? 'Partner'),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'board-of-directors-and-team')
+                            ->schema([
+                                Section::make('Team Members')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('team_members_list')
+                                            ->label('Board of Directors & Team Members')
+                                            ->schema([
+                                                TextInput::make('name')
+                                                    ->label('Full Name')
+                                                    ->required(),
+                                                TextInput::make('position')
+                                                    ->label('Position / Designation')
+                                                    ->required(),
+                                                FileUpload::make('image')
+                                                    ->label('Photo / Image')
+                                                    ->image()->disk('uploads'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')
+                                                    ->label('Biography / Details'),
+                                            ])
+                                            ->defaultItems(1)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['name'] ?? 'Team Member') . (!empty($state['position']) ? ' (' . $state['position'] . ')' : '')),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'our-history')
+                            ->schema([
+                                Section::make('History Timeline')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('history_timeline')
+                                            ->label('Timeline Entries')
+                                            ->schema([
+                                                TextInput::make('year')
+                                                    ->label('Year / Period')
+                                                    ->required(),
+                                                FileUpload::make('image')
+                                                    ->label('Image')
+                                                    ->image()->disk('uploads'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')
+                                                    ->label('Events / Milestones'),
+                                            ])
+                                            ->defaultItems(1)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['year'] ?? 'Year') . (!empty($state['description']) ? ' - ' . \Illuminate\Support\Str::limit(strip_tags($state['description']), 50) : '')),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'gallery')
+                            ->schema([
+                                Section::make('Gallery Categories & Hotel Images')
+                                    ->description('Extracted photo galleries and filter categories across all HMH hotels.')
+                                    ->schema([
+                                        \Filament\Forms\Components\TagsInput::make('categories')
+                                            ->label('Hotel Categories / Filters')
+                                            ->placeholder('Add category'),
+
+                                        \Filament\Schemas\Components\Tabs::make('HotelGalleries')
+                                            ->tabs([
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Corp Amman Hotel')
+                                                    ->schema([
+                                                        FileUpload::make('corp_amman_images')
+                                                            ->label('Corp Amman Hotel Images (67 Photos)')
+                                                            ->multiple()
+                                                            ->image()
+                                                            ->disk('uploads'),
+                                                    ]),
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Coral Beach Resort Sharjah')
+                                                    ->schema([
+                                                        FileUpload::make('coral_beach_sharjah_images')
+                                                            ->label('Coral Beach Resort Sharjah Images (48 Photos)')
+                                                            ->multiple()
+                                                            ->image()
+                                                            ->disk('uploads'),
+                                                    ]),
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Bahi Ajman Palace Hotel')
+                                                    ->schema([
+                                                        FileUpload::make('bahi_ajman_palace_images')
+                                                            ->label('Bahi Ajman Palace Hotel Images (112 Photos)')
+                                                            ->multiple()
+                                                            ->image()
+                                                            ->disk('uploads'),
+                                                    ]),
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Ecos Dubai Hotel at Al Furjan')
+                                                    ->schema([
+                                                        FileUpload::make('ecos_dubai_images')
+                                                            ->label('Ecos Dubai Hotel at Al Furjan Images (107 Photos)')
+                                                            ->multiple()
+                                                            ->image()
+                                                            ->disk('uploads'),
+                                                    ]),
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Coral Dubai Deira Hotel')
+                                                    ->schema([
+                                                        FileUpload::make('coral_dubai_deira_images')
+                                                            ->label('Coral Dubai Deira Hotel Images (47 Photos)')
+                                                            ->multiple()
+                                                            ->image()
+                                                            ->disk('uploads'),
+                                                    ]),
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Coral Jubail Hotel')
+                                                    ->schema([
+                                                        FileUpload::make('coral_jubail_images')
+                                                            ->label('Coral Jubail Hotel Images (12 Photos)')
+                                                            ->multiple()
+                                                            ->image()
+                                                            ->disk('uploads'),
+                                                    ]),
+                                                \Filament\Schemas\Components\Tabs\Tab::make('All Extracted Items')
+                                                    ->schema([
+                                                        \Filament\Forms\Components\Repeater::make('gallery_items')
+                                                            ->label('All Extracted Gallery Items (393 Photos with Titles)')
+                                                            ->schema([
+                                                                TextInput::make('hotel_name')->label('Hotel Name'),
+                                                                TextInput::make('title')->label('Photo Caption / Title'),
+                                                                FileUpload::make('image')->label('Photo')->image()->disk('uploads'),
+                                                            ])
+                                                            ->collapsible()
+                                                            ->collapsed()
+                                                            ->cloneable()
+                                                            ->itemLabel(fn (array $state): ?string => ($state['hotel_name'] ?? 'Hotel') . ' - ' . ($state['title'] ?? 'Photo')),
+                                                    ]),
+                                            ]),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'future-developments')
+                            ->schema([
+                                Section::make('Development Gallery Slider')
+                                    ->schema([
+                                        FileUpload::make('future_slider_images')
+                                            ->label('Middle Slider Images (Rooftop, Events, Outdoor)')
+                                            ->multiple()
+                                            ->image()
+                                            ->disk('uploads'),
+                                    ]),
+                                Section::make('Value Proposition')
+                                    ->schema([
+                                        TextInput::make('value_proposition_title')
+                                            ->label('Value Proposition Title'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('value_proposition_text')
+                                            ->label('Value Proposition Text'),
+                                    ]),
+                                Section::make('Brands Overview')
+                                    ->schema([
+                                        FileUpload::make('expansion_image')
+                                            ->label('Side Overview Image')
+                                            ->image()->disk('uploads'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
+                                            ->label('Brands Overview Text'),
+                                    ]),
+                                Section::make('Core Brands Showcase')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('brands_list')
+                                            ->label('Core Brands (Bahi, Coral, Corp, EWA, ECOS)')
+                                            ->schema([
+                                                TextInput::make('name')->label('Brand Name')->required(),
+                                                TextInput::make('tagline')->label('Tagline / Slogan'),
+                                                FileUpload::make('image')->label('Brand Showcase Image')->image()->disk('uploads'),
+                                                FileUpload::make('logo')->label('Brand Logo / SVG')->disk('uploads'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Brand Description'),
+                                            ])
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['name'] ?? 'Brand') . (!empty($state['tagline']) ? ' - ' . $state['tagline'] : '')),
+                                    ]),
+                                Section::make('Advisory & Management Services')
+                                    ->schema([
+                                        TextInput::make('services_title')->label('Services Section Title'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('services_intro')->label('Services Introduction'),
+                                        \Filament\Forms\Components\Repeater::make('services_list')
+                                            ->label('Advisory & Management Services')
+                                            ->schema([
+                                                TextInput::make('title')->label('Service Title')->required(),
+                                                FileUpload::make('icon')->label('Service Icon')->disk('uploads'),
+                                            ])
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Service'),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('slug'), ['our-brands', 'brands']))
+                            ->schema([
+                                Section::make('Our Brands Section')
+                                    ->description('Manage hotel brands, taglines, cards, logos, and descriptions.')
+                                    ->schema([
+                                        TextInput::make('content_title')
+                                            ->label('Section Heading')
+                                            ->default('Our Brands'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
+                                            ->label('Section Subtitle / Description'),
+                                        \Filament\Forms\Components\Repeater::make('brands_list')
+                                            ->label('Hotel Brands (Bahi, Coral, Corp, Ewa, Ecos)')
+                                            ->schema([
+                                                TextInput::make('name')->label('Brand Name')->required(),
+                                                TextInput::make('tagline')->label('Tagline / Slogan (e.g. Impeccable Plush)'),
+                                                FileUpload::make('image')->label('Brand Card Image')->image()->disk('uploads'),
+                                                FileUpload::make('logo')->label('Brand Logo (SVG / Image)')->disk('uploads'),
+                                                TextInput::make('link')->label('Brand Link / URL (e.g. /bahi-hotels-resorts)'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Brand Description'),
+                                            ])
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['name'] ?? 'Brand') . (!empty($state['tagline']) ? ' - ' . $state['tagline'] : '')),
+                                    ]),
+                            ]),
+                            
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('slug'), ['privacy-policy', 'privacy-statement']))
+                            ->schema([
+                                Section::make('Privacy Policy Sections (Accordion)')
+                                    ->description('Manage accordion sections for Privacy Policy.')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('privacy_accordion')
+                                            ->label('Privacy Policy Sections')
+                                            ->schema([
+                                                TextInput::make('title')->label('Section Title')->required(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Section Details / Text')->required(),
+                                            ])
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Section'),
+                                        FileUpload::make('privacy_slider_images')
+                                            ->label('Bottom Slider Images')
+                                            ->multiple()
+                                            ->image()
+                                            ->disk('uploads'),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('slug'), ['terms-and-conditions', 'terms-conditions']))
+                            ->schema([
+                                Section::make('Terms & Conditions Sections (Accordion)')
+                                    ->description('Manage accordion sections for Terms & Conditions.')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('terms_accordion')
+                                            ->label('Terms & Conditions Sections')
+                                            ->schema([
+                                                TextInput::make('title')->label('Section Title')->required(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Section Details / Text')->required(),
+                                            ])
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Section'),
+                                        FileUpload::make('terms_slider_images')
+                                            ->label('Bottom Slider Images')
+                                            ->multiple()
+                                            ->image()
+                                            ->disk('uploads'),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('slug'), ['press-release', 'news-media']))
+                            ->schema([
+                                Section::make('Press Releases & News Media')
+                                    ->description('Extracted articles, publication dates, categories and featured images.')
+                                    ->schema([
+                                        \Filament\Forms\Components\TagsInput::make('categories')
+                                            ->label('Filter Categories')
+                                            ->placeholder('Add category'),
+                                        \Filament\Forms\Components\Repeater::make('press_releases_list')
+                                            ->label('Press Releases & Articles')
+                                            ->schema([
+                                                TextInput::make('title')->label('Article Title')->required(),
+                                                TextInput::make('date')->label('Date (e.g. 22/03/2024)'),
+                                                Select::make('category')
+                                                    ->label('Category')
+                                                    ->options([
+                                                        'Press Releases' => 'Press Releases',
+                                                        'Newsletter' => 'Newsletter',
+                                                    ]),
+                                                FileUpload::make('image')
+                                                    ->label('Thumbnail Image')
+                                                    ->image()
+                                                    ->disk('uploads'),
+                                                TextInput::make('link')->label('Article Link / URL'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description')
+                                                    ->label('Article Content / Details'),
+                                            ])
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['title'] ?? 'Press Release') . (!empty($state['date']) ? ' (' . $state['date'] . ')' : '')),
                                     ]),
                             ]),
                             

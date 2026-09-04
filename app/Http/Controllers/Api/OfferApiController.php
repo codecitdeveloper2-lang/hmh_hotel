@@ -12,6 +12,23 @@ class OfferApiController extends Controller
     /**
      * Display a listing of active offers.
      */
+        /**
+     * Get distinct offer types.
+     */
+    public function getTypes(): JsonResponse
+    {
+        $types = Offer::whereNotNull('offer_type')
+            ->where('offer_type', '!=', '')
+            ->distinct()
+            ->pluck('offer_type')
+            ->toArray();
+
+        return response()->json([
+            'success' => true,
+            'data' => array_values(array_unique($types))
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $query = Offer::orderBy('sort_order', 'asc');
@@ -41,6 +58,8 @@ class OfferApiController extends Controller
             // Get the hotel slug for frontend routing
             $property = \App\Models\Property::find($offer->hotel);
             $data['hotel_slug'] = $property ? $property->slug : 'offers';
+            $data['hotel_name'] = $property ? (is_array($property->name) ? ($property->name['en'] ?? '') : $property->name) : null;
+            $data['hotel_id'] = $property ? $property->id : null;
             
             // Format gallery images
             if (!empty($data['images']) && is_array($data['images'])) {
@@ -89,6 +108,8 @@ class OfferApiController extends Controller
         
         $property = \App\Models\Property::find($offer->hotel);
         $data['hotel_slug'] = $property ? $property->slug : 'offers';
+        $data['hotel_name'] = $property ? (is_array($property->name) ? ($property->name['en'] ?? '') : $property->name) : null;
+        $data['hotel_id'] = $property ? $property->id : null;
         
         $data['brand_logo'] = null;
         if ($property && $property->parent_id) {

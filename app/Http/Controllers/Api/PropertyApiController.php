@@ -43,6 +43,32 @@ class PropertyApiController extends Controller
     /**
      * Get all active brands and their active hotels for the global header.
      */
+        /**
+     * Get all active hotels.
+     */
+    public function getAllHotels(): JsonResponse
+    {
+        $hotels = Property::where('type', 'hotel')
+            ->where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->orderBy('id', 'asc')
+            ->get()
+            ->map(function ($hotel) {
+                $name = is_array($hotel->name) ? ($hotel->name['en'] ?? '') : $hotel->name;
+                return [
+                    'id' => $hotel->id,
+                    'name' => $name,
+                    'slug' => $hotel->slug,
+                    'brand_id' => $hotel->parent_id,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $hotels
+        ]);
+    }
+
     public function getBrandsAndHotels(): JsonResponse
     {
         $brands = Property::where('type', 'brand')
@@ -110,8 +136,13 @@ class PropertyApiController extends Controller
                 $bannerImage = url('/uploads/' . ltrim($bannerImage, '/'));
             }
 
+            $hotelProperty = $offer->hotel ? \App\Models\Property::find($offer->hotel) : null;
+            $hotelSlug = $hotelProperty ? $hotelProperty->slug : 'offers';
+
             return [
                 'id' => $offer->id,
+                'slug' => $offer->slug,
+                'hotel_slug' => $hotelSlug,
                 'name' => is_array($offer->name) ? ($offer->name['en'] ?? '') : $offer->name,
                 'description' => is_array($offer->description) ? ($offer->description['en'] ?? '') : $offer->description,
                 'discount_percentage' => $offer->discount_percentage,
@@ -171,10 +202,17 @@ class PropertyApiController extends Controller
             'star_rating' => $property->star_rating,
 
             // Brand-page location / contact fields
-            'google_location' => $property->google_location,
-            'location_title' => $property->location_title,
+            'latitude'            => $property->latitude ? (float) $property->latitude : null,
+            'longitude'           => $property->longitude ? (float) $property->longitude : null,
+            'address'             => $property->address,
+            'city'                => $property->city,
+            'country'             => $property->country,
+            'phone'               => $property->phone,
+            'email'               => $property->email,
+            'google_location'     => $property->google_location,
+            'location_title'      => $property->location_title,
             'contact_button_text' => $property->contact_button_text,
-            'contact_button_url' => $property->contact_button_url,
+            'contact_button_url'  => $property->contact_button_url,
 
             // Brand content section config
             'brand_content' => [
@@ -207,6 +245,8 @@ class PropertyApiController extends Controller
                     'address'              => $hotel->address,
                     'city'                 => $hotel->city,
                     'country'              => $hotel->country,
+                    'latitude'             => $hotel->latitude ? (float) $hotel->latitude : null,
+                    'longitude'            => $hotel->longitude ? (float) $hotel->longitude : null,
                     'phone'                => $hotel->phone,
                     'email'                => $hotel->email,
                     'travelclick_hotel_id' => $hotel->travelclick_hotel_id,
@@ -222,10 +262,23 @@ class PropertyApiController extends Controller
                 return [
                     'id' => $room->id,
                     'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
+                    'slug' => $room->slug,
                     'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
+                    'short_description' => is_array($room->short_description) ? ($room->short_description['en'] ?? '') : $room->short_description,
                     'size_sqm' => $room->size_sqm,
                     'bed_type' => $room->bed_type,
-                    'image' => $room->getFirstMediaUrl('gallery') ?: null,
+                    'image' => $room->getFirstMediaUrl('featured_image') ?: ($room->getFirstMediaUrl('gallery') ?: ($room->getFirstMediaUrl('additional_gallery') ?: null)),
+                    'gallery' => array_values(array_unique(array_filter(array_merge(
+                        $room->getMedia('featured_image')->map(fn($m) => $m->getUrl())->toArray(),
+                        $room->getMedia('additional_gallery')->map(fn($m) => $m->getUrl())->toArray(),
+                        $room->getMedia('gallery')->map(fn($m) => $m->getUrl())->toArray()
+                    )))),
+                    'starting_price' => $room->starting_price,
+                    'read_more_label' => $room->read_more_label,
+                    'read_more_link' => $room->read_more_link,
+                    'book_now_label' => $room->book_now_label,
+                    'book_now_link' => $room->book_now_link,
+                    'special_features' => $room->special_features,
                 ];
             })->toArray(),
 

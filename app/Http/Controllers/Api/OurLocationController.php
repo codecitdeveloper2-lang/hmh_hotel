@@ -14,17 +14,21 @@ class OurLocationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        // Get active locations ordered by display_order
-        $locations = OurLocation::where('featured_on_home', true)
+        // Get active locations ordered by display_order with destination relationship
+        $locations = OurLocation::with('destination')
+            ->where('featured_on_home', true)
             ->orderBy('display_order', 'asc')
             ->get();
 
-        // Transform the locations to include full image URLs
+        // Transform the locations to include full image URLs and destination_slug
         $transformed = $locations->map(function ($location) {
             $data = $location->toArray();
             if (!empty($data['home_image'])) {
                 // Since images are saved directly in public/uploads/
                 $data['home_image'] = url('/uploads/' . ltrim($data['home_image'], '/'));
+            }
+            if ($location->destination) {
+                $data['destination_slug'] = $location->destination->slug;
             }
             return $data;
         });

@@ -154,5 +154,16 @@ class Property extends Model implements HasMedia
         }
         return $name ?? '';
     }
+
+    protected static function booted()
+    {
+        static::saved(function ($property) {
+            \Illuminate\Support\Facades\Cache::flush();
+        });
+
+        static::deleted(function ($property) {
+            \Illuminate\Support\Facades\Cache::flush();
+        });
+    }
 }
 

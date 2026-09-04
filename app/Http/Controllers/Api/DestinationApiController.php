@@ -92,7 +92,12 @@ class DestinationApiController extends Controller
             // Build city image URL — stored as a relative path in city_image column
             $cityImageUrl = null;
             if ($city->city_image) {
-                $cityImageUrl = url('storage/' . ltrim($city->city_image, '/'));
+                $rawImage = str_replace('storage/', 'uploads/', $city->city_image);
+                if (str_starts_with($rawImage, 'http://') || str_starts_with($rawImage, 'https://')) {
+                    $cityImageUrl = $rawImage;
+                } else {
+                    $cityImageUrl = url('uploads/' . ltrim(str_replace('uploads/', '', ltrim($rawImage, '/')), '/'));
+                }
             }
 
             return [
@@ -134,6 +139,108 @@ class DestinationApiController extends Controller
                 ->toArray();
         }
 
+        // Matching hotels in this destination
+        $cityNames = $destination->cities->pluck('name')->toArray();
+        $hotels = \App\Models\Property::where('type', 'hotel')
+            ->where(function ($q) use ($destination, $cityNames) {
+                $q->where('country', $destination->country)
+                  ->orWhere('country', 'like', '%' . $destination->country . '%');
+                if (!empty($cityNames)) {
+                    $q->orWhereIn('city', $cityNames);
+                }
+            })
+            ->get()
+            ->map(function ($h) {
+                $hotelName = is_array($h->name) ? ($h->name['en'] ?? '') : $h->name;
+                $coverImage = $h->getFirstMediaUrl('cover_image')
+                    ?: ($h->cover_image ? url('uploads/' . ltrim($h->cover_image, '/')) : null);
+                return [
+                    'id'              => $h->id,
+                    'name'            => $hotelName,
+                    'slug'            => $h->slug,
+                    'cover_image'     => $coverImage,
+                    'latitude'        => $h->latitude ? (float) $h->latitude : null,
+                    'longitude'       => $h->longitude ? (float) $h->longitude : null,
+                    'address'         => $h->address,
+                    'city'            => $h->city,
+                    'country'         => $h->country,
+                    'phone'           => $h->phone,
+                    'email'           => $h->email,
+                    'google_location' => $h->google_location,
+                    'star_rating'     => $h->star_rating,
+                ];
+            })
+            ->values()
+            ->toArray();
+
+        // If no hotels found in this destination, provide fallback location from city or map_embed_code
+        if (empty($hotels)) {
+            $fallbackLat = null;
+            $fallbackLng = null;
+            $fallbackName = $destination->name;
+
+            // 1. Try city coordinates
+            foreach ($destination->cities as $city) {
+                if ($city->latitude && $city->longitude) {
+                    $fallbackLat = (float) $city->latitude;
+                    $fallbackLng = (float) $city->longitude;
+                    $fallbackName = $this->translated($city, 'name', $locale) ?: $city->name;
+                    break;
+                }
+            }
+
+            // 2. Try parsing from map_embed_code
+            if (!$fallbackLat && !empty($destination->map_embed_code)) {
+                foreach ($destination->map_embed_code as $embed) {
+                    $code = is_array($embed) ? ($embed['embed_code'] ?? '') : (string) $embed;
+                    if (preg_match('/!2d([-\d\.]+)!3d([-\d\.]+)/', $code, $matches)) {
+                        $fallbackLng = (float) $matches[1];
+                        $fallbackLat = (float) $matches[2];
+                        break;
+                    }
+                    if (preg_match('/[?&]q=([-\d\.]+),([-\d\.]+)/', $code, $matches)) {
+                        $fallbackLat = (float) $matches[1];
+                        $fallbackLng = (float) $matches[2];
+                        break;
+                    }
+                }
+            }
+
+            // 3. Known country coordinate fallbacks
+            if (!$fallbackLat) {
+                $knownCoords = [
+                    'sudan' => ['lat' => 15.5007, 'lng' => 32.5599, 'city' => 'Khartoum'],
+                ];
+                $slugKey = strtolower(trim($destination->slug, '/'));
+                if (isset($knownCoords[$slugKey])) {
+                    $fallbackLat = $knownCoords[$slugKey]['lat'];
+                    $fallbackLng = $knownCoords[$slugKey]['lng'];
+                    $fallbackName = $knownCoords[$slugKey]['city'];
+                }
+            }
+
+            if ($fallbackLat && $fallbackLng) {
+                $firstCity = $destination->cities->first();
+                $firstCityName = $firstCity ? ($this->translated($firstCity, 'name', $locale) ?: $firstCity->name) : $fallbackName;
+                $destName = $this->translated($destination, 'name', $locale) ?: $destination->name;
+                $hotels = [[
+                    'id'              => 9000 + $destination->id,
+                    'name'            => $firstCityName . ', ' . $destName,
+                    'slug'            => $destination->slug,
+                    'cover_image'     => $bannerImages[0] ?? null,
+                    'latitude'        => $fallbackLat,
+                    'longitude'       => $fallbackLng,
+                    'address'         => $firstCityName . ', ' . ($destination->country ?: $destName),
+                    'city'            => $firstCityName,
+                    'country'         => $destination->country ?: $destName,
+                    'phone'           => null,
+                    'email'           => null,
+                    'google_location' => "https://maps.google.com/?q={$fallbackLat},{$fallbackLng}",
+                    'star_rating'     => null,
+                ]];
+            }
+        }
+
         return [
             'id' => $destination->id,
             'slug' => $destination->slug,
@@ -145,6 +252,7 @@ class DestinationApiController extends Controller
             'banner_images' => $bannerImages,
             'map_embeds' => $mapEmbeds,
             'cities' => $cities,
+            'hotels' => $hotels,
             'seo' => $seo,
         ];
     }

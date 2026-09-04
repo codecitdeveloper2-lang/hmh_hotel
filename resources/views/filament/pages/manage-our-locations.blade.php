@@ -28,6 +28,10 @@
             </x-filament::section>
         </div>
 
+        @php
+            $destinationsMap = \App\Models\Destination::all()->pluck('name', 'id')->toArray();
+        @endphp
+
         <!-- Filters & Search -->
         <x-filament::section>
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;">
@@ -40,12 +44,18 @@
                         />
                     </x-filament::input.wrapper>
                 </div>
+                <div style="width: 220px;">
+                    <x-filament::input.wrapper>
+                        <x-filament::input.select wire:model.live="filterDestination">
+                            <option value="">All Destinations</option>
+                            @foreach($destinationsMap as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </x-filament::input.select>
+                    </x-filament::input.wrapper>
+                </div>
             </div>
         </x-filament::section>
-
-        @php
-            $destinationsMap = \App\Models\Destination::pluck('name', 'id')->toArray();
-        @endphp
 
         <!-- Table -->
         <x-filament::section>

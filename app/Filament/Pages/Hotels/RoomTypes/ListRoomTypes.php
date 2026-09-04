@@ -7,6 +7,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Repeater;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Grid;
 use Filament\Notifications\Notification;
@@ -129,6 +130,7 @@ class ListRoomTypes extends Page
                 return [
                     'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
                     'slug' => $room->slug,
+                    'short_description' => is_array($room->short_description) ? ($room->short_description['en'] ?? '') : $room->short_description,
                     'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
                     'status' => $room->is_active ? 'active' : 'inactive',
                     'meta_title' => is_array($room->meta_title) ? ($room->meta_title['en'] ?? '') : $room->meta_title,
@@ -153,6 +155,7 @@ class ListRoomTypes extends Page
                 return [
                     'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
                     'slug' => $room->slug,
+                    'short_description' => is_array($room->short_description) ? ($room->short_description['en'] ?? '') : $room->short_description,
                     'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
                     'status' => $room->is_active ? 'active' : 'inactive',
                     'meta_title' => is_array($room->meta_title) ? ($room->meta_title['en'] ?? '') : $room->meta_title,
@@ -201,6 +204,10 @@ class ListRoomTypes extends Page
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),
+                            Textarea::make('short_description')
+                                ->label('Short Description')
+                                ->rows(3)
+                                ->helperText('Displayed in the accommodation section on the hotel page.'),
                             \App\Filament\Forms\Components\JoditEditor::make('description')
                                 ->label('Description'),
                             Select::make('status')
@@ -213,15 +220,51 @@ class ListRoomTypes extends Page
                                 ->required(),
                         ]),
                         
+                    Section::make('Room Specifications')
+                        ->schema([
+                            Grid::make(3)->schema([
+                                TextInput::make('starting_price')
+                                    ->label('Starting Price')
+                                    ->placeholder('e.g., FROM AED 332.50'),
+                                TextInput::make('room_area')
+                                    ->label('Room Area')
+                                    ->placeholder('e.g., 27 m²'),
+                                TextInput::make('bed_type')
+                                    ->label('Bed Type')
+                                    ->placeholder('e.g., King Bed'),
+                            ]),
+                        ]),
+
+                    Section::make('Special Features')
+                        ->schema([
+                            Repeater::make('special_features')
+                                ->label('Features')
+                                ->schema([
+                                    TextInput::make('icon')
+                                        ->label('Icon (e.g. heroicon-o-wifi)'),
+                                    TextInput::make('feature_name')
+                                        ->label('Feature Name')
+                                        ->required(),
+                                ])
+                                ->columns(2)
+                                ->defaultItems(1)
+                                ->collapsible()
+                                ->cloneable(),
+                        ]),
+                        
                     Section::make('Card / Listing Details')
                         ->schema([
-
                             Grid::make(2)->schema([
                                 TextInput::make('read_more_label')
                                     ->label('Read More Label')
                                     ->default('READ MORE'),
                                 TextInput::make('read_more_link')
                                     ->label('Read More Link (Optional)'),
+                                TextInput::make('book_now_label')
+                                    ->label('Book Now Label')
+                                    ->default('BOOK NOW'),
+                                TextInput::make('book_now_link')
+                                    ->label('Book Now Link (Optional)'),
                             ]),
                         ]),
                         
@@ -237,6 +280,14 @@ class ListRoomTypes extends Page
                                 ->image()
                                 ->multiple()
                                 ->panelLayout('grid'),
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('additional_gallery')
+                                ->disk('uploads')
+                                ->collection('additional_gallery')
+                                ->label('Additional Room Gallery')
+                                ->image()
+                                ->multiple()
+                                ->panelLayout('grid')
+                                ->helperText('Additional images specific to the room gallery/slider.'),
                         ]),
                 ])->columnSpan(1),
             ]),
