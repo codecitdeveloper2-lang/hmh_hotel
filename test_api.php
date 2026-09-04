@@ -1,1 +1,0 @@
-<?php try { $controller = new \App\Http\Controllers\Api\DestinationApiController(); $request = new \Illuminate\Http\Request(); $res = $controller->index($request); echo 'SUCCESS'; } catch (\Throwable $e) { echo 'ERROR: ' . $e->getMessage() . ' ' . $e->getFile() . ':' . $e->getLine(); }
