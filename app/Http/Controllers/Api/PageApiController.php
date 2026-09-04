@@ -46,7 +46,15 @@ class PageApiController extends Controller
             "pages:show:{$slug}:{$locale}",
             $this->cacheTtl(),
             function () use ($locale, $slug) {
-                $page = Page::where('slug', $slug)
+                $slugs = ($slug === 'terms-and-conditions' || $slug === 'terms-conditions') 
+                    ? ['terms-conditions', 'terms-and-conditions'] 
+                    : ($slug === 'privacy-policy' || $slug === 'privacy-statement' 
+                        ? ['privacy-policy', 'privacy-statement'] 
+                        : ($slug === 'brands' || $slug === 'our-brands'
+                            ? ['our-brands', 'brands']
+                            : [$slug]));
+
+                $page = Page::whereIn('slug', $slugs)
                     ->where('is_active', true)
                     ->whereNull('property_id')
                     ->firstOrFail();

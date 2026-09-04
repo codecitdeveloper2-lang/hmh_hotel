@@ -93,6 +93,10 @@ class ManageOurLocations extends Page
             $query->where('city_name', 'like', '%' . $this->searchQuery . '%');
         }
         
+        if (!empty($this->filterDestination)) {
+            $query->where('destination_id', $this->filterDestination);
+        }
+        
         $totalItems  = $query->count();
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
@@ -182,8 +186,6 @@ class ManageOurLocations extends Page
 
     public static function getLocationFormSchema(): array
     {
-        $destinations = \App\Models\Destination::pluck('name', 'id')->toArray();
-
         return [
             Grid::make(3)->schema([
                 Grid::make(1)->schema([
@@ -194,7 +196,8 @@ class ManageOurLocations extends Page
                                 ->required(),
                             Select::make('destination_id')
                                 ->label('Destination')
-                                ->options($destinations)
+                                ->options(fn () => \App\Models\Destination::all()->pluck('name', 'id')->toArray())
+                                ->searchable()
                                 ->nullable(),
                             Textarea::make('home_teaser')
                                 ->label('Home Teaser')

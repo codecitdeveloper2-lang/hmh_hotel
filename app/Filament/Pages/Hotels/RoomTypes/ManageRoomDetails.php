@@ -8,6 +8,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 
@@ -36,6 +37,7 @@ class ManageRoomDetails extends Page implements HasForms
         if ($room) {
             $this->form->fill([
                 'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
+                'short_description' => is_array($room->short_description) ? ($room->short_description['en'] ?? '') : $room->short_description,
                 'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
                 'starting_price' => $room->starting_price ?? '',
                 'room_area' => $room->size_sqm ? $room->size_sqm . ' m²' : '',
@@ -59,6 +61,10 @@ class ManageRoomDetails extends Page implements HasForms
                             TextInput::make('name')
                                 ->label('Room Title')
                                 ->required(),
+                            Textarea::make('short_description')
+                                ->label('Short Description')
+                                ->rows(3)
+                                ->helperText('Displayed in the accommodation section on the hotel page.'),
                             \App\Filament\Forms\Components\JoditEditor::make('description')
                                 ->label('Description'),
                         ]),
@@ -127,6 +133,9 @@ class ManageRoomDetails extends Page implements HasForms
             $existingName = is_array($room->name) ? $room->name : ['en' => $room->name];
             $existingName['en'] = $data['name'] ?? ($existingName['en'] ?? '');
 
+            $existingShortDesc = is_array($room->short_description) ? $room->short_description : ['en' => $room->short_description];
+            $existingShortDesc['en'] = $data['short_description'] ?? ($existingShortDesc['en'] ?? '');
+
             $existingDesc = is_array($room->description) ? $room->description : ['en' => $room->description];
             $existingDesc['en'] = $data['description'] ?? ($existingDesc['en'] ?? '');
 
@@ -141,6 +150,7 @@ class ManageRoomDetails extends Page implements HasForms
 
             $room->update([
                 'name' => $existingName,
+                'short_description' => $existingShortDesc,
                 'description' => $existingDesc,
                 'starting_price' => $data['starting_price'] ?? null,
                 'size_sqm' => $sizeSqm,

@@ -17,10 +17,10 @@ class RoomType extends Model implements HasMedia
 
     protected $table = 'room_types';
 
-    protected $translatable = ['name', 'description', 'meta_title', 'meta_description'];
+    protected $translatable = ['name', 'description', 'short_description', 'meta_title', 'meta_description'];
 
     protected $fillable = [
-        'property_id', 'name', 'description', 'slug',
+        'property_id', 'name', 'description', 'short_description', 'slug',
         'size_sqm', 'bed_type', 'travelclick_roomtype_id', 'is_active', 'sort_order',
         'meta_title', 'meta_description',
         'read_more_label', 'read_more_link', 'book_now_label', 'book_now_link',

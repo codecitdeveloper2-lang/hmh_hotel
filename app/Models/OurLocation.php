@@ -22,4 +22,10 @@ class OurLocation extends Model
         'featured_on_home' => 'boolean',
         'display_order' => 'integer',
     ];
+
+    public function destination(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Destination::class);
+    }
 }
+
