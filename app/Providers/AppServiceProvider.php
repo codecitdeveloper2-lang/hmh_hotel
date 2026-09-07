@@ -26,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.env') === 'production' || str_starts_with(config('app.url', ''), 'https://') || request()->header('X-Forwarded-Proto') === 'https') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Auth::provider('static', function ($app, array $config) {
             return new StaticUserProvider();
         });

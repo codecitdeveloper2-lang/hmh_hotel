@@ -283,12 +283,25 @@ class PropertyApiController extends Controller
             })->toArray(),
 
             'dining_outlets' => $property->diningOutlets->map(function ($dining) {
+                $gallery = $dining->getMedia('dining_gallery')->map(fn($m) => $m->getUrl())->toArray();
+                if (empty($gallery) && $dining->getFirstMediaUrl('featured_image')) {
+                    $gallery = [$dining->getFirstMediaUrl('featured_image')];
+                }
                 return [
                     'id' => $dining->id,
                     'name' => is_array($dining->name) ? ($dining->name['en'] ?? '') : $dining->name,
+                    'slug' => $dining->slug,
                     'description' => is_array($dining->description) ? ($dining->description['en'] ?? '') : $dining->description,
-                    'cuisine_type' => $dining->cuisine_type,
+                    'cuisine_type' => is_array($dining->cuisine_type) ? ($dining->cuisine_type['en'] ?? '') : $dining->cuisine_type,
+                    'opening_hours' => is_array($dining->opening_hours) ? ($dining->opening_hours['en'] ?? '') : $dining->opening_hours,
                     'image' => $dining->getFirstMediaUrl('featured_image') ?: null,
+                    'gallery' => $gallery,
+                    'read_more_label' => $dining->read_more_label ?: 'READ MORE',
+                    'read_more_link' => $dining->read_more_link,
+                    'contact_details' => $dining->contact_details,
+                    'book_table_label' => $dining->book_table_label ?: 'BOOK A TABLE',
+                    'book_table_link' => $dining->book_table_link,
+                    'has_table_booking' => (bool)$dining->has_table_booking,
                 ];
             })->toArray(),
 
@@ -372,5 +385,71 @@ class PropertyApiController extends Controller
             // Build URL using the uploads disk base URL
             return url('uploads/' . ltrim($img, '/'));
         }, $raw)));
+    }
+
+    /**
+     * Get single dining outlet details with hotel context and sibling outlets.
+     */
+    public function getDiningDetails(string $hotelSlug, string $diningSlug)
+    {
+        $property = Property::where('slug', $hotelSlug)->first();
+        if (!$property) {
+            return response()->json(['error' => 'Hotel not found'], 404);
+        }
+
+        $dining = \App\Models\DiningOutlet::where('property_id', $property->id)
+            ->where(function ($q) use ($diningSlug) {
+                $q->where('slug', $diningSlug);
+                if (is_numeric($diningSlug)) {
+                    $q->orWhere('id', (int)$diningSlug);
+                }
+            })
+            ->first();
+
+        if (!$dining) {
+            return response()->json(['error' => 'Dining outlet not found'], 404);
+        }
+
+        $allOutlets = $property->diningOutlets()->where('is_active', true)->orderBy('sort_order')->get();
+        $gallery = $dining->getMedia('dining_gallery')->map(fn($m) => $m->getUrl())->toArray();
+        if (empty($gallery) && $dining->getFirstMediaUrl('featured_image')) {
+            $gallery = [$dining->getFirstMediaUrl('featured_image')];
+        }
+
+        $formattedDining = [
+            'id' => $dining->id,
+            'name' => is_array($dining->name) ? ($dining->name['en'] ?? '') : $dining->name,
+            'slug' => $dining->slug,
+            'description' => is_array($dining->description) ? ($dining->description['en'] ?? '') : $dining->description,
+            'cuisine_type' => is_array($dining->cuisine_type) ? ($dining->cuisine_type['en'] ?? '') : $dining->cuisine_type,
+            'opening_hours' => is_array($dining->opening_hours) ? ($dining->opening_hours['en'] ?? '') : $dining->opening_hours,
+            'image' => $dining->getFirstMediaUrl('featured_image') ?: null,
+            'gallery' => $gallery,
+            'read_more_label' => $dining->read_more_label ?: 'READ MORE',
+            'read_more_link' => $dining->read_more_link,
+            'contact_details' => $dining->contact_details,
+            'book_table_label' => $dining->book_table_label ?: 'BOOK A TABLE',
+            'book_table_link' => $dining->book_table_link,
+            'has_table_booking' => (bool)$dining->has_table_booking,
+        ];
+
+        return response()->json([
+            'hotel' => [
+                'id' => $property->id,
+                'name' => is_array($property->name) ? ($property->name['en'] ?? '') : $property->name,
+                'slug' => $property->slug,
+                'logo' => $property->getFirstMediaUrl('logo') ?: ($property->logo ? url('uploads/' . ltrim($property->logo, '/')) : null),
+                'phone' => $property->phone,
+                'email' => $property->email,
+            ],
+            'dining' => $formattedDining,
+            'other_outlets' => $allOutlets->where('id', '!=', $dining->id)->map(fn($d) => [
+                'id' => $d->id,
+                'name' => is_array($d->name) ? ($d->name['en'] ?? '') : $d->name,
+                'slug' => $d->slug,
+                'cuisine_type' => is_array($d->cuisine_type) ? ($d->cuisine_type['en'] ?? '') : $d->cuisine_type,
+                'image' => $d->getFirstMediaUrl('featured_image') ?: null,
+            ])->values()->toArray(),
+        ]);
     }
 }
