@@ -238,8 +238,17 @@ class ListDiningOutlets extends Page
                             \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('featured_image')
                                 ->disk('uploads')
                                 ->collection('featured_image')
-                                ->label('Image Upload')
+                                ->label('Featured Image')
                                 ->image(),
+                            \Filament\Forms\Components\SpatieMediaLibraryFileUpload::make('dining_gallery')
+                                ->disk('uploads')
+                                ->collection('dining_gallery')
+                                ->label('Banner Slide / Gallery Images')
+                                ->multiple()
+                                ->image()
+                                ->reorderable()
+                                ->panelLayout('grid')
+                                ->helperText('Banner slider and gallery images for this dining outlet.'),
                         ]),
                 ])->columnSpan(1),
             ]),
