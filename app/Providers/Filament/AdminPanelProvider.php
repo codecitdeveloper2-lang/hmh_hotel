@@ -24,7 +24,7 @@ class AdminPanelProvider extends PanelProvider
         return $panel
             ->default()
             ->id('admin')
-            ->path('/') // set path to root to act as dashboard
+            ->path('')
             ->login() // Re-enabled login page
             ->brandName('HMH Hotel Group CMS')
             ->colors([
