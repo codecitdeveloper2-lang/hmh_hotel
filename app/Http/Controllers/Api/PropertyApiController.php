@@ -28,6 +28,7 @@ class PropertyApiController extends Controller
             },
             'children.amenities',
             'children.roomTypes',
+            'children.diningOutlets',
             'children.offers',
         ])->where('slug', $slug)->first();
 
@@ -254,76 +255,184 @@ class PropertyApiController extends Controller
                     'google_location'      => $hotel->google_location,
                     'star_rating'          => $hotel->star_rating,
                     'sort_order'           => $hotel->sort_order,
+                    'room_types'           => $hotel->roomTypes->map(fn($room) => $this->formatRoomType($room, $hotel))->values()->toArray(),
                 ];
             })->toArray(),
 
             // Format Relations
-            'room_types' => $property->roomTypes->map(function ($room) {
-                return [
-                    'id' => $room->id,
-                    'name' => is_array($room->name) ? ($room->name['en'] ?? '') : $room->name,
-                    'slug' => $room->slug,
-                    'description' => is_array($room->description) ? ($room->description['en'] ?? '') : $room->description,
-                    'short_description' => is_array($room->short_description) ? ($room->short_description['en'] ?? '') : $room->short_description,
-                    'size_sqm' => $room->size_sqm,
-                    'bed_type' => $room->bed_type,
-                    'image' => $room->getFirstMediaUrl('featured_image') ?: ($room->getFirstMediaUrl('gallery') ?: ($room->getFirstMediaUrl('additional_gallery') ?: null)),
-                    'gallery' => array_values(array_unique(array_filter(array_merge(
-                        $room->getMedia('featured_image')->map(fn($m) => $m->getUrl())->toArray(),
-                        $room->getMedia('additional_gallery')->map(fn($m) => $m->getUrl())->toArray(),
-                        $room->getMedia('gallery')->map(fn($m) => $m->getUrl())->toArray()
-                    )))),
-                    'starting_price' => $room->starting_price,
-                    'read_more_label' => $room->read_more_label,
-                    'read_more_link' => $room->read_more_link,
-                    'book_now_label' => $room->book_now_label,
-                    'book_now_link' => $room->book_now_link,
-                    'special_features' => $room->special_features,
-                ];
-            })->toArray(),
+            'room_types' => $this->resolveRoomTypes($property),
 
-            'dining_outlets' => $property->diningOutlets->map(function ($dining) {
-                $gallery = $dining->getMedia('dining_gallery')->map(fn($m) => $m->getUrl())->toArray();
-                if (empty($gallery) && $dining->getFirstMediaUrl('featured_image')) {
-                    $gallery = [$dining->getFirstMediaUrl('featured_image')];
-                }
-                return [
-                    'id' => $dining->id,
-                    'name' => is_array($dining->name) ? ($dining->name['en'] ?? '') : $dining->name,
-                    'slug' => $dining->slug,
-                    'description' => is_array($dining->description) ? ($dining->description['en'] ?? '') : $dining->description,
-                    'cuisine_type' => is_array($dining->cuisine_type) ? ($dining->cuisine_type['en'] ?? '') : $dining->cuisine_type,
-                    'opening_hours' => is_array($dining->opening_hours) ? ($dining->opening_hours['en'] ?? '') : $dining->opening_hours,
-                    'image' => $dining->getFirstMediaUrl('featured_image') ?: null,
-                    'gallery' => $gallery,
-                    'read_more_label' => $dining->read_more_label ?: 'READ MORE',
-                    'read_more_link' => $dining->read_more_link,
-                    'contact_details' => $dining->contact_details,
-                    'book_table_label' => $dining->book_table_label ?: 'BOOK A TABLE',
-                    'book_table_link' => $dining->book_table_link,
-                    'has_table_booking' => (bool)$dining->has_table_booking,
-                ];
-            })->toArray(),
+            'dining_outlets' => $this->resolveDiningOutlets($property),
 
             'amenities' => $property->amenities->map(function ($amenity) {
+                $amenitiesList = is_string($amenity->amenities_list)
+                    ? json_decode($amenity->amenities_list, true)
+                    : ($amenity->amenities_list ?? []);
+
+                $formattedList = collect($amenitiesList ?? [])->map(function ($item) use ($amenity) {
+                    $icon = $item['icon'] ?? null;
+                    if ($icon && !str_starts_with($icon, 'http://') && !str_starts_with($icon, 'https://')) {
+                        $icon = url('uploads/' . ltrim($icon, '/'));
+                    }
+                    return [
+                        'name' => $item['name'] ?? '',
+                        'description' => $item['description'] ?? '',
+                        'icon' => $icon,
+                        'image' => $icon,
+                        'button_label' => $item['button_label'] ?? 'Call Us',
+                        'button_link' => $item['button_link'] ?? ($amenity->call_us_no ? 'tel:' . preg_replace('/[^\d+]/', '', $amenity->call_us_no) : null),
+                    ];
+                })->values()->toArray();
+
+                $gallery = collect(is_string($amenity->gallery) ? json_decode($amenity->gallery, true) : ($amenity->gallery ?? []))->map(function ($img) {
+                    if ($img && !str_starts_with($img, 'http://') && !str_starts_with($img, 'https://')) {
+                        return url('uploads/' . ltrim($img, '/'));
+                    }
+                    return $img;
+                })->filter()->values()->toArray();
+
                 return [
                     'id' => $amenity->id,
                     'title' => is_array($amenity->title) ? ($amenity->title['en'] ?? '') : $amenity->title,
+                    'subtitle' => is_array($amenity->subtitle) ? ($amenity->subtitle['en'] ?? '') : ($amenity->subtitle ?: 'Facilities'),
+                    'description' => $amenity->description,
                     'category' => $amenity->category,
-                    'image' => $amenity->getFirstMediaUrl('featured_image') ?: null,
+                    'read_more_label' => $amenity->read_more_label,
+                    'read_more_link' => $amenity->read_more_link,
+                    'call_us_no' => $amenity->call_us_no,
+                    'amenities_list' => $formattedList,
+                    'gallery' => $gallery,
+                    'image' => $amenity->getFirstMediaUrl('featured_image') ?: ($gallery[0] ?? null),
                 ];
             })->toArray(),
 
             'attractions' => $property->attractions->map(function ($attr) {
+                $featuredImage = $attr->getFirstMediaUrl('featured_image') ?: null;
+                $gallery = $attr->getMedia('attraction_gallery')->map(fn($m) => $m->getUrl())->toArray();
+                if (empty($gallery) && $featuredImage) {
+                    $gallery = [$featuredImage];
+                }
+
                 return [
                     'id' => $attr->id,
                     'name' => is_array($attr->name) ? ($attr->name['en'] ?? '') : $attr->name,
+                    'slug' => $attr->slug,
+                    'category' => $attr->category,
+                    'distance_from_hotel' => $attr->distance_from_hotel,
                     'description' => is_array($attr->description) ? ($attr->description['en'] ?? '') : $attr->description,
-                    'image' => $attr->getFirstMediaUrl('featured_image') ?: null,
+                    'address' => $attr->address,
+                    'latitude' => $attr->latitude ? (float) $attr->latitude : null,
+                    'longitude' => $attr->longitude ? (float) $attr->longitude : null,
+                    'google_maps_url' => $attr->google_maps_url,
+                    'image' => $featuredImage,
+                    'gallery' => $gallery,
                 ];
             })->toArray(),
 
             'offers' => $this->getBrandOffers($property),
+        ];
+    }
+
+    private function resolveDiningOutlets(Property $property): array
+    {
+        if ($property->type === 'brand') {
+            $allDining = collect();
+            foreach ($property->children as $child) {
+                foreach ($child->diningOutlets()->where('is_active', true)->orderBy('sort_order')->get() as $dining) {
+                    $allDining->push($this->formatDiningOutlet($dining, $child));
+                }
+            }
+            return $allDining->values()->toArray();
+        }
+
+        return $property->diningOutlets()->where('is_active', true)->orderBy('sort_order')->get()->map(fn($dining) => $this->formatDiningOutlet($dining, $property))->values()->toArray();
+    }
+
+    private function formatDiningOutlet($dining, $hotel = null): array
+    {
+        $gallery = $dining->getMedia('dining_gallery')->map(fn($m) => $m->getUrl())->toArray();
+        if (empty($gallery) && $dining->getFirstMediaUrl('featured_image')) {
+            $gallery = [$dining->getFirstMediaUrl('featured_image')];
+        }
+
+        $hotelName = $hotel ? (is_array($hotel->name) ? ($hotel->name['en'] ?? '') : $hotel->name) : null;
+
+        return [
+            'id' => $dining->id,
+            'hotel_id' => $hotel?->id ?? $dining->property_id,
+            'hotel_name' => $hotelName,
+            'hotel_slug' => $hotel?->slug,
+            'name' => is_array($dining->name) ? ($dining->name['en'] ?? '') : $dining->name,
+            'slug' => $dining->slug,
+            'description' => is_array($dining->description) ? ($dining->description['en'] ?? '') : $dining->description,
+            'cuisine_type' => is_array($dining->cuisine_type) ? ($dining->cuisine_type['en'] ?? '') : $dining->cuisine_type,
+            'opening_hours' => is_array($dining->opening_hours) ? ($dining->opening_hours['en'] ?? '') : $dining->opening_hours,
+            'image' => $dining->getFirstMediaUrl('featured_image') ?: null,
+            'gallery' => $gallery,
+            'read_more_label' => $dining->read_more_label ?: 'READ MORE',
+            'read_more_link' => $dining->read_more_link,
+            'contact_details' => $dining->contact_details,
+            'book_table_label' => $dining->book_table_label ?: 'BOOK A TABLE',
+            'book_table_link' => $dining->book_table_link,
+            'has_table_booking' => (bool)$dining->has_table_booking,
+        ];
+    }
+
+    private function resolveRoomTypes(Property $property): array
+    {
+        if ($property->type === 'brand') {
+            $allRooms = collect();
+            foreach ($property->children as $child) {
+                foreach ($child->roomTypes as $room) {
+                    $allRooms->push($this->formatRoomType($room, $child));
+                }
+            }
+            return $allRooms->values()->toArray();
+        }
+
+        return $property->roomTypes->map(fn($room) => $this->formatRoomType($room, $property))->values()->toArray();
+    }
+
+    private function formatRoomType($room, $hotel = null): array
+    {
+        $roomName = is_array($room->name) ? ($room->name['en'] ?? '') : $room->name;
+        $description = is_array($room->description) ? ($room->description['en'] ?? '') : $room->description;
+        $shortDescription = is_array($room->short_description) ? ($room->short_description['en'] ?? '') : $room->short_description;
+
+        $gallery = array_values(array_unique(array_filter(array_merge(
+            $room->getMedia('featured_image')->map(fn($m) => $m->getUrl())->toArray(),
+            $room->getMedia('additional_gallery')->map(fn($m) => $m->getUrl())->toArray(),
+            $room->getMedia('gallery')->map(fn($m) => $m->getUrl())->toArray()
+        ))));
+
+        $image = $room->getFirstMediaUrl('featured_image')
+            ?: ($room->getFirstMediaUrl('gallery')
+            ?: ($room->getFirstMediaUrl('additional_gallery')
+            ?: ($gallery[0] ?? null)));
+
+        $hotelName = $hotel ? (is_array($hotel->name) ? ($hotel->name['en'] ?? '') : $hotel->name) : null;
+
+        return [
+            'id' => $room->id,
+            'hotel_id' => $hotel?->id ?? $room->property_id,
+            'hotel_name' => $hotelName,
+            'hotel_slug' => $hotel?->slug,
+            'hotel_city' => $hotel?->city,
+            'hotel_country' => $hotel?->country,
+            'name' => $roomName,
+            'slug' => $room->slug,
+            'description' => $description,
+            'short_description' => $shortDescription,
+            'size_sqm' => $room->size_sqm,
+            'bed_type' => $room->bed_type,
+            'image' => $image,
+            'gallery' => $gallery,
+            'starting_price' => $room->starting_price,
+            'read_more_label' => $room->read_more_label ?: 'DISCOVER MORE',
+            'read_more_link' => $room->read_more_link,
+            'book_now_label' => $room->book_now_label ?: 'BOOK NOW',
+            'book_now_link' => $room->book_now_link,
+            'special_features' => $room->special_features,
         ];
     }
 
@@ -397,7 +506,12 @@ class PropertyApiController extends Controller
             return response()->json(['error' => 'Hotel not found'], 404);
         }
 
-        $dining = \App\Models\DiningOutlet::where('property_id', $property->id)
+        $propertyIds = [$property->id];
+        if ($property->type === 'brand') {
+            $propertyIds = array_merge($propertyIds, $property->children->pluck('id')->toArray());
+        }
+
+        $dining = \App\Models\DiningOutlet::whereIn('property_id', $propertyIds)
             ->where(function ($q) use ($diningSlug) {
                 $q->where('slug', $diningSlug);
                 if (is_numeric($diningSlug)) {
@@ -410,7 +524,8 @@ class PropertyApiController extends Controller
             return response()->json(['error' => 'Dining outlet not found'], 404);
         }
 
-        $allOutlets = $property->diningOutlets()->where('is_active', true)->orderBy('sort_order')->get();
+        $outletProperty = $dining->property_id === $property->id ? $property : (Property::find($dining->property_id) ?? $property);
+        $allOutlets = $outletProperty->diningOutlets()->where('is_active', true)->orderBy('sort_order')->get();
         $gallery = $dining->getMedia('dining_gallery')->map(fn($m) => $m->getUrl())->toArray();
         if (empty($gallery) && $dining->getFirstMediaUrl('featured_image')) {
             $gallery = [$dining->getFirstMediaUrl('featured_image')];
@@ -418,6 +533,9 @@ class PropertyApiController extends Controller
 
         $formattedDining = [
             'id' => $dining->id,
+            'hotel_id' => $outletProperty->id,
+            'hotel_name' => is_array($outletProperty->name) ? ($outletProperty->name['en'] ?? '') : $outletProperty->name,
+            'hotel_slug' => $outletProperty->slug,
             'name' => is_array($dining->name) ? ($dining->name['en'] ?? '') : $dining->name,
             'slug' => $dining->slug,
             'description' => is_array($dining->description) ? ($dining->description['en'] ?? '') : $dining->description,
@@ -435,12 +553,12 @@ class PropertyApiController extends Controller
 
         return response()->json([
             'hotel' => [
-                'id' => $property->id,
-                'name' => is_array($property->name) ? ($property->name['en'] ?? '') : $property->name,
-                'slug' => $property->slug,
-                'logo' => $property->getFirstMediaUrl('logo') ?: ($property->logo ? url('uploads/' . ltrim($property->logo, '/')) : null),
-                'phone' => $property->phone,
-                'email' => $property->email,
+                'id' => $outletProperty->id,
+                'name' => is_array($outletProperty->name) ? ($outletProperty->name['en'] ?? '') : $outletProperty->name,
+                'slug' => $outletProperty->slug,
+                'logo' => $outletProperty->getFirstMediaUrl('logo') ?: ($outletProperty->logo ? url('uploads/' . ltrim($outletProperty->logo, '/')) : null),
+                'phone' => $outletProperty->phone,
+                'email' => $outletProperty->email,
             ],
             'dining' => $formattedDining,
             'other_outlets' => $allOutlets->where('id', '!=', $dining->id)->map(fn($d) => [
@@ -449,6 +567,90 @@ class PropertyApiController extends Controller
                 'slug' => $d->slug,
                 'cuisine_type' => is_array($d->cuisine_type) ? ($d->cuisine_type['en'] ?? '') : $d->cuisine_type,
                 'image' => $d->getFirstMediaUrl('featured_image') ?: null,
+            ])->values()->toArray(),
+        ]);
+    }
+
+    /**
+     * Get single attraction details with hotel context and sibling attractions for navigation.
+     */
+    public function getAttractionDetails(string $hotelSlug, string $attractionSlug)
+    {
+        $property = Property::where('slug', $hotelSlug)->first();
+        if (!$property) {
+            return response()->json(['error' => 'Hotel not found'], 404);
+        }
+
+        $propertyIds = [$property->id];
+        if ($property->type === 'brand') {
+            $propertyIds = array_merge($propertyIds, $property->children->pluck('id')->toArray());
+        }
+
+        $attraction = \App\Models\Attraction::whereIn('property_id', $propertyIds)
+            ->where(function ($q) use ($attractionSlug) {
+                $q->where('slug', $attractionSlug);
+                if (is_numeric($attractionSlug)) {
+                    $q->orWhere('id', (int)$attractionSlug);
+                }
+            })
+            ->first();
+
+        if (!$attraction) {
+            return response()->json(['error' => 'Attraction not found'], 404);
+        }
+
+        $attrProperty = $attraction->property_id === $property->id ? $property : (Property::find($attraction->property_id) ?? $property);
+        $allAttractions = $attrProperty->attractions()->where('is_active', true)->orderBy('sort_order')->orderBy('id')->get();
+
+        $featuredImage = $attraction->getFirstMediaUrl('featured_image') ?: null;
+        $gallery = $attraction->getMedia('attraction_gallery')->map(fn($m) => $m->getUrl())->toArray();
+        if (empty($gallery) && $featuredImage) {
+            $gallery = [$featuredImage];
+        }
+
+        $formattedAttraction = [
+            'id' => $attraction->id,
+            'hotel_id' => $attrProperty->id,
+            'hotel_name' => is_array($attrProperty->name) ? ($attrProperty->name['en'] ?? '') : $attrProperty->name,
+            'hotel_slug' => $attrProperty->slug,
+            'name' => is_array($attraction->name) ? ($attraction->name['en'] ?? '') : $attraction->name,
+            'slug' => $attraction->slug,
+            'category' => $attraction->category,
+            'distance_from_hotel' => $attraction->distance_from_hotel,
+            'description' => is_array($attraction->description) ? ($attraction->description['en'] ?? '') : $attraction->description,
+            'address' => $attraction->address,
+            'latitude' => $attraction->latitude ? (float) $attraction->latitude : null,
+            'longitude' => $attraction->longitude ? (float) $attraction->longitude : null,
+            'google_maps_url' => $attraction->google_maps_url,
+            'image' => $featuredImage,
+            'gallery' => $gallery,
+            'read_more_label' => $attraction->read_more_label ?: 'READ MORE',
+            'read_more_link' => $attraction->read_more_link,
+        ];
+
+        return response()->json([
+            'hotel' => [
+                'id' => $attrProperty->id,
+                'name' => is_array($attrProperty->name) ? ($attrProperty->name['en'] ?? '') : $attrProperty->name,
+                'slug' => $attrProperty->slug,
+                'logo' => $attrProperty->getFirstMediaUrl('logo') ?: ($attrProperty->logo ? url('uploads/' . ltrim($attrProperty->logo, '/')) : null),
+                'footer_logo' => $attrProperty->footer_logo ? url('uploads/' . ltrim($attrProperty->footer_logo, '/')) : null,
+                'phone' => $attrProperty->phone,
+                'email' => $attrProperty->email,
+                'address' => $attrProperty->address,
+            ],
+            'attraction' => $formattedAttraction,
+            'all_attractions' => $allAttractions->map(fn($a) => [
+                'id' => $a->id,
+                'name' => is_array($a->name) ? ($a->name['en'] ?? '') : $a->name,
+                'slug' => $a->slug,
+                'category' => $a->category,
+                'distance_from_hotel' => $a->distance_from_hotel,
+                'description' => is_array($a->description) ? ($a->description['en'] ?? '') : $a->description,
+                'address' => $a->address,
+                'latitude' => $a->latitude ? (float) $a->latitude : null,
+                'longitude' => $a->longitude ? (float) $a->longitude : null,
+                'image' => $a->getFirstMediaUrl('featured_image') ?: null,
             ])->values()->toArray(),
         ]);
     }

@@ -46,6 +46,7 @@ Route::prefix('properties')->group(function () {
     Route::get('/brands', [PropertyApiController::class, 'getBrandsAndHotels']);
     Route::get('/hotels', [PropertyApiController::class, 'getAllHotels']);
     Route::get('/{hotelSlug}/dining/{diningSlug}', [PropertyApiController::class, 'getDiningDetails']);
+    Route::get('/{hotelSlug}/attractions/{attractionSlug}', [PropertyApiController::class, 'getAttractionDetails']);
     Route::get('/{slug}', [PropertyApiController::class, 'show']);
 });
 

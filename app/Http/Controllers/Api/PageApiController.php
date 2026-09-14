@@ -52,7 +52,9 @@ class PageApiController extends Controller
                         ? ['privacy-policy', 'privacy-statement'] 
                         : ($slug === 'brands' || $slug === 'our-brands'
                             ? ['our-brands', 'brands']
-                            : [$slug]));
+                            : ($slug === 'contact' || $slug === 'contact-us'
+                                ? ['contact-us', 'contact']
+                                : [$slug])));
 
                 $page = Page::whereIn('slug', $slugs)
                     ->where('is_active', true)
@@ -264,9 +266,16 @@ class PageApiController extends Controller
      */
     private function localeFromRequest(Request $request): string
     {
-        $locale = $request->header('X-Locale')
+        $locale = $request->query('locale')
+            ?? $request->query('lang')
+            ?? $request->header('X-Locale')
             ?? $request->header('X-Local')
+            ?? $request->header('Accept-Language')
             ?? config('app.locale', 'en');
+
+        if (is_string($locale) && str_starts_with(strtolower($locale), 'ar')) {
+            return 'ar';
+        }
 
         return in_array($locale, ['en', 'ar'], true) ? $locale : 'en';
     }

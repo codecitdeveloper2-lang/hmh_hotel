@@ -52,6 +52,23 @@ class ManageMeetingsAndEvents extends Page
         $this->currentPage = 1;
     }
 
+    public function nextPage(int $lastPage): void
+    {
+        if ($this->currentPage < $lastPage)
+            $this->currentPage++;
+    }
+
+    public function previousPage(): void
+    {
+        if ($this->currentPage > 1)
+            $this->currentPage--;
+    }
+
+    public function gotoPage(int $page): void
+    {
+        $this->currentPage = $page;
+    }
+
     protected function getViewData(): array
     {
         $query = \App\Models\MeetingEventPage::query()->with('property');

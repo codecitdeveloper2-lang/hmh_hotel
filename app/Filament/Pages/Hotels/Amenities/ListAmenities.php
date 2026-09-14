@@ -139,11 +139,30 @@ class ListAmenities extends Page implements \Filament\Forms\Contracts\HasForms
                             Textarea::make('description')
                                 ->label('Amenity Description')
                                 ->rows(3),
+                            TextInput::make('button_label')
+                                ->label('Button Label')
+                                ->placeholder('e.g. Call Us'),
+                            TextInput::make('button_link')
+                                ->label('Button Link')
+                                ->placeholder('e.g. tel:+97167018888'),
                         ])
                         ->columns(1)
                         ->collapsible()
                         ->reorderable()
                         ->defaultItems(1),
+                ]),
+
+            Section::make('Gallery / Banner Images')
+                ->description('Hero slider images shown on the facilities page.')
+                ->schema([
+                    \Filament\Forms\Components\FileUpload::make('gallery')
+                        ->label('Gallery Images')
+                        ->disk('uploads')
+                        ->directory('')
+                        ->multiple()
+                        ->image()
+                        ->reorderable()
+                        ->columnSpanFull(),
                 ]),
         ];
     }

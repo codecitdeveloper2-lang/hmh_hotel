@@ -38,7 +38,7 @@ class MeetingEventApiController extends Controller
         $propertyIds = $properties->pluck('id')->toArray();
 
         // Fetch all active meeting & event pages for this property or its child hotels
-        $eventPages = MeetingEventPage::with(['property', 'seoMetadata'])
+        $eventPages = MeetingEventPage::with(['property.brand', 'seoMetadata'])
             ->whereIn('property_id', $propertyIds)
             ->where('is_active', true)
             ->get();
@@ -80,7 +80,7 @@ class MeetingEventApiController extends Controller
     {
         $locale = $this->localeFromRequest($request);
 
-        $query = MeetingEventPage::with(['property', 'seoMetadata'])
+        $query = MeetingEventPage::with(['property.brand', 'seoMetadata'])
             ->where('is_active', true);
 
         if ($request->has('hotel_slug')) {
@@ -116,13 +116,13 @@ class MeetingEventApiController extends Controller
     {
         $locale = $this->localeFromRequest($request);
 
-        $page = MeetingEventPage::with(['property', 'seoMetadata'])
+        $page = MeetingEventPage::with(['property.brand', 'seoMetadata'])
             ->where('slug', $slug)
             ->where('is_active', true)
             ->first();
 
         if (!$page && is_numeric($slug)) {
-            $page = MeetingEventPage::with(['property', 'seoMetadata'])
+            $page = MeetingEventPage::with(['property.brand', 'seoMetadata'])
                 ->where('id', $slug)
                 ->where('is_active', true)
                 ->first();
@@ -166,6 +166,14 @@ class MeetingEventApiController extends Controller
 
         $propertyIds = $properties->pluck('id')->toArray();
 
+        // If hotel is specified via query parameter, narrow down propertyIds
+        if ($request->has('hotel')) {
+            $specificHotel = Property::where('slug', $request->query('hotel'))->first();
+            if ($specificHotel) {
+                $propertyIds = [$specificHotel->id];
+            }
+        }
+
         $page = MeetingEventPage::with(['property', 'seoMetadata'])
             ->whereIn('property_id', $propertyIds)
             ->where('slug', $eventSlug)
@@ -193,19 +201,36 @@ class MeetingEventApiController extends Controller
         ]);
     }
 
-    /**
-     * Format a MeetingEventPage model into a clean API response array.
-     */
     private function formatEventPage(MeetingEventPage $page, string $locale): array
     {
         $property = $page->property;
         $hotelName = $property ? (is_array($property->name) ? ($property->name['en'] ?? '') : $property->name) : null;
+        $brand = $property?->brand;
+        $brandName = $brand ? (is_array($brand->name) ? ($brand->name['en'] ?? '') : $brand->name) : ($hotelName ?: 'HMH Hotel Group');
+        $brandSlug = $brand ? $brand->slug : null;
+
+        $contactDetails = $this->formatJsonField($page->contact_details);
+        if (is_array($contactDetails)) {
+            if (empty($contactDetails['phone']) && !empty($property?->phone)) {
+                $contactDetails['phone'] = $property->phone;
+            }
+            if (empty($contactDetails['email']) && !empty($property?->email)) {
+                $contactDetails['email'] = $property->email;
+            }
+        }
+
+        $rfpUrl = $page->rfp_url;
+        if (empty($rfpUrl) && !empty($property?->rfp_url)) {
+            $rfpUrl = $property->rfp_url;
+        }
 
         return [
             'id' => $page->id,
             'property_id' => $page->property_id,
             'hotel_name' => $hotelName,
             'hotel_slug' => $property?->slug,
+            'brand_name' => $brandName,
+            'brand_slug' => $brandSlug,
             'type' => $page->type,
             'slug' => $page->slug,
             'title' => $this->parseTranslation($page->title, $locale),
@@ -223,8 +248,8 @@ class MeetingEventApiController extends Controller
             'event_cards' => $this->formatSlidesOrCards($page->event_cards),
             'gallery' => $this->formatGallery($page->gallery),
             'image' => $this->formatImageUrl($page->image),
-            'rfp_url' => $page->rfp_url,
-            'contact_details' => $this->formatJsonField($page->contact_details),
+            'rfp_url' => $rfpUrl,
+            'contact_details' => $contactDetails,
             'is_active' => (bool) $page->is_active,
             'seo' => [
                 'meta_title' => $page->seoMetadata?->meta_title,
