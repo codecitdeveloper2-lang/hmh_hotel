@@ -170,6 +170,12 @@ class ManageCmsPages extends Page
                             'team_members_list' => $data['team_members_list'] ?? [],
                             'history_timeline' => $data['history_timeline'] ?? [],
                             'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
+                            'careers_list' => $data['careers_list'] ?? [],
+                            'locations_list' => $data['locations_list'] ?? [],
+                            'hotel_contacts' => $data['hotel_contacts'] ?? [],
+                            'central_phone' => $data['central_phone'] ?? '',
+                            'central_whatsapp' => $data['central_whatsapp'] ?? '',
+                            'central_email' => $data['central_email'] ?? '',
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -258,6 +264,12 @@ class ManageCmsPages extends Page
                     'privacy_slider_images' => $decodedBody['privacy_slider_images'] ?? [],
                     'terms_slider_images' => $decodedBody['terms_slider_images'] ?? [],
                     'press_releases_list' => $decodedBody['press_releases_list'] ?? [],
+                    'careers_list' => $decodedBody['careers_list'] ?? [],
+                    'locations_list' => $decodedBody['locations_list'] ?? [],
+                    'hotel_contacts' => $decodedBody['hotel_contacts'] ?? [],
+                    'central_phone' => $decodedBody['central_phone'] ?? '',
+                    'central_whatsapp' => $decodedBody['central_whatsapp'] ?? '',
+                    'central_email' => $decodedBody['central_email'] ?? '',
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -344,6 +356,12 @@ class ManageCmsPages extends Page
                     'privacy_slider_images' => $decodedBody['privacy_slider_images'] ?? [],
                     'terms_slider_images' => $decodedBody['terms_slider_images'] ?? [],
                     'press_releases_list' => $decodedBody['press_releases_list'] ?? [],
+                    'careers_list' => $decodedBody['careers_list'] ?? [],
+                    'locations_list' => $decodedBody['locations_list'] ?? [],
+                    'hotel_contacts' => $decodedBody['hotel_contacts'] ?? [],
+                    'central_phone' => $decodedBody['central_phone'] ?? '',
+                    'central_whatsapp' => $decodedBody['central_whatsapp'] ?? '',
+                    'central_email' => $decodedBody['central_email'] ?? '',
                     'meta_keywords' => $decodedBody['meta_keywords'] ?? '',
                     'canonical_url' => $decodedBody['canonical_url'] ?? '',
                 ];
@@ -421,6 +439,12 @@ class ManageCmsPages extends Page
                             'privacy_slider_images' => $data['privacy_slider_images'] ?? ($decodedBody['privacy_slider_images'] ?? []),
                             'terms_slider_images' => $data['terms_slider_images'] ?? ($decodedBody['terms_slider_images'] ?? []),
                             'press_releases_list' => $data['press_releases_list'] ?? ($decodedBody['press_releases_list'] ?? []),
+                            'careers_list' => $data['careers_list'] ?? ($decodedBody['careers_list'] ?? []),
+                            'locations_list' => $data['locations_list'] ?? ($decodedBody['locations_list'] ?? []),
+                            'hotel_contacts' => $data['hotel_contacts'] ?? ($decodedBody['hotel_contacts'] ?? []),
+                            'central_phone' => $data['central_phone'] ?? ($decodedBody['central_phone'] ?? ''),
+                            'central_whatsapp' => $data['central_whatsapp'] ?? ($decodedBody['central_whatsapp'] ?? ''),
+                            'central_email' => $data['central_email'] ?? ($decodedBody['central_email'] ?? ''),
                             'meta_keywords' => $data['meta_keywords'] ?? '',
                             'canonical_url' => $data['canonical_url'] ?? '',
                         ])],
@@ -450,17 +474,49 @@ class ManageCmsPages extends Page
 
     public static function getPageFormSchema(): array
     {
+        $isEn = fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'en';
+        $isAr = fn (\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') === 'ar';
+        $arLabel = fn (string $label, bool $required = false) => new \Illuminate\Support\HtmlString(
+            '<div dir="rtl" style="text-align: right; width: 100%; display: block;">' .
+            htmlspecialchars($label) .
+            ($required ? '<sup class="text-danger-600 font-medium" style="color: rgb(220 38 38); margin-right: 0.25rem;">*</sup>' : '') .
+            '</div>'
+        );
+        $arAttrs = ['dir' => 'rtl', 'style' => 'text-align: right;'];
+
         return [
             Grid::make(3)->schema([
                     Grid::make(1)->schema([
                         Section::make('Basic Information')
+                            ->extraAttributes(['style' => 'position: relative;'])
                             ->schema([
+                                \Filament\Forms\Components\ToggleButtons::make('activeLocale')
+                                    ->hiddenLabel()
+                                    ->options([
+                                        'en' => 'EN',
+                                        'ar' => 'عربي',
+                                    ])
+                                    ->default('en')
+                                    ->live()
+                                    ->extraFieldWrapperAttributes([
+                                        'style' => 'position: absolute; top: 1rem; right: 1.5rem; width: max-content; margin: 0; z-index: 10;'
+                                    ]),
+
                                 Grid::make(2)->schema([
-                                    TextInput::make('title')
+                                    TextInput::make('title.en')
                                         ->label('Page Title')
-                                        ->required()
+                                        ->required($isEn)
+                                        ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                        ->dehydratedWhenHidden()
                                         ->live(onBlur: true)
                                         ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
+                                    TextInput::make('title.ar')
+                                        ->label($arLabel('Page Title (AR)', true))
+                                        ->markAsRequired(false)
+                                        ->required($isAr)
+                                        ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                        ->dehydratedWhenHidden()
+                                        ->extraInputAttributes($arAttrs),
                                     TextInput::make('slug')
                                         ->label('URL Slug')
                                         ->required(),
@@ -503,81 +559,189 @@ class ManageCmsPages extends Page
                                         FileUpload::make('image')
                                             ->label('Background Image')
                                             ->image()->disk('uploads'),
-                                        TextInput::make('subtitle')
+                                        TextInput::make('subtitle.en')
                                             ->label('Subtitle')
-                                            ->placeholder('e.g. Welcome To'),
-                                        TextInput::make('title')
-                                            ->label('Title'),
+                                            ->placeholder('e.g. Welcome To')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('subtitle.ar')
+                                            ->label($arLabel('Subtitle (AR)'))
+                                            ->placeholder('مثال: مرحباً بكم في')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        TextInput::make('title.en')
+                                            ->label('Title')
+                                            ->placeholder('e.g. Opera Grand Hotel')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('title.ar')
+                                            ->label($arLabel('Title (AR)'))
+                                            ->placeholder('مثال: فندق أوبرا جراند')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
                                     ])
                                     ->collapsible()
                                     ->collapsed()
                                     ->cloneable()
-                                    ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Slide'),
+                                    ->itemLabel(fn (array $state): ?string => $state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Slide'),
                             ]),
 
                         Section::make('Page Intro Description')
                             ->schema([
-                                TextInput::make('intro_subtitle')
+                                TextInput::make('intro_subtitle.en')
                                     ->label('Subtitle')
-                                    ->placeholder('e.g. YOU ARE UNIQUE FOR US'),
-                                TextInput::make('intro_title')
+                                    ->placeholder('e.g. YOU ARE UNIQUE FOR US')
+                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                    ->dehydratedWhenHidden(),
+                                TextInput::make('intro_subtitle.ar')
+                                    ->label($arLabel('Subtitle (AR)'))
+                                    ->placeholder('مثال: أنت مميز بالنسبة لنا')
+                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                    ->dehydratedWhenHidden()
+                                    ->extraInputAttributes($arAttrs),
+                                TextInput::make('intro_title.en')
                                     ->label('Title')
-                                    ->placeholder('e.g. WELCOME TO OPERA GRAND HOTEL'),
-                                \App\Filament\Forms\Components\JoditEditor::make('content')
-                                    ->label('Description'),
+                                    ->placeholder('e.g. WELCOME TO OPERA GRAND HOTEL')
+                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                    ->dehydratedWhenHidden(),
+                                TextInput::make('intro_title.ar')
+                                    ->label($arLabel('Title (AR)'))
+                                    ->placeholder('مثال: أهلاً بكم في فندق أوبرا جراند')
+                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                    ->dehydratedWhenHidden()
+                                    ->extraInputAttributes($arAttrs),
+                                \App\Filament\Forms\Components\JoditEditor::make('content.en')
+                                    ->label('Description')
+                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                    ->dehydratedWhenHidden(),
+                                \App\Filament\Forms\Components\JoditEditor::make('content.ar')
+                                    ->label($arLabel('Description (AR)'))
+                                    ->direction('rtl')
+                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                    ->dehydratedWhenHidden(),
                             ]),
 
-                            
                         \Filament\Schemas\Components\Group::make()
                             ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => $get('slug') === 'about-us')
                             ->schema([
                                 Section::make('Intro Section')
                                     ->schema([
-                                        TextInput::make('intro_subtitle')
-                                            ->label('Intro Subtitle (e.g. Hospitality Management Holding)'),
-                                        TextInput::make('intro_title')
-                                            ->label('Intro Title (e.g. Get To Know)'),
-                                        Textarea::make('intro_text')
+                                        TextInput::make('intro_subtitle.en')
+                                            ->label('Intro Subtitle (e.g. Hospitality Management Holding)')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('intro_subtitle.ar')
+                                            ->label($arLabel('Intro Subtitle (AR)'))
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        TextInput::make('intro_title.en')
+                                            ->label('Intro Title (e.g. Get To Know)')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('intro_title.ar')
+                                            ->label($arLabel('Intro Title (AR)'))
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        Textarea::make('intro_text.en')
                                             ->label('Intro Text')
-                                            ->rows(4),
+                                            ->rows(4)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('intro_text.ar')
+                                            ->label($arLabel('Intro Text (AR)'))
+                                            ->rows(4)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
                                     ]),
                                 Section::make('Expansion Section')
                                     ->schema([
                                         FileUpload::make('expansion_image')
                                             ->label('Side Image')
                                             ->image()->disk('uploads'),
-                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
-                                            ->label('Expansion Text'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text.en')
+                                            ->label('Expansion Text')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text.ar')
+                                            ->label($arLabel('Expansion Text (AR)'))
+                                            ->direction('rtl')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden(),
                                     ]),
                                 Section::make('Our Vision')
                                     ->schema([
-                                        Textarea::make('our_vision_text')
+                                        Textarea::make('our_vision_text.en')
                                             ->label('Vision Text')
-                                            ->rows(4),
+                                            ->rows(4)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('our_vision_text.ar')
+                                            ->label($arLabel('Vision Text (AR)'))
+                                            ->rows(4)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
                                         FileUpload::make('our_vision_image')
                                             ->label('Vision Image')
                                             ->image()->disk('uploads'),
                                     ]),
                                 Section::make('Our Mission')
                                     ->schema([
-                                        Textarea::make('our_mission_text')
+                                        Textarea::make('our_mission_text.en')
                                             ->label('Mission Text')
-                                            ->rows(4),
+                                            ->rows(4)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('our_mission_text.ar')
+                                            ->label($arLabel('Mission Text (AR)'))
+                                            ->rows(4)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
                                         FileUpload::make('our_mission_image')
                                             ->label('Mission Image')
                                             ->image()->disk('uploads'),
                                     ]),
                                 Section::make('Values & Culture')
                                     ->schema([
-                                        Textarea::make('our_values')
+                                        Textarea::make('our_values.en')
                                             ->label('Our Values')
-                                            ->rows(5),
-                                        Textarea::make('our_culture')
+                                            ->rows(5)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('our_values.ar')
+                                            ->label($arLabel('Our Values (AR)'))
+                                            ->rows(5)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        Textarea::make('our_culture.en')
                                             ->label('Our Culture')
-                                            ->rows(5),
-                                        Textarea::make('our_promise')
+                                            ->rows(5)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('our_culture.ar')
+                                            ->label($arLabel('Our Culture (AR)'))
+                                            ->rows(5)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        Textarea::make('our_promise.en')
                                             ->label('Our Promise')
-                                            ->rows(5),
+                                            ->rows(5)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('our_promise.ar')
+                                            ->label($arLabel('Our Promise (AR)'))
+                                            ->rows(5)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
                                     ])->columns(3),
                             ]),
 
@@ -589,19 +753,35 @@ class ManageCmsPages extends Page
                                         \Filament\Forms\Components\Repeater::make('responsibilities_list')
                                             ->label('Responsibilities')
                                             ->schema([
-                                                TextInput::make('title')
+                                                TextInput::make('title.en')
                                                     ->label('Title')
-                                                    ->required(),
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('title.ar')
+                                                    ->label($arLabel('Title (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 FileUpload::make('image')
                                                     ->label('Image')
                                                     ->image()->disk('uploads'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')
-                                                    ->label('Description'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Description')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Description (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Responsibility'),
+                                            ->itemLabel(fn (array $state): ?string => $state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Responsibility'),
                                     ]),
                             ]),
 
@@ -613,9 +793,18 @@ class ManageCmsPages extends Page
                                         \Filament\Forms\Components\Repeater::make('partners_list')
                                             ->label('Partners List')
                                             ->schema([
-                                                TextInput::make('name')
+                                                TextInput::make('name.en')
                                                     ->label('Partner Name')
-                                                    ->required(),
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('name.ar')
+                                                    ->label($arLabel('Partner Name (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 FileUpload::make('image')
                                                     ->label('Partner Logo')
                                                     ->image()->disk('uploads'),
@@ -624,13 +813,20 @@ class ManageCmsPages extends Page
                                                     ->image()->disk('uploads'),
                                                 TextInput::make('link')
                                                     ->label('Partner Link / Website'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')
-                                                    ->label('Description'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Description')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Description (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => $state['name'] ?? 'Partner'),
+                                            ->itemLabel(fn (array $state): ?string => $state['name']['en'] ?? $state['name']['ar'] ?? (is_string($state['name'] ?? null) ? $state['name'] : null) ?? 'Partner'),
                                     ]),
                             ]),
 
@@ -642,22 +838,47 @@ class ManageCmsPages extends Page
                                         \Filament\Forms\Components\Repeater::make('team_members_list')
                                             ->label('Board of Directors & Team Members')
                                             ->schema([
-                                                TextInput::make('name')
+                                                TextInput::make('name.en')
                                                     ->label('Full Name')
-                                                    ->required(),
-                                                TextInput::make('position')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('name.ar')
+                                                    ->label($arLabel('Full Name (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('position.en')
                                                     ->label('Position / Designation')
-                                                    ->required(),
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('position.ar')
+                                                    ->label($arLabel('Position (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 FileUpload::make('image')
                                                     ->label('Photo / Image')
                                                     ->image()->disk('uploads'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')
-                                                    ->label('Biography / Details'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Biography / Details')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Biography / Details (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => ($state['name'] ?? 'Team Member') . (!empty($state['position']) ? ' (' . $state['position'] . ')' : '')),
+                                            ->itemLabel(fn (array $state): ?string => ($state['name']['en'] ?? $state['name']['ar'] ?? (is_string($state['name'] ?? null) ? $state['name'] : null) ?? 'Team Member') . (!empty($state['position']['en'] ?? $state['position']['ar'] ?? null) ? ' (' . ($state['position']['en'] ?? $state['position']['ar']) . ')' : '')),
                                     ]),
                             ]),
 
@@ -675,13 +896,20 @@ class ManageCmsPages extends Page
                                                 FileUpload::make('image')
                                                     ->label('Image')
                                                     ->image()->disk('uploads'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')
-                                                    ->label('Events / Milestones'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Events / Milestones')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Events / Milestones (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->defaultItems(1)
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => ($state['year'] ?? 'Year') . (!empty($state['description']) ? ' - ' . \Illuminate\Support\Str::limit(strip_tags($state['description']), 50) : '')),
+                                            ->itemLabel(fn (array $state): ?string => ($state['year'] ?? 'Year') . (!empty($state['description']['en'] ?? $state['description']['ar'] ?? null) ? ' - ' . \Illuminate\Support\Str::limit(strip_tags($state['description']['en'] ?? $state['description']['ar']), 50) : '')),
                                     ]),
                             ]),
 
@@ -776,47 +1004,122 @@ class ManageCmsPages extends Page
                                     ]),
                                 Section::make('Value Proposition')
                                     ->schema([
-                                        TextInput::make('value_proposition_title')
-                                            ->label('Value Proposition Title'),
-                                        \App\Filament\Forms\Components\JoditEditor::make('value_proposition_text')
-                                            ->label('Value Proposition Text'),
+                                        TextInput::make('value_proposition_title.en')
+                                            ->label('Value Proposition Title')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('value_proposition_title.ar')
+                                            ->label($arLabel('Value Proposition Title (AR)'))
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        \App\Filament\Forms\Components\JoditEditor::make('value_proposition_text.en')
+                                            ->label('Value Proposition Text')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('value_proposition_text.ar')
+                                            ->label($arLabel('Value Proposition Text (AR)'))
+                                            ->direction('rtl')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden(),
                                     ]),
                                 Section::make('Brands Overview')
                                     ->schema([
                                         FileUpload::make('expansion_image')
                                             ->label('Side Overview Image')
                                             ->image()->disk('uploads'),
-                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
-                                            ->label('Brands Overview Text'),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text.en')
+                                            ->label('Brands Overview Text')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text.ar')
+                                            ->label($arLabel('Brands Overview Text (AR)'))
+                                            ->direction('rtl')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden(),
                                     ]),
                                 Section::make('Core Brands Showcase')
                                     ->schema([
                                         \Filament\Forms\Components\Repeater::make('brands_list')
                                             ->label('Core Brands (Bahi, Coral, Corp, EWA, ECOS)')
                                             ->schema([
-                                                TextInput::make('name')->label('Brand Name')->required(),
-                                                TextInput::make('tagline')->label('Tagline / Slogan'),
+                                                TextInput::make('name.en')
+                                                    ->label('Brand Name')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('name.ar')
+                                                    ->label($arLabel('Brand Name (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('tagline.en')
+                                                    ->label('Tagline / Slogan')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('tagline.ar')
+                                                    ->label($arLabel('Tagline / Slogan (AR)'))
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 FileUpload::make('image')->label('Brand Showcase Image')->image()->disk('uploads'),
                                                 FileUpload::make('logo')->label('Brand Logo / SVG')->disk('uploads'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Brand Description'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Brand Description')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Brand Description (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => ($state['name'] ?? 'Brand') . (!empty($state['tagline']) ? ' - ' . $state['tagline'] : '')),
+                                            ->itemLabel(fn (array $state): ?string => ($state['name']['en'] ?? $state['name']['ar'] ?? (is_string($state['name'] ?? null) ? $state['name'] : null) ?? 'Brand') . (!empty($state['tagline']['en'] ?? $state['tagline']['ar'] ?? null) ? ' - ' . ($state['tagline']['en'] ?? $state['tagline']['ar']) : '')),
                                     ]),
                                 Section::make('Advisory & Management Services')
                                     ->schema([
-                                        TextInput::make('services_title')->label('Services Section Title'),
-                                        \App\Filament\Forms\Components\JoditEditor::make('services_intro')->label('Services Introduction'),
+                                        TextInput::make('services_title.en')
+                                            ->label('Services Section Title')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('services_title.ar')
+                                            ->label($arLabel('Services Section Title (AR)'))
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        \App\Filament\Forms\Components\JoditEditor::make('services_intro.en')
+                                            ->label('Services Introduction')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('services_intro.ar')
+                                            ->label($arLabel('Services Introduction (AR)'))
+                                            ->direction('rtl')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden(),
                                         \Filament\Forms\Components\Repeater::make('services_list')
                                             ->label('Advisory & Management Services')
                                             ->schema([
-                                                TextInput::make('title')->label('Service Title')->required(),
+                                                TextInput::make('title.en')
+                                                    ->label('Service Title')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('title.ar')
+                                                    ->label($arLabel('Service Title (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 FileUpload::make('icon')->label('Service Icon')->disk('uploads'),
                                             ])
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Service'),
+                                            ->itemLabel(fn (array $state): ?string => $state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Service'),
                                     ]),
                             ]),
 
@@ -826,24 +1129,66 @@ class ManageCmsPages extends Page
                                 Section::make('Our Brands Section')
                                     ->description('Manage hotel brands, taglines, cards, logos, and descriptions.')
                                     ->schema([
-                                        TextInput::make('content_title')
+                                        TextInput::make('content_title.en')
                                             ->label('Section Heading')
-                                            ->default('Our Brands'),
-                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text')
-                                            ->label('Section Subtitle / Description'),
+                                            ->default('Our Brands')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('content_title.ar')
+                                            ->label($arLabel('Section Heading (AR)'))
+                                            ->default('علاماتنا التجارية')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text.en')
+                                            ->label('Section Subtitle / Description')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        \App\Filament\Forms\Components\JoditEditor::make('expansion_text.ar')
+                                            ->label($arLabel('Section Subtitle / Description (AR)'))
+                                            ->direction('rtl')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden(),
                                         \Filament\Forms\Components\Repeater::make('brands_list')
                                             ->label('Hotel Brands (Bahi, Coral, Corp, Ewa, Ecos)')
                                             ->schema([
-                                                TextInput::make('name')->label('Brand Name')->required(),
-                                                TextInput::make('tagline')->label('Tagline / Slogan (e.g. Impeccable Plush)'),
+                                                TextInput::make('name.en')
+                                                    ->label('Brand Name')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('name.ar')
+                                                    ->label($arLabel('Brand Name (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('tagline.en')
+                                                    ->label('Tagline / Slogan (e.g. Impeccable Plush)')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('tagline.ar')
+                                                    ->label($arLabel('Tagline / Slogan (AR)'))
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 FileUpload::make('image')->label('Brand Card Image')->image()->disk('uploads'),
                                                 FileUpload::make('logo')->label('Brand Logo (SVG / Image)')->disk('uploads'),
                                                 TextInput::make('link')->label('Brand Link / URL (e.g. /bahi-hotels-resorts)'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Brand Description'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Brand Description')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Brand Description (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => ($state['name'] ?? 'Brand') . (!empty($state['tagline']) ? ' - ' . $state['tagline'] : '')),
+                                            ->itemLabel(fn (array $state): ?string => ($state['name']['en'] ?? $state['name']['ar'] ?? (is_string($state['name'] ?? null) ? $state['name'] : null) ?? 'Brand') . (!empty($state['tagline']['en'] ?? $state['tagline']['ar'] ?? null) ? ' - ' . ($state['tagline']['en'] ?? $state['tagline']['ar']) : '')),
                                     ]),
                             ]),
                             
@@ -856,12 +1201,33 @@ class ManageCmsPages extends Page
                                         \Filament\Forms\Components\Repeater::make('privacy_accordion')
                                             ->label('Privacy Policy Sections')
                                             ->schema([
-                                                TextInput::make('title')->label('Section Title')->required(),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Section Details / Text')->required(),
+                                                TextInput::make('title.en')
+                                                    ->label('Section Title')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('title.ar')
+                                                    ->label($arLabel('Section Title (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Section Details / Text')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Section Details / Text (AR)', true))
+                                                    ->direction('rtl')
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Section'),
+                                            ->itemLabel(fn (array $state): ?string => $state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Section'),
                                         FileUpload::make('privacy_slider_images')
                                             ->label('Bottom Slider Images')
                                             ->multiple()
@@ -879,12 +1245,33 @@ class ManageCmsPages extends Page
                                         \Filament\Forms\Components\Repeater::make('terms_accordion')
                                             ->label('Terms & Conditions Sections')
                                             ->schema([
-                                                TextInput::make('title')->label('Section Title')->required(),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')->label('Section Details / Text')->required(),
+                                                TextInput::make('title.en')
+                                                    ->label('Section Title')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('title.ar')
+                                                    ->label($arLabel('Section Title (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Section Details / Text')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Section Details / Text (AR)', true))
+                                                    ->direction('rtl')
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => $state['title'] ?? 'Section'),
+                                            ->itemLabel(fn (array $state): ?string => $state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Section'),
                                         FileUpload::make('terms_slider_images')
                                             ->label('Bottom Slider Images')
                                             ->multiple()
@@ -905,7 +1292,18 @@ class ManageCmsPages extends Page
                                         \Filament\Forms\Components\Repeater::make('press_releases_list')
                                             ->label('Press Releases & Articles')
                                             ->schema([
-                                                TextInput::make('title')->label('Article Title')->required(),
+                                                TextInput::make('title.en')
+                                                    ->label('Article Title')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('title.ar')
+                                                    ->label($arLabel('Article Title (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
                                                 TextInput::make('date')->label('Date (e.g. 22/03/2024)'),
                                                 Select::make('category')
                                                     ->label('Category')
@@ -918,12 +1316,184 @@ class ManageCmsPages extends Page
                                                     ->image()
                                                     ->disk('uploads'),
                                                 TextInput::make('link')->label('Article Link / URL'),
-                                                \App\Filament\Forms\Components\JoditEditor::make('description')
-                                                    ->label('Article Content / Details'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Article Content / Details')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Article Content / Details (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
                                             ])
                                             ->collapsible()
                                             ->cloneable()
-                                            ->itemLabel(fn (array $state): ?string => ($state['title'] ?? 'Press Release') . (!empty($state['date']) ? ' (' . $state['date'] . ')' : '')),
+                                            ->itemLabel(fn (array $state): ?string => ($state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Press Release') . (!empty($state['date']) ? ' (' . $state['date'] . ')' : '')),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('slug'), ['careers', 'career']))
+                            ->schema([
+                                Section::make('Careers & Job Openings')
+                                    ->description('Manage open job listings and career opportunities at HMH.')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('careers_list')
+                                            ->label('Job Openings')
+                                            ->schema([
+                                                TextInput::make('title.en')
+                                                    ->label('Job Title')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('title.ar')
+                                                    ->label($arLabel('Job Title (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('department.en')
+                                                    ->label('Department')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('department.ar')
+                                                    ->label($arLabel('Department (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('location.en')
+                                                    ->label('Location')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('location.ar')
+                                                    ->label($arLabel('Location (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('apply_link')->label('Apply Link / Email (e.g. mailto:...)')->required(),
+                                                TextInput::make('type')->label('Employment Type')->default('Full Time'),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.en')
+                                                    ->label('Job Description / Responsibilities')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                \App\Filament\Forms\Components\JoditEditor::make('description.ar')
+                                                    ->label($arLabel('Job Description (AR)'))
+                                                    ->direction('rtl')
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                            ])
+                                            ->defaultItems(0)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Job') . (!empty($state['department']['en'] ?? $state['department']['ar'] ?? null) ? ' - ' . ($state['department']['en'] ?? $state['department']['ar']) : '') . (!empty($state['location']['en'] ?? $state['location']['ar'] ?? null) ? ' (' . ($state['location']['en'] ?? $state['location']['ar']) . ')' : '')),
+                                    ]),
+                            ]),
+
+                        \Filament\Schemas\Components\Group::make()
+                            ->visible(fn (\Filament\Schemas\Components\Utilities\Get $get): bool => in_array($get('slug'), ['contact-us', 'contact']))
+                            ->schema([
+                                Section::make('Central Reservations & Direct Inquiries')
+                                    ->description('Manage centralized contact details for HMH reservations.')
+                                    ->schema([
+                                        Grid::make(3)->schema([
+                                            TextInput::make('central_phone')->label('Central Phone')->tel(),
+                                            TextInput::make('central_whatsapp')->label('WhatsApp Number'),
+                                            TextInput::make('central_email')->label('Central Reservations Email')->email(),
+                                        ]),
+                                    ]),
+                                Section::make('Corporate Offices & Locations')
+                                    ->description('Manage corporate offices, addresses, contact numbers, images, and map coordinates.')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('locations_list')
+                                            ->label('Offices & Locations')
+                                            ->schema([
+                                                Grid::make(2)->schema([
+                                                    TextInput::make('title.en')
+                                                        ->label('Office / Location Title')
+                                                        ->required($isEn)
+                                                        ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                        ->dehydratedWhenHidden(),
+                                                    TextInput::make('title.ar')
+                                                        ->label($arLabel('Office Title (AR)', true))
+                                                        ->markAsRequired(false)
+                                                        ->required($isAr)
+                                                        ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                        ->dehydratedWhenHidden()
+                                                        ->extraInputAttributes($arAttrs),
+                                                    TextInput::make('city.en')
+                                                        ->label('City')
+                                                        ->required($isEn)
+                                                        ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                        ->dehydratedWhenHidden(),
+                                                    TextInput::make('city.ar')
+                                                        ->label($arLabel('City (AR)', true))
+                                                        ->markAsRequired(false)
+                                                        ->required($isAr)
+                                                        ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                        ->dehydratedWhenHidden()
+                                                        ->extraInputAttributes($arAttrs),
+                                                ]),
+                                                Textarea::make('address.en')
+                                                    ->label('Full Address')
+                                                    ->rows(3)
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                Textarea::make('address.ar')
+                                                    ->label($arLabel('Full Address (AR)', true))
+                                                    ->rows(3)
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                Grid::make(2)->schema([
+                                                    TextInput::make('phone')->label('Phone Number'),
+                                                    TextInput::make('email')->label('Email Address')->email(),
+                                                ]),
+                                                FileUpload::make('image')->label('Office / Building Photo')->image()->disk('uploads'),
+                                                Grid::make(2)->schema([
+                                                    TextInput::make('latitude')->label('Latitude (e.g. 25.07796)'),
+                                                    TextInput::make('longitude')->label('Longitude (e.g. 55.14405)'),
+                                                ]),
+                                            ])
+                                            ->defaultItems(0)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['title']['en'] ?? $state['title']['ar'] ?? (is_string($state['title'] ?? null) ? $state['title'] : null) ?? 'Office') . (!empty($state['city']['en'] ?? $state['city']['ar'] ?? null) ? ' (' . ($state['city']['en'] ?? $state['city']['ar']) . ')' : '')),
+                                    ]),
+                                Section::make('Hotel Reservations Directory')
+                                    ->description('Direct email and phone reservations contact for each hotel property.')
+                                    ->schema([
+                                        \Filament\Forms\Components\Repeater::make('hotel_contacts')
+                                            ->label('Hotel Directory')
+                                            ->schema([
+                                                TextInput::make('hotel_name.en')
+                                                    ->label('Hotel Name')
+                                                    ->required($isEn)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                                    ->dehydratedWhenHidden(),
+                                                TextInput::make('hotel_name.ar')
+                                                    ->label($arLabel('Hotel Name (AR)', true))
+                                                    ->markAsRequired(false)
+                                                    ->required($isAr)
+                                                    ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                                    ->dehydratedWhenHidden()
+                                                    ->extraInputAttributes($arAttrs),
+                                                TextInput::make('email')->label('Reservations Email')->required(),
+                                                TextInput::make('phone')->label('Phone Number'),
+                                            ])
+                                            ->defaultItems(0)
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->itemLabel(fn (array $state): ?string => ($state['hotel_name']['en'] ?? $state['hotel_name']['ar'] ?? (is_string($state['hotel_name'] ?? null) ? $state['hotel_name'] : null) ?? 'Hotel') . (!empty($state['email']) ? ' - ' . $state['email'] : '')),
                                     ]),
                             ]),
                             
@@ -932,15 +1502,40 @@ class ManageCmsPages extends Page
                                 \Filament\Forms\Components\Repeater::make('coming_soon_sections')
                                     ->label('Coming Soon Items')
                                     ->schema([
-                                        TextInput::make('title')
+                                        TextInput::make('title.en')
                                             ->label('Section Title')
-                                            ->default('Coming Soon'),
-                                        TextInput::make('hotel_name')
+                                            ->default('Coming Soon')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('title.ar')
+                                            ->label($arLabel('Section Title (AR)'))
+                                            ->default('قريباً')
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        TextInput::make('hotel_name.en')
                                             ->label('Hotel Name')
-                                            ->required(),
-                                        Textarea::make('description')
+                                            ->required($isEn)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        TextInput::make('hotel_name.ar')
+                                            ->label($arLabel('Hotel Name (AR)', true))
+                                            ->markAsRequired(false)
+                                            ->required($isAr)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
+                                        Textarea::make('description.en')
                                             ->label('Description')
-                                            ->rows(3),
+                                            ->rows(3)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                            ->dehydratedWhenHidden(),
+                                        Textarea::make('description.ar')
+                                            ->label($arLabel('Description (AR)'))
+                                            ->rows(3)
+                                            ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                            ->dehydratedWhenHidden()
+                                            ->extraInputAttributes($arAttrs),
                                         FileUpload::make('image')
                                             ->label('Image')
                                             ->image()->disk('uploads'),
@@ -948,21 +1543,45 @@ class ManageCmsPages extends Page
                                     ->defaultItems(0)
                                     ->collapsible()
                                     ->cloneable()
-                                    ->itemLabel(fn (array $state): ?string => $state['hotel_name'] ?? 'Coming Soon Item'),
+                                    ->itemLabel(fn (array $state): ?string => $state['hotel_name']['en'] ?? $state['hotel_name']['ar'] ?? (is_string($state['hotel_name'] ?? null) ? $state['hotel_name'] : null) ?? 'Coming Soon Item'),
                             ]),
                     ])->columnSpan(2),
                 
                 Grid::make(1)->schema([
-
                     Section::make('SEO')
                         ->schema([
-                            TextInput::make('meta_title')
-                                ->label('Meta Title'),
-                            Textarea::make('meta_description')
+                            TextInput::make('meta_title.en')
+                                ->label('Meta Title')
+                                ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                ->dehydratedWhenHidden(),
+                            TextInput::make('meta_title.ar')
+                                ->label($arLabel('Meta Title (AR)'))
+                                ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                ->dehydratedWhenHidden()
+                                ->extraInputAttributes($arAttrs),
+
+                            Textarea::make('meta_description.en')
                                 ->label('Meta Description')
-                                ->rows(3),
-                            TextInput::make('meta_keywords')
-                                ->label('Meta Keywords'),
+                                ->rows(3)
+                                ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                ->dehydratedWhenHidden(),
+                            Textarea::make('meta_description.ar')
+                                ->label($arLabel('Meta Description (AR)'))
+                                ->rows(3)
+                                ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                ->dehydratedWhenHidden()
+                                ->extraInputAttributes($arAttrs),
+
+                            TextInput::make('meta_keywords.en')
+                                ->label('Meta Keywords')
+                                ->hidden(fn (\Livewire\Component $livewire) => !$isEn($livewire))
+                                ->dehydratedWhenHidden(),
+                            TextInput::make('meta_keywords.ar')
+                                ->label($arLabel('Meta Keywords (AR)'))
+                                ->hidden(fn (\Livewire\Component $livewire) => !$isAr($livewire))
+                                ->dehydratedWhenHidden()
+                                ->extraInputAttributes($arAttrs),
+
                             TextInput::make('canonical_url')
                                 ->label('Canonical URL')
                                 ->url(),

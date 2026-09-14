@@ -37,6 +37,23 @@ class ManageMembers extends Page
     public function updatedFilterDate(): void { $this->currentPage = 1; }
     public function updatedPerPage(): void { $this->currentPage = 1; }
 
+    public function nextPage(int $lastPage): void
+    {
+        if ($this->currentPage < $lastPage)
+            $this->currentPage++;
+    }
+
+    public function previousPage(): void
+    {
+        if ($this->currentPage > 1)
+            $this->currentPage--;
+    }
+
+    public function gotoPage(int $page): void
+    {
+        $this->currentPage = $page;
+    }
+
     protected function getViewData(): array
     {
         $query = \App\Models\Member::query();

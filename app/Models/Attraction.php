@@ -23,7 +23,7 @@ class Attraction extends Model implements HasMedia
         'property_id', 'name', 'description', 'slug',
         'distance_from_hotel', 'is_active', 'sort_order',
         'category', 'read_more_label', 'read_more_link',
-        'address', 'google_maps_url',
+        'address', 'google_maps_url', 'latitude', 'longitude',
     ];
 
     protected $casts = [
@@ -39,6 +39,19 @@ class Attraction extends Model implements HasMedia
     public function property(): BelongsTo
     {
         return $this->belongsTo(Property::class);
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('featured_image')
+            ->useDisk('uploads')
+            ->singleFile();
+
+        $this->addMediaCollection('gallery')
+            ->useDisk('uploads');
+
+        $this->addMediaCollection('attraction_gallery')
+            ->useDisk('uploads');
     }
 
     public function seoMetadata()
