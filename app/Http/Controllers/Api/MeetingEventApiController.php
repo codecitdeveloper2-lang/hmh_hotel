@@ -224,6 +224,15 @@ class MeetingEventApiController extends Controller
             $rfpUrl = $property->rfp_url;
         }
 
+        $coverImage = $page->image;
+        if (empty($coverImage) && !empty($page->gallery)) {
+            $galleryItems = $this->formatJsonField($page->gallery);
+            if (!empty($galleryItems) && is_array($galleryItems)) {
+                $first = reset($galleryItems);
+                $coverImage = is_array($first) ? ($first['image'] ?? $first['src'] ?? null) : $first;
+            }
+        }
+
         return [
             'id' => $page->id,
             'property_id' => $page->property_id,
@@ -246,8 +255,8 @@ class MeetingEventApiController extends Controller
             'capacity_table' => $this->formatJsonField($page->capacity_table),
             'banner_slides' => $this->formatSlidesOrCards($page->banner_slides),
             'event_cards' => $this->formatSlidesOrCards($page->event_cards),
-            'gallery' => $this->formatGallery($page->gallery),
-            'image' => $this->formatImageUrl($page->image),
+            'gallery' => $this->formatGallery($page->gallery, $coverImage),
+            'image' => $this->formatImageUrl($coverImage),
             'rfp_url' => $rfpUrl,
             'contact_details' => $contactDetails,
             'is_active' => (bool) $page->is_active,
@@ -296,10 +305,14 @@ class MeetingEventApiController extends Controller
         return url('uploads/' . ltrim($path, '/'));
     }
 
-    private function formatGallery($gallery): array
+    private function formatGallery($gallery, ?string $fallbackImage = null): array
     {
         $items = $this->formatJsonField($gallery);
-        if (!is_array($items)) {
+        if (!is_array($items) || empty($items)) {
+            if (!empty($fallbackImage)) {
+                $formatted = $this->formatImageUrl($fallbackImage);
+                return $formatted ? [$formatted] : [];
+            }
             return [];
         }
 

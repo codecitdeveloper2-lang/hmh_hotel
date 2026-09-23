@@ -6,7 +6,6 @@
                     <tr>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Hotel Image</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Hotel Name</th>
-                        <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Brand</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Country</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">City</th>
                         <th style="padding: 1rem 1.5rem; text-align: left;" class="text-sm font-semibold text-gray-950 dark:text-white">Star Rating</th>
@@ -31,9 +30,6 @@
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm font-medium text-gray-950 dark:text-white">
                                 {{ $hotel['name'] }}
-                            </td>
-                            <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['brand'] }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
                                 {{ $hotel['country'] }}
@@ -87,7 +83,7 @@
                                         >
                                             Meetings & Events
                                         </x-filament::dropdown.list.item>
-                                        
+                                        {{-- 
                                         <x-filament::dropdown.list.item
                                             icon="heroicon-m-trash"
                                             color="danger"
@@ -95,6 +91,7 @@
                                         >
                                             Delete
                                         </x-filament::dropdown.list.item>
+                                        --}}
                                     </x-filament::dropdown.list>
                                 </x-filament::dropdown>
                             </td>

@@ -71,7 +71,7 @@ class MeetingsAndEventDetailsContent extends Page implements HasForms
                             ->default('REQUEST FOR PROPOSAL'),
                         \Filament\Forms\Components\TextInput::make('cta_url')
                             ->label('Call-to-Action URL')
-                            ->url(),
+                            ->placeholder('/contact or https://...'),
                     ]),
                 ]),
 
@@ -80,6 +80,8 @@ class MeetingsAndEventDetailsContent extends Page implements HasForms
                     \Filament\Forms\Components\FileUpload::make('image')
                         ->label('Image')
                         ->image()
+                        ->disk('uploads')
+                        ->directory('')
                         ->columnSpanFull(),
                 ]),
 

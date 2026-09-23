@@ -89,6 +89,19 @@ class PageApiController extends Controller
             if (isset($body['history_timeline']) && !isset($body['timeline'])) {
                 $body['timeline'] = $body['history_timeline'];
             }
+
+            // Ensure gallery_items reflects any deletions in opera_grand_hotel_images
+            $galleryImagesList = $body['opera_grand_hotel_images'] ?? ($body['coral_dubai_deira_images'] ?? null);
+            if (!empty($galleryImagesList) && is_array($galleryImagesList) && !empty($body['gallery_items']) && is_array($body['gallery_items'])) {
+                $validBasenames = array_map(function ($img) {
+                    return basename(is_string($img) ? parse_url($img, PHP_URL_PATH) : '');
+                }, $galleryImagesList);
+
+                $body['gallery_items'] = array_values(array_filter($body['gallery_items'], function ($item) use ($validBasenames) {
+                    $img = is_array($item) ? ($item['image'] ?? '') : '';
+                    return !empty($img) && in_array(basename(parse_url($img, PHP_URL_PATH)), $validBasenames);
+                }));
+            }
         }
 
         return [

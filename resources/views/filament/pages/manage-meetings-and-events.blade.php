@@ -82,11 +82,11 @@
                     <x-filament::input.wrapper>
                         <x-filament::input.select wire:model.live="filterEventType">
                             <option value="">All Event Types</option>
+                            <option value="main_page">Main Overview</option>
                             <option value="corporate">Corporate Meetings</option>
                             <option value="weddings">Weddings</option>
                             <option value="conference_room">Conference Facilities</option>
                             <option value="events">Banquet Halls</option>
-                            <option value="events">Private Events</option>
                             <option value="outside_catering">Outdoor Venues</option>
                         </x-filament::input.select>
                     </x-filament::input.wrapper>
@@ -138,7 +138,20 @@
                                     <div
                                         style="height: 3rem; width: 5rem; border-radius: 0.5rem; background-color: rgba(128,128,128,0.1); display: flex; align-items: center; justify-content: center; overflow: hidden;">
                                         @if($page['featured_image'])
-                                            <img src="{{ Storage::url($page['featured_image']) }}" alt="Featured Image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem;" />
+                                            @php
+                                                $imgSrc = $page['featured_image'];
+                                                if (!str_starts_with($imgSrc, 'http')) {
+                                                    $cleanPath = ltrim($imgSrc, '/');
+                                                    if (file_exists(public_path('uploads/' . str_replace('uploads/', '', $cleanPath)))) {
+                                                        $imgSrc = asset('uploads/' . str_replace('uploads/', '', $cleanPath));
+                                                    } elseif (file_exists(public_path('storage/' . str_replace('storage/', '', $cleanPath)))) {
+                                                        $imgSrc = asset('storage/' . str_replace('storage/', '', $cleanPath));
+                                                    } else {
+                                                        $imgSrc = asset('uploads/' . $cleanPath);
+                                                    }
+                                                }
+                                            @endphp
+                                            <img src="{{ $imgSrc }}" alt="Featured Image" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.5rem;" onerror="this.style.display='none'" />
                                         @else
                                             <x-filament::icon icon="heroicon-o-photo"
                                                 style="height: 1.5rem; width: 1.5rem; opacity: 0.5;" />

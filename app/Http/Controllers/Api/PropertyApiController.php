@@ -370,7 +370,9 @@ class PropertyApiController extends Controller
             'image' => $dining->getFirstMediaUrl('featured_image') ?: null,
             'gallery' => $gallery,
             'read_more_label' => $dining->read_more_label ?: 'READ MORE',
-            'read_more_link' => $dining->read_more_link,
+            'read_more_link' => $dining->read_more_link 
+                ? preg_replace('#^/(coral-dubai-deira-hotel|coral-hotels-resorts-dubai-deira|opera-grand-hotel)/dining/#', '/dining/', $dining->read_more_link) 
+                : "/dining/{$dining->slug}",
             'contact_details' => $dining->contact_details,
             'book_table_label' => $dining->book_table_label ?: 'BOOK A TABLE',
             'book_table_link' => $dining->book_table_link,
@@ -429,7 +431,7 @@ class PropertyApiController extends Controller
             'gallery' => $gallery,
             'starting_price' => $room->starting_price,
             'read_more_label' => $room->read_more_label ?: 'DISCOVER MORE',
-            'read_more_link' => $room->read_more_link,
+            'read_more_link' => $room->read_more_link ? preg_replace('#^/(coral-dubai-deira-hotel|coral-hotels-resorts-dubai-deira|opera-grand-hotel)/rooms-suites/#', '/rooms-suites/', $room->read_more_link) : "/rooms-suites/{$room->slug}",
             'book_now_label' => $room->book_now_label ?: 'BOOK NOW',
             'book_now_link' => $room->book_now_link,
             'special_features' => $room->special_features,
@@ -511,9 +513,12 @@ class PropertyApiController extends Controller
             $propertyIds = array_merge($propertyIds, $property->children->pluck('id')->toArray());
         }
 
+        $cleanSlug = preg_replace('/^(deira-|opera-)/', '', $diningSlug);
         $dining = \App\Models\DiningOutlet::whereIn('property_id', $propertyIds)
-            ->where(function ($q) use ($diningSlug) {
-                $q->where('slug', $diningSlug);
+            ->where(function ($q) use ($diningSlug, $cleanSlug) {
+                $q->where('slug', $diningSlug)
+                  ->orWhere('slug', $cleanSlug)
+                  ->orWhere('slug', 'deira-' . $cleanSlug);
                 if (is_numeric($diningSlug)) {
                     $q->orWhere('id', (int)$diningSlug);
                 }
@@ -544,7 +549,9 @@ class PropertyApiController extends Controller
             'image' => $dining->getFirstMediaUrl('featured_image') ?: null,
             'gallery' => $gallery,
             'read_more_label' => $dining->read_more_label ?: 'READ MORE',
-            'read_more_link' => $dining->read_more_link,
+            'read_more_link' => $dining->read_more_link 
+                ? preg_replace('#^/(coral-dubai-deira-hotel|coral-hotels-resorts-dubai-deira|opera-grand-hotel)/dining/#', '/dining/', $dining->read_more_link) 
+                : "/dining/{$dining->slug}",
             'contact_details' => $dining->contact_details,
             'book_table_label' => $dining->book_table_label ?: 'BOOK A TABLE',
             'book_table_link' => $dining->book_table_link,

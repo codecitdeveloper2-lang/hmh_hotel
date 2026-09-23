@@ -6,6 +6,11 @@ use Filament\Widgets\ChartWidget;
 
 class OccupancyChartWidget extends ChartWidget
 {
+    public static function canView(): bool
+    {
+        return false;
+    }
+
     protected ?string $heading = 'Occupancy by Hotel (Current)';
     protected static ?int $sort = 4;
     protected int | string | array $columnSpan = 1;

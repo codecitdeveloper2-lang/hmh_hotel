@@ -64,6 +64,10 @@ class ManageDestinations extends Page
         $this->currentPage = $page;
     }
 
+    // Sidebar navigation disabled for now (uncomment to re-enable)
+    protected static bool $shouldRegisterNavigation = false;
+
+    /*
     public static function getNavigationGroup(): ?string
     {
         return 'Content Management';
@@ -79,14 +83,15 @@ class ManageDestinations extends Page
         return 'heroicon-o-map-pin';
     }
 
-    public function getMaxContentWidth(): ?string
-    {
-        return 'full';
-    }
-
     public static function getNavigationLabel(): string
     {
         return 'Destination Management';
+    }
+    */
+
+    public function getMaxContentWidth(): ?string
+    {
+        return 'full';
     }
 
     public function getTitle(): string|Htmlable
@@ -302,7 +307,7 @@ class ManageDestinations extends Page
                                 ->hidden(fn(\Livewire\Component $livewire) => ($livewire->data['activeLocale'] ?? 'en') !== 'ar')
                                 ->dehydratedWhenHidden()
                                 ->extraInputAttributes(['dir' => 'rtl', 'style' => 'text-align: right;'])
-                                ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
+                                ->afterStateUpdated(fn(string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state))),
                             TextInput::make('slug')
                                 ->label('Slug')
                                 ->required(),
@@ -459,7 +464,7 @@ class ManageDestinations extends Page
                             TextInput::make('meta_keywords')
                                 ->label('Meta Keywords'),
                         ]),
-                        
+
                     Section::make('Hotel Links')
                         ->schema([
                             \Filament\Forms\Components\Repeater::make('map_embed_code')

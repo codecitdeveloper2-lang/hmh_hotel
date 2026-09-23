@@ -295,6 +295,10 @@ class ManageOffers extends Page
                                             })
                                             ->toArray();
                                     })
+                                    ->default(function () {
+                                        return \App\Models\Property::where('type', 'hotel')->where('slug', 'opera-grand-hotel')->value('id')
+                                            ?? \App\Models\Property::where('type', 'hotel')->value('id');
+                                    })
                                     ->required(),
 
                                     
