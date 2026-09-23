@@ -87,7 +87,7 @@ class Property extends Model implements HasMedia
 
     public function roomTypes(): HasMany
     {
-        return $this->hasMany(RoomType::class); // hotel rows only
+        return $this->hasMany(RoomType::class)->orderBy('sort_order')->orderBy('id'); // hotel rows only
     }
 
     public function diningOutlets(): HasMany

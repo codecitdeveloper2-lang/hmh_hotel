@@ -4,6 +4,7 @@ namespace App\Filament\Pages\Hotels\MeetingsEvents;
 
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -69,7 +70,12 @@ class ListMeetingsEvents extends Page implements HasForms
 
         $events = $query->forPage($currentPage, $this->perPage)->get()->map(function ($e) {
             $img = $e->image;
+            $gallery = is_array($e->gallery) ? $e->gallery : (is_string($e->gallery) ? json_decode($e->gallery, true) : []);
+            if (!$img && !empty($gallery)) {
+                $img = is_array($gallery[0]) ? ($gallery[0]['image'] ?? $gallery[0]['src'] ?? null) : $gallery[0];
+            }
             $imageUrl = $img ? (str_starts_with($img, 'http') ? $img : url('uploads/' . ltrim($img, '/'))) : null;
+            $galleryCount = is_array($gallery) ? count($gallery) : 0;
 
             return [
                 'id' => $e->id,
@@ -77,6 +83,7 @@ class ListMeetingsEvents extends Page implements HasForms
                 'subtitle' => is_array($e->subtitle) ? ($e->subtitle['en'] ?? '') : $e->subtitle,
                 'status' => $e->is_active ? 'Active' : 'Inactive',
                 'image_url' => $imageUrl,
+                'gallery_count' => $galleryCount,
             ];
         });
 
@@ -218,12 +225,30 @@ class ListMeetingsEvents extends Page implements HasForms
             Action::make('addEvent')
                 ->label('Add Event Space')
                 ->icon('heroicon-o-plus')
+                ->modalHeading('Add Event Space')
+                ->modalDescription('Create a new venue or event space for this hotel.')
+                ->modalIcon('heroicon-o-plus-circle')
+                ->modalSubmitActionLabel('Create Event Space')
+                ->modalCancelActionLabel('Cancel')
                 ->modalWidth('4xl')
                 ->form($this->getEventFormSchema())
                 ->action(function (array $data) {
-                    $data['property_id'] = $this->record;
-                    $data['slug'] = Str::slug(is_array($data['title']) ? ($data['title']['en'] ?? 'event') : $data['title']);
-                    MeetingEventPage::create($data);
+                    $title = is_array($data['title']) ? ($data['title']['en'] ?? 'event') : $data['title'];
+                    $gallery = is_array($data['gallery'] ?? null) ? array_values($data['gallery']) : [];
+                    $coverImage = !empty($data['image']) ? $data['image'] : ($gallery[0] ?? null);
+
+                    MeetingEventPage::create([
+                        'property_id' => $this->record,
+                        'type' => 'events',
+                        'slug' => Str::slug($title),
+                        'title' => ['en' => $title],
+                        'subtitle' => ['en' => $data['subtitle'] ?? ''],
+                        'description' => ['en' => $data['description'] ?? ''],
+                        'rfp_url' => $data['rfp_url'] ?? null,
+                        'image' => $coverImage,
+                        'gallery' => $gallery,
+                        'is_active' => (bool) ($data['is_active'] ?? true),
+                    ]);
 
                     Notification::make()
                         ->title('Event Created')
@@ -238,6 +263,10 @@ class ListMeetingsEvents extends Page implements HasForms
     {
         return Action::make('editEvent')
             ->modalHeading('Edit Basic Info')
+            ->modalDescription('Update title, overview description, media gallery, and booking link for this venue.')
+            ->modalIcon('heroicon-o-pencil-square')
+            ->modalSubmitActionLabel('Save Changes')
+            ->modalCancelActionLabel('Cancel')
             ->modalWidth('4xl')
             ->form($this->getEventFormSchema())
             ->fillForm(function (array $arguments) {
@@ -249,22 +278,28 @@ class ListMeetingsEvents extends Page implements HasForms
                     'description' => is_array($e->description) ? ($e->description['en'] ?? '') : $e->description,
                     'rfp_url' => $e->rfp_url,
                     'image' => $e->image,
-                    'is_active' => $e->is_active,
+                    'gallery' => $e->gallery ?? [],
+                    'is_active' => (bool) ($e->is_active ?? true),
                 ];
             })
             ->action(function (array $data, array $arguments) {
                 $e = MeetingEventPage::find($arguments['id']);
                 if ($e) {
+                    $gallery = is_array($data['gallery'] ?? null) ? array_values($data['gallery']) : [];
+                    $coverImage = !empty($data['image']) ? $data['image'] : ($gallery[0] ?? null);
+
                     $e->update([
                         'title' => ['en' => $data['title']],
-                        'subtitle' => ['en' => $data['subtitle']],
-                        'description' => ['en' => $data['description']],
+                        'subtitle' => ['en' => $data['subtitle'] ?? ''],
+                        'description' => ['en' => $data['description'] ?? ''],
                         'rfp_url' => $data['rfp_url'] ?? null,
-                        'image' => $data['image'] ?? null,
-                        'is_active' => $data['is_active'] ?? true,
+                        'image' => $coverImage,
+                        'gallery' => $gallery,
+                        'is_active' => (bool) ($data['is_active'] ?? true),
                     ]);
                     Notification::make()
                         ->title('Event Updated')
+                        ->body('Event space basic information and gallery photos have been updated successfully.')
                         ->success()
                         ->send();
                 }
@@ -289,28 +324,71 @@ class ListMeetingsEvents extends Page implements HasForms
     public static function getEventFormSchema(): array
     {
         return [
-            Grid::make(2)->schema([
-                TextInput::make('title')
-                    ->label('Event / Venue Title (e.g. Events, Corporate Meetings, Weddings)')
-                    ->required(),
-                TextInput::make('subtitle')
-                    ->label('Subtitle / Category'),
-                Textarea::make('description')
-                    ->label('Short Overview')
-                    ->rows(3)
-                    ->columnSpan(2),
-                FileUpload::make('image')
-                    ->label('Cover Image')
-                    ->disk('uploads')
-                    ->directory('')
-                    ->image(),
-                TextInput::make('rfp_url')
-                    ->label('RFP / Request Link')
-                    ->url(),
-                Toggle::make('is_active')
-                    ->label('Active Status')
-                    ->default(true),
-            ])
+            Section::make('General Information')
+                ->description('Specify the venue name, category, and an engaging overview description.')
+                ->schema([
+                    Grid::make(2)->schema([
+                        TextInput::make('title')
+                            ->label('Event / Venue Title')
+                            ->placeholder('e.g. Corporate Meetings, Banquet Halls, Weddings')
+                            ->required()
+                            ->maxLength(255),
+                        TextInput::make('subtitle')
+                            ->label('Subtitle / Category')
+                            ->placeholder('e.g. Business Conferences, Private Receptions')
+                            ->maxLength(255),
+                    ]),
+                    RichEditor::make('description')
+                        ->label('Short Overview')
+                        ->placeholder('Provide an engaging description of this event space, its ambiance, and facilities...')
+                        ->toolbarButtons([
+                            'bold',
+                            'italic',
+                            'underline',
+                            'strike',
+                            'bulletList',
+                            'orderedList',
+                            'link',
+                            'undo',
+                            'redo',
+                        ])
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Media & Gallery')
+                ->description('Upload the venue cover photo, photo gallery for the slider, and configure the Request for Proposal (RFP) booking link.')
+                ->schema([
+                    Grid::make(2)->schema([
+                        FileUpload::make('image')
+                            ->label('Cover Image (Featured / Thumbnail)')
+                            ->disk('uploads')
+                            ->directory('')
+                            ->image()
+                            ->imageResizeMode('cover')
+                            ->imageCropAspectRatio('16:9')
+                            ->helperText('Main cover photo for cards and previews.')
+                            ->columnSpan(1),
+                        Grid::make(1)->schema([
+                            TextInput::make('rfp_url')
+                                ->label('RFP / Request Link')
+                                ->placeholder('/meetings-events/request-for-proposal or https://...')
+                                ->helperText('Target link for the proposal request button. Supports relative paths or external URLs.'),
+                            Toggle::make('is_active')
+                                ->label('Active Status')
+                                ->helperText('Toggle whether this event venue is visible on the website.')
+                                ->default(true),
+                        ])->columnSpan(1),
+                    ]),
+                    FileUpload::make('gallery')
+                        ->label('Slider & Gallery Images')
+                        ->disk('uploads')
+                        ->directory('')
+                        ->multiple()
+                        ->reorderable()
+                        ->image()
+                        ->helperText('Upload all photos displayed in the venue image slider & thumbnail strip on the website.')
+                        ->columnSpanFull(),
+                ]),
         ];
     }
 }

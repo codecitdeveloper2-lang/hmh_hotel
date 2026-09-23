@@ -410,12 +410,7 @@ class EditCmsPage extends Page implements HasForms
                 'history_timeline' => $historyTimeline,
                 'coming_soon_sections' => $comingSoonSections,
                 'categories' => $enBody['categories'] ?? [],
-                'corp_amman_images' => $enBody['corp_amman_images'] ?? [],
-                'coral_beach_sharjah_images' => $enBody['coral_beach_sharjah_images'] ?? [],
-                'bahi_ajman_palace_images' => $enBody['bahi_ajman_palace_images'] ?? [],
-                'ecos_dubai_images' => $enBody['ecos_dubai_images'] ?? [],
-                'coral_dubai_deira_images' => $enBody['coral_dubai_deira_images'] ?? [],
-                'coral_jubail_images' => $enBody['coral_jubail_images'] ?? [],
+                'opera_grand_hotel_images' => $enBody['opera_grand_hotel_images'] ?? $enBody['coral_dubai_deira_images'] ?? [],
                 'gallery_items' => $enBody['gallery_items'] ?? [],
                 'future_slider_images' => $enBody['future_slider_images'] ?? [],
                 'value_proposition_title' => $val('value_proposition_title'),
@@ -521,10 +516,15 @@ class EditCmsPage extends Page implements HasForms
                 ];
             }
 
-            $bannerImages = $data['banner_images'] ?? ($decodedEnBody['banner_images'] ?? []);
-            if (!empty($bannerImages)) {
+            // Synchronize banner_images and banner_slides
+            $prevBannerImages = $decodedEnBody['banner_images'] ?? [];
+            $submittedBannerImages = is_array($data['banner_images'] ?? null) ? array_values($data['banner_images']) : [];
+            $newUploads = array_diff($submittedBannerImages, $prevBannerImages);
+
+            // If user uploaded brand new images in banner_images that weren't there before, add them to slides
+            if (!empty($newUploads)) {
                 $existingSlideImages = array_column($enBannerSlides, 'image');
-                foreach ($bannerImages as $bImg) {
+                foreach ($newUploads as $bImg) {
                     if (!in_array($bImg, $existingSlideImages)) {
                         $enBannerSlides[] = [
                             'image' => $bImg,
@@ -538,7 +538,24 @@ class EditCmsPage extends Page implements HasForms
                         ];
                     }
                 }
+            } elseif (empty($enBannerSlides) && !empty($submittedBannerImages)) {
+                // If banner_slides is empty but banner_images has photos, initialize slides
+                foreach ($submittedBannerImages as $bImg) {
+                    $enBannerSlides[] = [
+                        'image' => $bImg,
+                        'title' => $titleEn,
+                        'subtitle' => $getText('intro_subtitle', 'en') ?: 'Hospitality Management Holding',
+                    ];
+                    $arBannerSlides[] = [
+                        'image' => $bImg,
+                        'title' => !empty($titleAr) ? $titleAr : $titleEn,
+                        'subtitle' => $getText('intro_subtitle', 'ar') ?: 'Hospitality Management Holding',
+                    ];
+                }
             }
+
+            // Keep banner_images synchronized with the current slide images so deleted slides are removed from both
+            $bannerImages = array_values(array_filter(array_column($enBannerSlides, 'image')));
 
             // Coming soon sections
             $enComingSoon = [];
@@ -850,6 +867,47 @@ class EditCmsPage extends Page implements HasForms
                 ];
             }
 
+            // Synchronize gallery_items and opera_grand_hotel_images
+            $operaImages = $data['opera_grand_hotel_images'] ?? ($decodedEnBody['opera_grand_hotel_images'] ?? $decodedEnBody['coral_dubai_deira_images'] ?? []);
+            if (!is_array($operaImages)) $operaImages = [];
+
+            $galleryItems = $data['gallery_items'] ?? ($decodedEnBody['gallery_items'] ?? []);
+            if (!is_array($galleryItems)) $galleryItems = [];
+
+            // If opera_grand_hotel_images was submitted in $data, synchronize gallery_items with it
+            if (isset($data['opera_grand_hotel_images']) && is_array($data['opera_grand_hotel_images'])) {
+                $operaBasenames = array_map('basename', $data['opera_grand_hotel_images']);
+                // Keep only gallery_items that are still present in opera_grand_hotel_images
+                $galleryItems = array_values(array_filter($galleryItems, function ($item) use ($operaBasenames) {
+                    $img = is_array($item) ? ($item['image'] ?? '') : '';
+                    return !empty($img) && in_array(basename($img), $operaBasenames);
+                }));
+
+                // If new images were added to opera_grand_hotel_images, add them to gallery_items
+                $existingItemBasenames = array_map(function ($item) {
+                    $img = is_array($item) ? ($item['image'] ?? '') : '';
+                    return basename($img);
+                }, $galleryItems);
+
+                foreach ($data['opera_grand_hotel_images'] as $opImg) {
+                    if (!in_array(basename($opImg), $existingItemBasenames)) {
+                        $galleryItems[] = [
+                            'hotel_name' => 'Opera Grand Hotel',
+                            'title' => 'Opera Grand Hotel',
+                            'image' => $opImg,
+                        ];
+                    }
+                }
+                $operaImages = $data['opera_grand_hotel_images'];
+            } elseif (isset($data['gallery_items']) && is_array($data['gallery_items'])) {
+                // If only gallery_items was submitted, sync opera_grand_hotel_images to match
+                $giImages = array_filter(array_column($galleryItems, 'image'));
+                $giBasenames = array_map('basename', $giImages);
+                $operaImages = array_values(array_filter($operaImages, function ($img) use ($giBasenames) {
+                    return in_array(basename($img), $giBasenames);
+                }));
+            }
+
             $enBody = [
                 'display_order' => $data['display_order'] ?? null,
                 'banner_images' => $bannerImages,
@@ -876,13 +934,9 @@ class EditCmsPage extends Page implements HasForms
                 'history_timeline' => $enTimeline,
                 'coming_soon_sections' => $enComingSoon,
                 'categories' => $data['categories'] ?? ($decodedEnBody['categories'] ?? []),
-                'corp_amman_images' => $data['corp_amman_images'] ?? ($decodedEnBody['corp_amman_images'] ?? []),
-                'coral_beach_sharjah_images' => $data['coral_beach_sharjah_images'] ?? ($decodedEnBody['coral_beach_sharjah_images'] ?? []),
-                'bahi_ajman_palace_images' => $data['bahi_ajman_palace_images'] ?? ($decodedEnBody['bahi_ajman_palace_images'] ?? []),
-                'ecos_dubai_images' => $data['ecos_dubai_images'] ?? ($decodedEnBody['ecos_dubai_images'] ?? []),
-                'coral_dubai_deira_images' => $data['coral_dubai_deira_images'] ?? ($decodedEnBody['coral_dubai_deira_images'] ?? []),
-                'coral_jubail_images' => $data['coral_jubail_images'] ?? ($decodedEnBody['coral_jubail_images'] ?? []),
-                'gallery_items' => $data['gallery_items'] ?? ($decodedEnBody['gallery_items'] ?? []),
+                'opera_grand_hotel_images' => $operaImages,
+                'coral_dubai_deira_images' => $operaImages,
+                'gallery_items' => $galleryItems,
                 'future_slider_images' => $data['future_slider_images'] ?? ($decodedEnBody['future_slider_images'] ?? []),
                 'value_proposition_title' => $getText('value_proposition_title', 'en'),
                 'value_proposition_text' => $getText('value_proposition_text', 'en'),
@@ -931,13 +985,9 @@ class EditCmsPage extends Page implements HasForms
                 'history_timeline' => $arTimeline,
                 'coming_soon_sections' => $arComingSoon,
                 'categories' => $data['categories'] ?? ($decodedEnBody['categories'] ?? []),
-                'corp_amman_images' => $data['corp_amman_images'] ?? ($decodedEnBody['corp_amman_images'] ?? []),
-                'coral_beach_sharjah_images' => $data['coral_beach_sharjah_images'] ?? ($decodedEnBody['coral_beach_sharjah_images'] ?? []),
-                'bahi_ajman_palace_images' => $data['bahi_ajman_palace_images'] ?? ($decodedEnBody['bahi_ajman_palace_images'] ?? []),
-                'ecos_dubai_images' => $data['ecos_dubai_images'] ?? ($decodedEnBody['ecos_dubai_images'] ?? []),
-                'coral_dubai_deira_images' => $data['coral_dubai_deira_images'] ?? ($decodedEnBody['coral_dubai_deira_images'] ?? []),
-                'coral_jubail_images' => $data['coral_jubail_images'] ?? ($decodedEnBody['coral_jubail_images'] ?? []),
-                'gallery_items' => $data['gallery_items'] ?? ($decodedEnBody['gallery_items'] ?? []),
+                'opera_grand_hotel_images' => $operaImages,
+                'coral_dubai_deira_images' => $operaImages,
+                'gallery_items' => $galleryItems,
                 'future_slider_images' => $data['future_slider_images'] ?? ($decodedEnBody['future_slider_images'] ?? []),
                 'value_proposition_title' => $getText('value_proposition_title', 'ar'),
                 'value_proposition_text' => $getText('value_proposition_text', 'ar'),

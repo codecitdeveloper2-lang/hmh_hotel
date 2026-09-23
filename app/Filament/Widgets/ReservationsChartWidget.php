@@ -9,6 +9,14 @@ class ReservationsChartWidget extends ChartWidget
     protected ?string $heading = 'Reservations (Last 6 Months)';
     protected static ?int $sort = 3;
     protected int | string | array $columnSpan = 1;
+    protected ?string $maxHeight = '380px';
+
+    protected function getOptions(): array
+    {
+        return [
+            'maintainAspectRatio' => false,
+        ];
+    }
 
     protected function getData(): array
     {

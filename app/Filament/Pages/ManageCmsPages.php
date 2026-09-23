@@ -245,12 +245,7 @@ class ManageCmsPages extends Page
                     'history_timeline' => $decodedBody['history_timeline'] ?? [],
                     'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
                     'categories' => $decodedBody['categories'] ?? [],
-                    'corp_amman_images' => $decodedBody['corp_amman_images'] ?? [],
-                    'coral_beach_sharjah_images' => $decodedBody['coral_beach_sharjah_images'] ?? [],
-                    'bahi_ajman_palace_images' => $decodedBody['bahi_ajman_palace_images'] ?? [],
-                    'ecos_dubai_images' => $decodedBody['ecos_dubai_images'] ?? [],
-                    'coral_dubai_deira_images' => $decodedBody['coral_dubai_deira_images'] ?? [],
-                    'coral_jubail_images' => $decodedBody['coral_jubail_images'] ?? [],
+                    'opera_grand_hotel_images' => $decodedBody['opera_grand_hotel_images'] ?? $decodedBody['coral_dubai_deira_images'] ?? [],
                     'gallery_items' => $decodedBody['gallery_items'] ?? [],
                     'future_slider_images' => $decodedBody['future_slider_images'] ?? [],
                     'value_proposition_title' => $decodedBody['value_proposition_title'] ?? '',
@@ -337,12 +332,7 @@ class ManageCmsPages extends Page
                     'history_timeline' => $decodedBody['history_timeline'] ?? [],
                     'coming_soon_sections' => $decodedBody['coming_soon_sections'] ?? [],
                     'categories' => $decodedBody['categories'] ?? [],
-                    'corp_amman_images' => $decodedBody['corp_amman_images'] ?? [],
-                    'coral_beach_sharjah_images' => $decodedBody['coral_beach_sharjah_images'] ?? [],
-                    'bahi_ajman_palace_images' => $decodedBody['bahi_ajman_palace_images'] ?? [],
-                    'ecos_dubai_images' => $decodedBody['ecos_dubai_images'] ?? [],
-                    'coral_dubai_deira_images' => $decodedBody['coral_dubai_deira_images'] ?? [],
-                    'coral_jubail_images' => $decodedBody['coral_jubail_images'] ?? [],
+                    'opera_grand_hotel_images' => $decodedBody['opera_grand_hotel_images'] ?? $decodedBody['coral_dubai_deira_images'] ?? [],
                     'gallery_items' => $decodedBody['gallery_items'] ?? [],
                     'future_slider_images' => $decodedBody['future_slider_images'] ?? [],
                     'value_proposition_title' => $decodedBody['value_proposition_title'] ?? '',
@@ -420,12 +410,7 @@ class ManageCmsPages extends Page
                             'history_timeline' => $data['history_timeline'] ?? [],
                             'coming_soon_sections' => $data['coming_soon_sections'] ?? [],
                             'categories' => $data['categories'] ?? ($decodedBody['categories'] ?? []),
-                            'corp_amman_images' => $data['corp_amman_images'] ?? ($decodedBody['corp_amman_images'] ?? []),
-                            'coral_beach_sharjah_images' => $data['coral_beach_sharjah_images'] ?? ($decodedBody['coral_beach_sharjah_images'] ?? []),
-                            'bahi_ajman_palace_images' => $data['bahi_ajman_palace_images'] ?? ($decodedBody['bahi_ajman_palace_images'] ?? []),
-                            'ecos_dubai_images' => $data['ecos_dubai_images'] ?? ($decodedBody['ecos_dubai_images'] ?? []),
-                            'coral_dubai_deira_images' => $data['coral_dubai_deira_images'] ?? ($decodedBody['coral_dubai_deira_images'] ?? []),
-                            'coral_jubail_images' => $data['coral_jubail_images'] ?? ($decodedBody['coral_jubail_images'] ?? []),
+                            'opera_grand_hotel_images' => $data['opera_grand_hotel_images'] ?? ($decodedBody['opera_grand_hotel_images'] ?? $decodedBody['coral_dubai_deira_images'] ?? []),
                             'gallery_items' => $data['gallery_items'] ?? ($decodedBody['gallery_items'] ?? []),
                             'future_slider_images' => $data['future_slider_images'] ?? ($decodedBody['future_slider_images'] ?? []),
                             'value_proposition_title' => $data['value_proposition_title'] ?? ($decodedBody['value_proposition_title'] ?? ''),
@@ -925,58 +910,18 @@ class ManageCmsPages extends Page
 
                                         \Filament\Schemas\Components\Tabs::make('HotelGalleries')
                                             ->tabs([
-                                                \Filament\Schemas\Components\Tabs\Tab::make('Corp Amman Hotel')
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Opera Grand Hotel')
                                                     ->schema([
-                                                        FileUpload::make('corp_amman_images')
-                                                            ->label('Corp Amman Hotel Images (67 Photos)')
+                                                        FileUpload::make('opera_grand_hotel_images')
+                                                            ->label('Opera Grand Hotel Images (47 Photos)')
                                                             ->multiple()
                                                             ->image()
                                                             ->disk('uploads'),
                                                     ]),
-                                                \Filament\Schemas\Components\Tabs\Tab::make('Coral Beach Resort Sharjah')
-                                                    ->schema([
-                                                        FileUpload::make('coral_beach_sharjah_images')
-                                                            ->label('Coral Beach Resort Sharjah Images (48 Photos)')
-                                                            ->multiple()
-                                                            ->image()
-                                                            ->disk('uploads'),
-                                                    ]),
-                                                \Filament\Schemas\Components\Tabs\Tab::make('Bahi Ajman Palace Hotel')
-                                                    ->schema([
-                                                        FileUpload::make('bahi_ajman_palace_images')
-                                                            ->label('Bahi Ajman Palace Hotel Images (112 Photos)')
-                                                            ->multiple()
-                                                            ->image()
-                                                            ->disk('uploads'),
-                                                    ]),
-                                                \Filament\Schemas\Components\Tabs\Tab::make('Ecos Dubai Hotel at Al Furjan')
-                                                    ->schema([
-                                                        FileUpload::make('ecos_dubai_images')
-                                                            ->label('Ecos Dubai Hotel at Al Furjan Images (107 Photos)')
-                                                            ->multiple()
-                                                            ->image()
-                                                            ->disk('uploads'),
-                                                    ]),
-                                                \Filament\Schemas\Components\Tabs\Tab::make('Coral Dubai Deira Hotel')
-                                                    ->schema([
-                                                        FileUpload::make('coral_dubai_deira_images')
-                                                            ->label('Coral Dubai Deira Hotel Images (47 Photos)')
-                                                            ->multiple()
-                                                            ->image()
-                                                            ->disk('uploads'),
-                                                    ]),
-                                                \Filament\Schemas\Components\Tabs\Tab::make('Coral Jubail Hotel')
-                                                    ->schema([
-                                                        FileUpload::make('coral_jubail_images')
-                                                            ->label('Coral Jubail Hotel Images (12 Photos)')
-                                                            ->multiple()
-                                                            ->image()
-                                                            ->disk('uploads'),
-                                                    ]),
-                                                \Filament\Schemas\Components\Tabs\Tab::make('All Extracted Items')
+                                                \Filament\Schemas\Components\Tabs\Tab::make('Gallery Items')
                                                     ->schema([
                                                         \Filament\Forms\Components\Repeater::make('gallery_items')
-                                                            ->label('All Extracted Gallery Items (393 Photos with Titles)')
+                                                            ->label('Opera Grand Hotel Gallery Items (47 Photos with Titles)')
                                                             ->schema([
                                                                 TextInput::make('hotel_name')->label('Hotel Name'),
                                                                 TextInput::make('title')->label('Photo Caption / Title'),

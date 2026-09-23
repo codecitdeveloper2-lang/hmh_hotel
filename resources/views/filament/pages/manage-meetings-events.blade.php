@@ -15,11 +15,16 @@
                     @forelse($events as $event)
                         <tr class="transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                             <td style="padding: 1rem 1.5rem;">
-                                <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500 overflow-hidden" style="width: 80px; height: 50px; flex-shrink: 0;">
+                                <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500 overflow-hidden relative" style="width: 80px; height: 50px; flex-shrink: 0; position: relative;">
                                     @if(isset($event['image_url']) && $event['image_url'])
                                         <img src="{{ $event['image_url'] }}" class="object-cover" style="width: 100%; height: 100%;" alt="{{ $event['title'] }}" />
                                     @else
                                         <x-filament::icon icon="heroicon-o-photo" class="h-5 w-5" />
+                                    @endif
+                                    @if(!empty($event['gallery_count']) && $event['gallery_count'] > 1)
+                                        <span class="absolute bottom-1 right-1 bg-black/75 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded shadow" style="position: absolute; bottom: 3px; right: 3px; background: rgba(0,0,0,0.75); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 5px; border-radius: 4px; line-height: 1.2;">
+                                            {{ $event['gallery_count'] }} photos
+                                        </span>
                                     @endif
                                 </div>
                             </td>

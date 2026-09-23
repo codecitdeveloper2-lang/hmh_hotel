@@ -55,8 +55,7 @@ class ManageHotels extends Page
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
         
-        $hotels = $query->with('parent')
-                        ->skip(($currentPage - 1) * $this->perPage)
+        $hotels = $query->skip(($currentPage - 1) * $this->perPage)
                         ->take($this->perPage)
                         ->get()
                         ->map(function ($hotel) {
@@ -76,7 +75,6 @@ class ManageHotels extends Page
                             return [
                                 'id' => $hotel->id,
                                 'name' => $hotel->display_name,
-                                'brand' => $hotel->parent?->display_name ?? 'N/A',
                                 'country' => $hotel->country ?? 'N/A',
                                 'city' => $hotel->city ?? 'N/A',
                                 'star_rating' => $hotel->star_rating ? $hotel->star_rating . ' Star' : 'N/A',
@@ -130,22 +128,21 @@ class ManageHotels extends Page
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('addHotel')
-                ->label('Add Hotel')
-                ->icon('heroicon-o-plus')
-                ->modalWidth('7xl')
-                ->form($this->getHotelFormSchema())
-                
-            ->url(\App\Filament\Pages\Hotels\CreateHotel::getUrl())
-            ->action(function (array $data) {
-                    $data['type'] = 'hotel';
-                    \App\Models\Property::create($data);
-                    Notification::make()
-                        ->title('Hotel Created')
-                        ->body('The hotel has been created successfully.')
-                        ->success()
-                        ->send();
-                }),
+            // Action::make('addHotel')
+            //     ->label('Add Hotel')
+            //     ->icon('heroicon-o-plus')
+            //     ->modalWidth('7xl')
+            //     ->form($this->getHotelFormSchema())
+            //     ->url(\App\Filament\Pages\Hotels\CreateHotel::getUrl())
+            //     ->action(function (array $data) {
+            //         $data['type'] = 'hotel';
+            //         \App\Models\Property::create($data);
+            //         Notification::make()
+            //             ->title('Hotel Created')
+            //             ->body('The hotel has been created successfully.')
+            //             ->success()
+            //             ->send();
+            //     }),
         ];
     }
 
@@ -206,10 +203,6 @@ class ManageHotels extends Page
                                             ->dehydrated()
                                             ->live(onBlur: true)
                                             ->afterStateUpdated(fn (string $operation, $state, \Filament\Schemas\Components\Utilities\Set $set) => $set('slug', Str::slug($state ?? ''))),
-                                        Select::make('parent_id')
-                                            ->label('Brand')
-                                            ->options(fn () => \App\Models\Property::where('type', 'brand')->get()->mapWithKeys(fn ($b) => [$b->id => $b->display_name])->toArray())
-                                            ->required(),
                                         TextInput::make('slug')
                                             ->label('Slug')
                                             ->required(),

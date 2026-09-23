@@ -18,6 +18,8 @@ use BackedEnum;
 
 class ManageBrands extends Page
 {
+    protected static bool $shouldRegisterNavigation = false;
+
     protected string $view = 'filament.pages.manage-brands';
 
 

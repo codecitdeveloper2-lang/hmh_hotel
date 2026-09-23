@@ -18,6 +18,13 @@ class CreateMeetingsAndEvent extends Page implements HasForms
 
     public function mount(): void
     {
+        $defaultHotelId = \App\Models\Property::where('type', 'hotel')->where('slug', 'opera-grand-hotel')->value('id')
+            ?? \App\Models\Property::where('type', 'hotel')->value('id');
+
+        $this->form->fill([
+            'property_id' => $defaultHotelId,
+            'status' => 'Published',
+        ]);
     }
 
     protected function getHeaderActions(): array
@@ -41,6 +48,7 @@ class CreateMeetingsAndEvent extends Page implements HasForms
         $data = $this->form->getState();
 
         $typeMapping = [
+            'Main Overview' => 'main_page',
             'Corporate Meetings' => 'corporate',
             'Weddings' => 'weddings',
             'Conference Facilities' => 'conference_room',
@@ -50,15 +58,29 @@ class CreateMeetingsAndEvent extends Page implements HasForms
         ];
         $mappedType = $typeMapping[$data['event_type'] ?? ''] ?? 'corporate';
 
+        $contactDetails = [
+            'phone' => $data['contact_phone'] ?? null,
+            'email' => $data['contact_email'] ?? null,
+        ];
+
+        $gallery = is_array($data['gallery'] ?? null) ? array_values($data['gallery']) : [];
+        $firstImage = count($gallery) > 0 ? $gallery[0] : null;
+
         $page = \App\Models\MeetingEventPage::create([
             'title' => $data['title'] ?? 'Untitled',
             'type' => $mappedType,
-            'description' => $data['highlight_description'] ?? '',
-            'subtitle' => $data['highlight_subtitle'] ?? null,
+            'description' => $data['description'] ?? '',
+            'details_content' => $data['description'] ?? '',
             'rfp_url' => $data['rfp_url'] ?? null,
-            'event_cards' => $data['event_cards'] ?? [],
-            'banner_slides' => $data['banner_slides'] ?? [],
-            'gallery' => $data['gallery'] ?? [],
+            'contact_details' => $contactDetails,
+            'highlights' => !empty($data['highlights']) ? $data['highlights'] : null,
+            'capacity_details' => null,
+            'area_sqm' => null,
+            'area_sqft' => null,
+            'ceiling_height' => null,
+            'capacities' => null,
+            'gallery' => $gallery,
+            'image' => $firstImage,
             'slug' => $data['slug'] ?? \Illuminate\Support\Str::slug($data['title'] ?? 'Untitled'),
             'status' => $data['status'] ?? 'Published',
             'is_active' => ($data['status'] ?? 'Published') === 'Published',
@@ -73,8 +95,7 @@ class CreateMeetingsAndEvent extends Page implements HasForms
             ]);
         }
 
-        
-        \Filament\Notifications\Notification::make()->title('Created successfully')->success()->send();
+        Notification::make()->title('Created successfully')->success()->send();
         $this->redirect(\App\Filament\Pages\ManageMeetingsAndEvents::getUrl());
     }
 

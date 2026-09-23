@@ -18,7 +18,12 @@ class CreateOffer extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->form->fill();
+        $defaultHotelId = \App\Models\Property::where('type', 'hotel')->where('slug', 'opera-grand-hotel')->value('id')
+            ?? \App\Models\Property::where('type', 'hotel')->value('id');
+
+        $this->form->fill([
+            'hotel' => $defaultHotelId,
+        ]);
     }
 
     protected function getHeaderActions(): array

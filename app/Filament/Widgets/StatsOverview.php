@@ -12,16 +12,6 @@ class StatsOverview extends BaseWidget
     protected function getStats(): array
     {
         return [
-            Stat::make('Total Brands', '5')
-                ->description('1 new brand added')
-                ->descriptionIcon('heroicon-m-arrow-trending-up')
-                ->chart([1, 2, 2, 3, 4, 4, 5])
-                ->color('success'),
-            Stat::make('Total Hotels', '25')
-                ->description('3 properties in development')
-                ->descriptionIcon('heroicon-m-building-office-2')
-                ->chart([15, 18, 20, 20, 22, 24, 25])
-                ->color('primary'),
             Stat::make('Total Offers', '18')
                 ->description('7% decrease in active offers')
                 ->descriptionIcon('heroicon-m-arrow-trending-down')

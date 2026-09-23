@@ -26,7 +26,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('')
             ->login() // Re-enabled login page
-            ->brandName('HMH Hotel Group CMS')
+            ->brandName('Opera Grand Hotel')
             ->colors([
                 'primary' => Color::Indigo,
                 'gray' => Color::Slate,
@@ -41,7 +41,6 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 \App\Filament\Widgets\StatsOverview::class,
                 \App\Filament\Widgets\ReservationsChartWidget::class,
-                \App\Filament\Widgets\OccupancyChartWidget::class,
                 \App\Filament\Widgets\QuickActionsWidget::class,
                 \App\Filament\Widgets\RecentActivityWidget::class,
             ])
@@ -61,7 +60,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->renderHook(
                 \Filament\View\PanelsRenderHook::HEAD_END,
-                fn (): string => \Illuminate\Support\Facades\Blade::render('
+                fn(): string => \Illuminate\Support\Facades\Blade::render('
                     <style>
                         .fi-tabs:not(.fi-fo-tabs) {
                             width: 100%;
@@ -70,6 +69,32 @@ class AdminPanelProvider extends PanelProvider
                         .fi-tabs:not(.fi-fo-tabs) .fi-tabs-item {
                             flex: 1 1 0%;
                             justify-content: center;
+                        }
+                        .fi-wi-widget {
+                            display: flex;
+                            flex-direction: column;
+                            height: 100%;
+                        }
+                        .fi-wi-widget > .fi-section {
+                            flex: 1 1 auto;
+                            display: flex;
+                            flex-direction: column;
+                            height: 100%;
+                        }
+                        .fi-wi-widget > .fi-section > .fi-section-content-ctn {
+                            flex: 1 1 auto;
+                            display: flex;
+                            flex-direction: column;
+                        }
+                        .fi-wi-widget > .fi-section > .fi-section-content-ctn > .fi-section-content {
+                            flex: 1 1 auto;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                        }
+                        .fi-wi-chart .fi-wi-chart-frame {
+                            flex: 1 1 auto;
+                            width: 100%;
                         }
                     </style>
                 ')

@@ -22,6 +22,7 @@ class ViewMeetingsAndEvent extends Page implements HasForms
         $this->record = $record;
         $page = \App\Models\MeetingEventPage::findOrFail($this->record);
         $reverseTypeMapping = [
+            'main_page' => 'Main Overview',
             'corporate' => 'Corporate Meetings',
             'weddings' => 'Weddings',
             'conference_room' => 'Conference Facilities',
@@ -30,27 +31,28 @@ class ViewMeetingsAndEvent extends Page implements HasForms
             'rfp' => 'Corporate Meetings',
         ];
 
-        $rekeyRepeater = function ($array) {
-            if (!is_array($array)) return [];
-            $result = [];
-            foreach ($array as $item) {
-                $result[(string)\Illuminate\Support\Str::uuid()] = $item;
-            }
-            return $result;
-        };
+        $desc = is_array($page->description) ? ($page->description['en'] ?? reset($page->description)) : $page->description;
+        if (empty($desc) && !empty($page->details_content)) {
+            $desc = is_array($page->details_content) ? ($page->details_content['en'] ?? reset($page->details_content)) : $page->details_content;
+        }
+
+        $title = is_array($page->title) ? ($page->title['en'] ?? reset($page->title)) : $page->title;
+        $highlights = $page->highlights;
+        if (is_array($highlights)) {
+            $highlights = implode("\n\n", $highlights);
+        }
 
         $this->form->fill([
-            'title' => $page->title,
+            'title' => $title,
             'property_id' => $page->property_id,
             'event_type' => $reverseTypeMapping[$page->type] ?? 'Corporate Meetings',
-            'slug' => $page->slug ?? \Illuminate\Support\Str::slug($page->title ?? ''),
+            'slug' => $page->slug ?? \Illuminate\Support\Str::slug($title ?? ''),
             'status' => $page->status ?? ($page->is_active ? 'Published' : 'Draft'),
-            'highlight_subtitle' => $page->subtitle,
-            'highlight_title' => $page->title ?? '', // not strictly saved separately, fallback to title
-            'highlight_description' => $page->description,
+            'description' => $desc,
+            'highlights' => $highlights,
             'rfp_url' => $page->rfp_url,
-            'event_cards' => $rekeyRepeater($page->event_cards),
-            'banner_slides' => $rekeyRepeater($page->banner_slides),
+            'contact_phone' => is_array($page->contact_details) ? ($page->contact_details['phone'] ?? '') : '',
+            'contact_email' => is_array($page->contact_details) ? ($page->contact_details['email'] ?? '') : '',
             'gallery' => $page->gallery ?? [],
             'meta_title' => $page->seoMetadata?->meta_title,
             'meta_description' => $page->seoMetadata?->meta_description,

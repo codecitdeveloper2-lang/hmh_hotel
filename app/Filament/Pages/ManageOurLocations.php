@@ -45,6 +45,10 @@ class ManageOurLocations extends Page
         $this->currentPage = $page;
     }
 
+    // Sidebar navigation disabled for now (uncomment to re-enable)
+    protected static bool $shouldRegisterNavigation = false;
+
+    /*
     public static function getNavigationGroup(): ?string
     {
         return 'Content Management';
@@ -60,14 +64,15 @@ class ManageOurLocations extends Page
         return 'heroicon-o-map';
     }
 
-    public function getMaxContentWidth(): ?string
-    {
-        return 'full';
-    }
-
     public static function getNavigationLabel(): string
     {
         return 'Our Location';
+    }
+    */
+
+    public function getMaxContentWidth(): ?string
+    {
+        return 'full';
     }
 
     public function getTitle(): string | Htmlable
