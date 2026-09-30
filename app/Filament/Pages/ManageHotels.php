@@ -55,7 +55,8 @@ class ManageHotels extends Page
         $lastPage    = max(1, (int) ceil($totalItems / $this->perPage));
         $currentPage = max(1, min($this->currentPage, $lastPage));
         
-        $hotels = $query->skip(($currentPage - 1) * $this->perPage)
+        $hotels = $query->with('parent')
+                        ->skip(($currentPage - 1) * $this->perPage)
                         ->take($this->perPage)
                         ->get()
                         ->map(function ($hotel) {
@@ -75,6 +76,7 @@ class ManageHotels extends Page
                             return [
                                 'id' => $hotel->id,
                                 'name' => $hotel->display_name,
+                                'brand' => $hotel->parent?->display_name ?? 'N/A',
                                 'country' => $hotel->country ?? 'N/A',
                                 'city' => $hotel->city ?? 'N/A',
                                 'star_rating' => $hotel->star_rating ? $hotel->star_rating . ' Star' : 'N/A',

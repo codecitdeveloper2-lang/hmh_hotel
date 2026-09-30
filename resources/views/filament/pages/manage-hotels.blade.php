@@ -18,9 +18,9 @@
                     @foreach($hotels as $hotel)
                         <tr class="transition duration-75 hover:bg-gray-50 dark:hover:bg-white/5">
                             <td style="padding: 1rem 1.5rem;">
-                                @if($hotel['image_url'])
+                                @if(!empty($hotel['image_url']))
                                     <div class="rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800" style="width: 100px; height: 64px; min-width: 100px;">
-                                        <img src="{{ $hotel['image_url'] }}" alt="{{ $hotel['name'] }}" style="width: 100%; height: 100%; object-fit: cover;" />
+                                        <img src="{{ $hotel['image_url'] }}" alt="{{ $hotel['name'] ?? '' }}" style="width: 100%; height: 100%; object-fit: cover;" />
                                     </div>
                                 @else
                                     <div class="rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:text-gray-500" style="width: 100px; height: 64px; min-width: 100px;">
@@ -29,28 +29,28 @@
                                 @endif
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm font-medium text-gray-950 dark:text-white">
-                                {{ $hotel['name'] }}
+                                {{ $hotel['name'] ?? '' }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['country'] }}
+                                {{ $hotel['country'] ?? 'N/A' }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['city'] }}
+                                {{ $hotel['city'] ?? 'N/A' }}
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['star_rating'] }}
+                                {{ $hotel['star_rating'] ?? 'N/A' }}
                             </td>
                             <td style="padding: 1rem 1.5rem;">
-                                @if($hotel['status'] === 'Live')
+                                @if(($hotel['status'] ?? '') === 'Live')
                                     <x-filament::badge color="success">Live</x-filament::badge>
-                                @elseif($hotel['status'] === 'Coming Soon')
+                                @elseif(($hotel['status'] ?? '') === 'Coming Soon')
                                     <x-filament::badge color="warning">Coming Soon</x-filament::badge>
                                 @else
                                     <x-filament::badge color="danger">Closed</x-filament::badge>
                                 @endif
                             </td>
                             <td style="padding: 1rem 1.5rem;" class="text-sm text-gray-500 dark:text-gray-400">
-                                {{ $hotel['last_updated'] }}
+                                {{ $hotel['last_updated'] ?? '' }}
                             </td>
                             <td style="padding: 1rem 1.5rem; text-align: right;">
                                 <x-filament::dropdown placement="bottom-end" teleport>
