@@ -16,6 +16,8 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use BackedEnum;
+use App\Models\Setting;
+use App\Http\Controllers\Api\SettingApiController;
 
 class ManageSettings extends Page implements HasForms
 {
@@ -52,7 +54,18 @@ class ManageSettings extends Page implements HasForms
 
     public function mount(): void
     {
-        $this->form->fill($this->getMockSettings());
+        $defaults = SettingApiController::getDefaultSettings();
+        $stored = Setting::getAll();
+        $settings = array_merge($defaults, $stored);
+
+        if (isset($settings['maintenance_mode'])) {
+            $settings['maintenance_mode'] = filter_var($settings['maintenance_mode'], FILTER_VALIDATE_BOOLEAN);
+        }
+        if (isset($settings['enable_search'])) {
+            $settings['enable_search'] = filter_var($settings['enable_search'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        $this->form->fill($settings);
     }
 
     public function form($form)
@@ -95,8 +108,24 @@ class ManageSettings extends Page implements HasForms
                                 TextInput::make('company_email')->label('Email Address')->email(),
                                 Textarea::make('company_address')->label('Company Address')->columnSpanFull(),
                                 TextInput::make('company_country')->label('Country'),
-                                FileUpload::make('company_logo')->label('Company Logo')->image()->columnSpan(1),
-                                FileUpload::make('company_favicon')->label('Company Favicon')->image()->columnSpan(1),
+                                FileUpload::make('company_logo')
+                                    ->label('Company Logo')
+                                    ->image()
+                                    ->disk('uploads')
+                                    ->directory('')
+                                    ->columnSpan(1),
+                                FileUpload::make('footer_logo')
+                                    ->label('Footer Logo')
+                                    ->image()
+                                    ->disk('uploads')
+                                    ->directory('')
+                                    ->columnSpan(1),
+                                FileUpload::make('company_favicon')
+                                    ->label('Company Favicon')
+                                    ->image()
+                                    ->disk('uploads')
+                                    ->directory('')
+                                    ->columnSpanFull(),
                             ])->columns(2),
 
                         Tabs\Tab::make('Website Settings')
@@ -104,7 +133,7 @@ class ManageSettings extends Page implements HasForms
                             ->schema([
                                 TextInput::make('homepage_title')->label('Homepage Title')->columnSpanFull(),
                                 Textarea::make('homepage_meta_description')->label('Homepage Meta Description')->columnSpanFull(),
-                                FileUpload::make('default_banner_image')->label('Default Banner Image')->image()->columnSpanFull(),
+                                FileUpload::make('default_banner_image')->label('Default Banner Image')->image()->disk('uploads')->directory('')->columnSpanFull(),
                                 Toggle::make('maintenance_mode')->label('Maintenance Mode'),
                                 Toggle::make('enable_search')->label('Enable Search'),
                             ])->columns(2),
@@ -127,13 +156,16 @@ class ManageSettings extends Page implements HasForms
                                 TextInput::make('linkedin_url')->label('LinkedIn URL')->url()->prefixIcon('heroicon-m-link'),
                                 TextInput::make('twitter_url')->label('X (Twitter) URL')->url()->prefixIcon('heroicon-m-link'),
                                 TextInput::make('youtube_url')->label('YouTube URL')->url()->prefixIcon('heroicon-m-link'),
+                                TextInput::make('threads_url')->label('Threads URL')->url()->prefixIcon('heroicon-m-link'),
+                                TextInput::make('tiktok_url')->label('TikTok URL')->url()->prefixIcon('heroicon-m-link'),
+                                TextInput::make('google_map_url')->label('Google Map URL')->url()->prefixIcon('heroicon-m-link'),
                             ])->columns(2),
 
                         Tabs\Tab::make('Global Sections')
                             ->icon('heroicon-m-squares-2x2')
                             ->schema([
                                 TextInput::make('our_brands_title')->label('Our Brands Title')->default('OUR BRANDS')->columnSpanFull(),
-                                FileUpload::make('our_brands_background')->label('Our Brands Background Image')->image()->columnSpanFull(),
+                                FileUpload::make('our_brands_background')->label('Our Brands Background Image')->image()->disk('uploads')->directory('')->columnSpanFull(),
                             ])->columns(2),
 
                         Tabs\Tab::make('SEO Settings')
@@ -167,6 +199,17 @@ class ManageSettings extends Page implements HasForms
 
     public function save(): void
     {
+        $data = $this->form->getState();
+
+        foreach ($data as $key => $value) {
+            if (is_bool($value)) {
+                $value = $value ? '1' : '0';
+            } elseif (is_array($value)) {
+                $value = json_encode($value);
+            }
+            Setting::set($key, $value);
+        }
+
         Notification::make()
             ->title('Settings saved successfully.')
             ->success()
@@ -175,7 +218,8 @@ class ManageSettings extends Page implements HasForms
 
     public function resetForm(): void
     {
-        $this->form->fill($this->getMockSettings());
+        Setting::truncate();
+        $this->form->fill(SettingApiController::getDefaultSettings());
 
         Notification::make()
             ->title('Settings reset to defaults.')
@@ -185,45 +229,6 @@ class ManageSettings extends Page implements HasForms
 
     protected function getMockSettings(): array
     {
-        return [
-            'website_name' => 'HMH Hotel Group',
-            'website_url' => 'https://www.hmhhotelgroup.com',
-            'admin_email' => 'admin@hmhhotelgroup.com',
-            'time_zone' => 'Asia/Dubai',
-            'default_language' => 'en',
-            'date_format' => 'Y-m-d',
-            'time_format' => 'H:i',
-            
-            'company_name' => 'Hospitality Management Holding (HMH)',
-            'company_registration_number' => 'REG-123456789',
-            'company_address' => 'Sheikh Zayed Road, Dubai, United Arab Emirates',
-            'company_country' => 'United Arab Emirates',
-            'company_phone' => '+971 4 123 4567',
-            'company_email' => 'info@hmhhotelgroup.com',
-            
-            'homepage_title' => 'HMH Hotel Group - Premium Hospitality',
-            'homepage_meta_description' => 'Experience luxury and comfort across the Middle East with HMH Hotel Group.',
-            'maintenance_mode' => false,
-            'enable_search' => true,
-            
-            'head_office_address' => 'Sheikh Zayed Road, P.O. Box 12345, Dubai, UAE',
-            'contact_phone_number' => '+971 4 123 4567',
-            'contact_email_address' => 'contact@hmhhotelgroup.com',
-            'customer_support_email' => 'support@hmhhotelgroup.com',
-            'google_maps_url' => 'https://maps.google.com/?q=HMH+Hotel+Group',
-            
-            'facebook_url' => 'https://facebook.com/hmhhotelgroup',
-            'instagram_url' => 'https://instagram.com/hmhhotelgroup',
-            'linkedin_url' => 'https://linkedin.com/company/hmhhotelgroup',
-            'twitter_url' => 'https://twitter.com/hmhhotelgroup',
-            'youtube_url' => 'https://youtube.com/hmhhotelgroup',
-            
-            'default_meta_title' => 'HMH Hotel Group',
-            'default_meta_description' => 'Official website of HMH Hotel Group.',
-            'default_meta_keywords' => 'hotels, dubai, uae, luxury, hmh',
-            'robots_meta_tag' => 'index, follow',
-            'google_analytics_id' => 'G-ABC123XYZ',
-            'google_tag_manager_id' => 'GTM-ABCDEF',
-        ];
+        return SettingApiController::getDefaultSettings();
     }
 }

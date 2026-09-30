@@ -81,3 +81,12 @@ Route::prefix('meetings-events')->group(function () {
     Route::get('/{slug}', [MeetingEventApiController::class, 'show']);
 });
 
+/*
+|--------------------------------------------------------------------------
+| Settings API (Public — no auth required)
+|--------------------------------------------------------------------------
+*/
+use App\Http\Controllers\Api\SettingApiController;
+Route::get('/settings', [SettingApiController::class, 'index']);
+
+
